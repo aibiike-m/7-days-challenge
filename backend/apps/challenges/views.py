@@ -1,0 +1,75 @@
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from .models import Challenge, Task
+from .serializers import (
+    ChallengeListSerializer,
+    ChallengeDetailSerializer,
+    ChallengeCreateSerializer,
+    TaskSerializer,
+)
+from .services.challenge_service import ChallengeService
+
+
+class ChallengeViewSet(viewsets.ModelViewSet):
+    """API для работы с челленджами"""
+
+    queryset = Challenge.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ChallengeListSerializer
+        elif self.action == "create":
+            return ChallengeCreateSerializer
+        return ChallengeDetailSerializer
+
+    def create(self, request):
+        """Создание нового челленджа с генерацией задач через AI"""
+        serializer = ChallengeCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        goal = serializer.validated_data["goal"]
+
+        try:
+            challenge = ChallengeService.create_challenge_with_tasks(goal=goal)
+
+            response_serializer = ChallengeDetailSerializer(challenge)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["get"])
+    def active(self, request):
+        challenge = ChallengeService.get_active_challenge()
+
+        if not challenge:
+            return Response(
+                {"detail": "Нет активных челленджей"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = ChallengeDetailSerializer(challenge)
+        return Response(serializer.data)
+
+
+class TaskViewSet(viewsets.ModelViewSet):
+
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+
+    @action(detail=True, methods=["post"])
+    def complete(self, request, pk=None):
+        """Отметить задачу как выполненную"""
+        task = self.get_object()
+        task.mark_completed()
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"])
+    def uncomplete(self, request, pk=None):
+        """Снять отметку о выполнении"""
+        task = self.get_object()
+        task.mark_uncompleted()
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)
