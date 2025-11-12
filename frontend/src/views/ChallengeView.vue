@@ -2,6 +2,7 @@
   <div class="challenge">
     <!-- Шапка -->
     <header class="header">
+      <router-link to="/" class="back-btn">На главную</router-link>
       <h1 class="goal">{{ challenge.goal }}</h1>
       <div class="progress-container">
         <div class="progress-bar" :style="{ width: challenge.progress_percentage + '%' }"></div>

@@ -1,5 +1,18 @@
 @import "../variables";
 
+.back-btn {
+  position: absolute;
+  left: 2rem;
+  top: 2rem;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  &:hover { background: rgba(255,255,255,0.3); }
+}
+
 .challenge {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
