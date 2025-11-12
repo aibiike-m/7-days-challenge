@@ -16,7 +16,11 @@
         v-for="day in 7"
         :key="day"
         @click="selectedDay = day"
-        :class="{ active: selectedDay === day, completed: isDayCompleted(day) }"
+        :class="{ 
+          active: selectedDay === day, 
+          completed: isDayCompleted(day),
+          current: day === challenge.current_day && day !== selectedDay
+        }"
         class="day-btn"
       >
         <span class="day-number">День {{ day }}</span>
@@ -30,6 +34,7 @@
         v-for="task in tasksForSelectedDay"
         :key="task.id"
         :task="task"
+        :disabled="selectedDay !== challenge.current_day"
         @toggle="toggleTask"
       />
       
@@ -58,6 +63,7 @@ const route = useRoute()
 const challenge = ref({})
 const selectedDay = ref(1)
 const API_URL = 'http://127.0.0.1:8000/api'
+const isToday = computed(() => selectedDay.value === challenge.value.current_day)
 
 async function loadChallenge() {
   try {

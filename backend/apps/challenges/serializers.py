@@ -58,6 +58,7 @@ class ChallengeDetailSerializer(serializers.ModelSerializer):
             "duration_days",
             "progress_percentage",
             "tasks",
+            "current_day",
         ]
 
 

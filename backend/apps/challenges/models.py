@@ -20,6 +20,11 @@ class Challenge(models.Model):
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
 
+    current_day = models.IntegerField(
+        default=1,
+        verbose_name="Текущий день",
+    )
+
     class Meta:
         verbose_name = "Челлендж"
         verbose_name_plural = "Челленджи"
@@ -61,12 +66,44 @@ class Task(models.Model):
     def __str__(self):
         return f"День {self.day_number}: {self.title}"
 
+    # def mark_completed(self):
+    #     self.is_completed = True
+    #     self.completed_at = timezone.now()
+    #     self.save()
+
+    # def mark_uncompleted(self):
+    #     self.is_completed = False
+    #     self.completed_at = None
+    #     self.save()
+
     def mark_completed(self):
+        if self.is_completed:
+            return  
+
         self.is_completed = True
         self.completed_at = timezone.now()
         self.save()
 
+        challenge = self.challenge
+        day_tasks = challenge.tasks.filter(day_number=self.day_number)
+        completed_today = day_tasks.filter(is_completed=True).count()
+
+        if completed_today == day_tasks.count():
+            if challenge.current_day == self.day_number:
+                challenge.current_day = self.day_number + 1
+                challenge.save()
+
     def mark_uncompleted(self):
+        if not self.is_completed:
+            return
+
         self.is_completed = False
         self.completed_at = None
         self.save()
+
+        challenge = self.challenge
+        if challenge.current_day > self.day_number:
+            current_day_tasks = challenge.tasks.filter(day_number=challenge.current_day)
+            if not current_day_tasks.filter(is_completed=True).exists():
+                challenge.current_day = self.day_number
+                challenge.save()
