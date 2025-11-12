@@ -36,7 +36,7 @@ const loading = ref(false)
 const hasActive = ref(false)
 const router = useRouter()
 
-const API_URL = 'http://127.0.0.1:8000'
+const API_URL = 'http://127.0.0.1:8000/api'
 
 async function createChallenge() {
   if (!goal.value.trim()) return
