@@ -8,12 +8,15 @@ class ChallengeService:
 
     @staticmethod
     @transaction.atomic
-    def create_challenge_with_tasks(goal: str, duration_days: int = 7) -> Challenge:
+    def create_challenge_with_tasks(
+        goal: str, user, duration_days: int = 7
+    ) -> Challenge:
         """
         Создает челлендж и генерирует задачи через AI
 
         Args:
             goal: Цель пользователя
+            user: Пользователь (request.user)
             duration_days: Длительность в днях
 
         Returns:
@@ -21,7 +24,10 @@ class ChallengeService:
         """
 
         challenge = Challenge.objects.create(
-            goal=goal, duration_days=duration_days, status="active"
+            goal=goal,
+            user=user,  
+            duration_days=duration_days,
+            status="active",
         )
 
         try:
@@ -56,5 +62,10 @@ class ChallengeService:
             raise Exception(f"Не удалось создать челлендж: {str(e)}")
 
     @staticmethod
-    def get_active_challenge():
-        return Challenge.objects.filter(status="active").order_by("-created_at").first()
+    def get_active_challenge(user):
+        """Получить последний активный челлендж пользователя"""
+        return (
+            Challenge.objects.filter(user=user, status="active")
+            .order_by("-created_at")
+            .first()
+        )

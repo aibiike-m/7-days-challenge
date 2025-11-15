@@ -5,7 +5,12 @@ import ChallengeView from '../views/ChallengeView.vue'
 const routes = [
 	{ path: '/', name: 'home', component: HomeView },
 	{ path: '/challenge/:id', name: 'challenge', component: ChallengeView },
-	{ path: '/active', name: 'active', component: ChallengeView }, 
+	{ path: '/active', name: 'active', component: ChallengeView },
+	{
+		path: '/auth',
+		name: 'auth',
+		component: () => import('../views/AuthView.vue'),
+	},
 ]
 
 const router = createRouter({

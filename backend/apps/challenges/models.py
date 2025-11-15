@@ -1,9 +1,12 @@
 from django.db import models
 from django.utils import timezone
 from datetime import date  
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class Challenge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="challenges", null=False, blank=False)
     goal = models.TextField(verbose_name="Цель")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
@@ -65,16 +68,6 @@ class Task(models.Model):
 
     def __str__(self):
         return f"День {self.day_number}: {self.title}"
-
-    # def mark_completed(self):
-    #     self.is_completed = True
-    #     self.completed_at = timezone.now()
-    #     self.save()
-
-    # def mark_uncompleted(self):
-    #     self.is_completed = False
-    #     self.completed_at = None
-    #     self.save()
 
     def mark_completed(self):
         if self.is_completed:
