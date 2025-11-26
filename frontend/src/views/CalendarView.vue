@@ -83,12 +83,14 @@
       </div>
     </div>
   </div>
+  
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted} from 'vue'
 import { useRouter } from 'vue-router'
 import TaskCard from '@/components/TaskCard.vue'
+import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
 import axios from 'axios'
 
 const router = useRouter()
@@ -248,7 +250,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '@/styles/variables';
+// ;
 
 .calendar-view {
   max-width: 700px;

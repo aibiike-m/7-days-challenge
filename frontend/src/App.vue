@@ -5,33 +5,48 @@
       <router-view />
     </main>
     <BottomNav v-if="!isAuthPage" />
-    <FAB v-if="!isAuthPage" />
+
+    <FAB v-if="!isAuthPage" @open-modal="isCreateModalOpen = true" />
+
+    <CreateChallengeModal
+      :is-open="isCreateModalOpen"
+      @close="isCreateModalOpen = false"
+      @created="onChallengeCreated"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import FAB from '@/components/FAB.vue'
+import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
 
 const route = useRoute()
 const isAuthPage = computed(() => route.path === '/auth')
+const isCreateModalOpen = ref(false)
+
+const onChallengeCreated = () => {
+  isCreateModalOpen.value = false
+  alert('Челлендж успешно создан!')
+
+}
 </script>
 
-<style>
+<style scoped>
 .app {
   min-height: 100vh;
 }
 
 .main-content {
-  min-height: calc(100vh - 70px); 
+  padding-bottom: 100px; 
 }
 
 @media (min-width: 768px) {
   .main-content {
-    min-height: calc(100vh - 60px); 
+    padding-bottom: 60px;
   }
 }
 </style>

@@ -86,7 +86,7 @@ function logout() {
 </script>
 
 <style scoped lang="scss">
-@import '@/styles/variables';
+// ;  
 
 .profile-view {
   max-width: 600px;

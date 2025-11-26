@@ -108,7 +108,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '@/styles/variables';
 
 .today-view {
   max-width: 600px;

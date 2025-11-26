@@ -1,8 +1,8 @@
 <template>
-  <button 
-    v-if="showFAB" 
-    class="fab" 
-    @click="createChallenge"
+  <button
+    v-if="showFAB"
+    class="fab"
+    @click="$emit('open-modal')"
     title="Создать челлендж"
   >
     <span class="icon">+</span>
@@ -14,15 +14,10 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const emit = defineEmits(['click'])
-
 const showFAB = computed(() => route.path === '/calendar')
 
-const createChallenge = () => {
-  emit('click') 
-}
+defineEmits(['open-modal'])
 </script>
-
 
 <style scoped lang="scss">
 .fab {
