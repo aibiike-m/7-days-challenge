@@ -1,25 +1,37 @@
 <template>
-  <NavBar />
-
-  <router-view />
-
-  <div class="global-bg"></div>
+  <div class="app">
+    <AppHeader v-if="!isAuthPage" />
+    <main class="main-content">
+      <router-view />
+    </main>
+    <BottomNav v-if="!isAuthPage" />
+    <FAB v-if="!isAuthPage" />
+  </div>
 </template>
 
 <script setup>
-import NavBar from './components/NavBar.vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import AppHeader from '@/components/AppHeader.vue'
+import BottomNav from '@/components/BottomNav.vue'
+import FAB from '@/components/FAB.vue'
+
+const route = useRoute()
+const isAuthPage = computed(() => route.path === '/auth')
 </script>
 
 <style>
-.global-bg {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  z-index: -1;
+.app {
+  min-height: 100vh;
 }
 
-#app {
-  min-height: 100vh;
-  position: relative;
+.main-content {
+  min-height: calc(100vh - 70px); 
+}
+
+@media (min-width: 768px) {
+  .main-content {
+    min-height: calc(100vh - 60px); 
+  }
 }
 </style>

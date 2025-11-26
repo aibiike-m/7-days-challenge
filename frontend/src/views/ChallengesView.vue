@@ -1,6 +1,5 @@
 <template>
   <div class="challenge">
-    <!-- Шапка -->
     <header class="header">
       <router-link to="/" class="back-btn">На главную</router-link>
       <h1 class="goal">{{ challenge.goal }}</h1>
@@ -10,7 +9,6 @@
       </div>
     </header>
 
-    <!-- Календарь-дни -->
     <div class="calendar">
       <button
         v-for="day in 7"
@@ -28,7 +26,6 @@
       </button>
     </div>
 
-    <!-- Задачи выбранного дня -->
     <div class="tasks">
       <TaskItem
         v-for="task in tasksForSelectedDay"
@@ -43,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Конфетти при 100% -->
     <transition name="fade">
       <div v-if="challenge.progress_percentage === 100" class="celebration">
         <div class="confetti"></div>
@@ -69,7 +65,6 @@ async function loadChallenge() {
   try {
     const res = await axios.get(`${API_URL}/challenges/${route.params.id}/`)
     challenge.value = res.data
-    // Авто-выбор текущего дня (если есть незавершённые)
     const today = new Date().getDate()
     const start = new Date(challenge.value.start_date)
     const currentDay = Math.min(Math.max(1, today - start.getDate() + 1), 7)
@@ -94,7 +89,7 @@ async function toggleTask(taskId) {
   
   try {
     await axios.post(`${API_URL}/tasks/${taskId}/${action}/`)
-    await loadChallenge() // Обновляем прогресс
+    await loadChallenge() 
   } catch (err) {
     alert('Ошибка при обновлении задачи')
   }
@@ -104,5 +99,5 @@ onMounted(loadChallenge)
 </script>
 
 <style scoped lang="scss">
-@import "../styles/components/challenge.scss";
+
 </style>

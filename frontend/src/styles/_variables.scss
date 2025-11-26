@@ -1,16 +1,48 @@
-// Цвета
-$primary: #6366f1;
-$primary-dark: #4f46e5;
-$success: #10b981;
-$danger: #ef4444;
-$gray-100: #f3f4f6;
-$gray-200: #e5e7eb;
-$gray-700: #374151;
-$gray-900: #111827;
+// ===== ЦВЕТА =====
+$primary: #5B9FD8;
+$primary-light: #A8D0F0;
+$primary-dark: #4A7FB8;
+$primary-hover: #4E8DC4;
 
-// Шрифты
-$font-family: 'Inter', 'Segoe UI', sans-serif;
+$white: #FFFFFF;
+$bg-primary: #F8FAFB;
+$bg-secondary: #F0F4F8;
+$bg-card: #FFFFFF;
+$text-primary: #2D3748;
+$text-secondary: #718096;
+$text-muted: #A0AEC0;
+$border: #E2E8F0;
+$border-hover: #CBD5E0;
 
-// Тени, радиусы 
-$border-radius: 12px;
-$shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+$success: #68D391;
+$danger: #FC8181;
+
+// ===== ТЕНИ =====
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+// ===== РАДИУСЫ =====
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-full: 9999px;
+
+// ===== ОТСТУПЫ =====
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+
+// ===== ШРИФТЫ =====
+$font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-size-xs: 0.75rem;
+$font-size-sm: 0.875rem;
+$font-size-base: 1rem;
+$font-size-lg: 1.125rem;
+$font-size-xl: 1.25rem;
+$font-size-2xl: 1.5rem;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;

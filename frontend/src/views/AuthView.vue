@@ -60,7 +60,7 @@ async function submit() {
     })
 
     localStorage.setItem('access_token', res.data.access)
-    localStorage.setItem('refresh_token', res.data.refresh)  // на будущее
+    localStorage.setItem('refresh_token', res.data.refresh) 
 
     router.push('/')
   } catch (err) {
@@ -71,5 +71,90 @@ async function submit() {
 </script>
 
 <style scoped lang="scss">
-@import "../styles/components/auth.scss";
+.auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: $bg-primary;
+}
+
+.card {
+  background: $white;
+  padding: 3rem;
+  border-radius: $radius-lg;  
+  box-shadow: $shadow-sm;     
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+h1 {
+  color: $text-primary;
+  margin-bottom: 2rem;
+  font-size: $font-size-2xl;
+}
+
+input {
+  width: 100%;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border: 2px solid $border;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-family: $font-family;
+  transition: all 0.15s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba($primary, 0.1);
+  }
+  
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  background: $primary;
+  color: $white;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  
+  &:hover {
+    background: $primary-hover;
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.switch {
+  margin-top: 2rem;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  
+  a {
+    color: $primary;
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: $font-weight-medium;
+    
+    &:hover {
+      color: $primary-dark;
+    }
+  }
+}
 </style>

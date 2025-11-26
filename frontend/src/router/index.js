@@ -1,21 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import ChallengeView from '../views/ChallengeView.vue'
+import TodayView from '@/views/TodayView.vue'
+import CalendarView from '@/views/CalendarView.vue'
+import ProfileView from '@/views/ProfileView.vue'
+import AuthView from '@/views/AuthView.vue'
 
 const routes = [
-	{ path: '/', name: 'home', component: HomeView },
-	{ path: '/challenge/:id', name: 'challenge', component: ChallengeView },
-	{ path: '/active', name: 'active', component: ChallengeView },
-	{
-		path: '/auth',
-		name: 'auth',
-		component: () => import('../views/AuthView.vue'),
-	},
+	{ path: '/', redirect: '/today' },
+	{ path: '/today', component: TodayView },
+	{ path: '/calendar', component: CalendarView },
+	{ path: '/profile', component: ProfileView },
+	{ path: '/auth', component: AuthView },
 ]
 
-const router = createRouter({
+export default createRouter({
 	history: createWebHistory(),
 	routes,
 })
-
-export default router
