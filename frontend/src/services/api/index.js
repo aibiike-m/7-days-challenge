@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-	baseURL: 'http://localhost:8000/api/', // или 'http://localhost:8000/api/' если нужно
+	baseURL: 'http://localhost:8000/api/', 
 	timeout: 10000,
 })
 
@@ -9,7 +9,7 @@ const api = axios.create({
 api.interceptors.request.use(config => {
 	const token = localStorage.getItem('access_token')
 	if (token) {
-		config.headers.Authorization = `Bearer ${token}` // ← Важно! SimpleJWT использует Bearer
+		config.headers.Authorization = `Bearer ${token}`
 	}
 	return config
 })
@@ -29,10 +29,9 @@ api.interceptors.response.use(
 					return api(error.config)
 				}
 			} catch (refreshError) {
-				// Токен просрочен безвозвратно → выкидываем на логин
 				localStorage.removeItem('access_token')
 				localStorage.removeItem('refresh_token')
-				window.location.href = '/login' // или router.push('/login')
+				window.location.href = '/login' 
 			}
 		}
 		return Promise.reject(error)
