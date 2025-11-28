@@ -157,3 +157,6 @@ SIMPLE_JWT = {
 
 # AUTH USER MODEL
 AUTH_USER_MODEL = "users.CustomUser"
+
+
+LOGIN_URL = None

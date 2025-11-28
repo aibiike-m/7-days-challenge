@@ -1,0 +1,42 @@
+import axios from 'axios'
+
+const api = axios.create({
+	baseURL: 'http://localhost:8000/api/', // или 'http://localhost:8000/api/' если нужно
+	timeout: 10000,
+})
+
+// Интерцептор — автоматически добавляет токен ко всем запросам
+api.interceptors.request.use(config => {
+	const token = localStorage.getItem('access_token')
+	if (token) {
+		config.headers.Authorization = `Bearer ${token}` // ← Важно! SimpleJWT использует Bearer
+	}
+	return config
+})
+
+// Опционально: авто-обновление токена при 401 (очень рекомендуется)
+api.interceptors.response.use(
+	response => response,
+	async error => {
+		if (error.response?.status === 401 && !error.config._retry) {
+			error.config._retry = true
+			try {
+				const refresh = localStorage.getItem('refresh_token')
+				if (refresh) {
+					const res = await axios.post('/api/token/refresh/', { refresh })
+					localStorage.setItem('access_token', res.data.access)
+					error.config.headers.Authorization = `Bearer ${res.data.access}`
+					return api(error.config)
+				}
+			} catch (refreshError) {
+				// Токен просрочен безвозвратно → выкидываем на логин
+				localStorage.removeItem('access_token')
+				localStorage.removeItem('refresh_token')
+				window.location.href = '/login' // или router.push('/login')
+			}
+		}
+		return Promise.reject(error)
+	}
+)
+
+export default api

@@ -31,7 +31,7 @@ const isCreateModalOpen = ref(false)
 const onChallengeCreated = () => {
   isCreateModalOpen.value = false
   alert('Челлендж успешно создан!')
-
+  window.location.reload()
 }
 </script>
 

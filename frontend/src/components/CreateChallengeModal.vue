@@ -86,7 +86,7 @@ const submit = async () => {
   error.value = ''
   
   try {
-    const response = await axios.post('/api/challenges/', {
+    const response = await axios.post('/challenges/', {
       goal: goal.value.trim()
     })
     

@@ -9,6 +9,7 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = [
             "id",
+            "challenge_id",
             "day_number",
             "title",
             "description",
@@ -32,6 +33,7 @@ class ChallengeListSerializer(serializers.ModelSerializer):
             "goal",
             "status",
             "created_at",
+            "start_date",
             "duration_days",
             "progress_percentage",
             "tasks_count",

@@ -5,99 +5,100 @@
       <p class="subtitle">Выберите день чтобы увидеть задачи</p>
     </div>
 
-    <!-- Календарь -->
-    <div class="calendar-card card">
-      <div class="calendar-header">
-        <button class="btn-icon" @click="previousMonth">‹</button>
-        <h3 class="month-title">{{ currentMonthName }}</h3>
-        <button class="btn-icon" @click="nextMonth">›</button>
-      </div>
+    <div class="calendar-layout">
+      <div class="left-column">
+        <!-- Calendar -->
+        <div class="calendar-card card">
+          <div class="calendar-header">
+            <button class="btn-icon" @click="previousMonth">‹</button>
+            <h3 class="month-title">{{ currentMonthName }}</h3>
+            <button class="btn-icon" @click="nextMonth">›</button>
+          </div>
 
-      <div class="calendar-grid">
-        <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
-        <div
-          v-for="date in calendarDates"
-          :key="date.key"
-          class="calendar-day"
-          :class="{
-            'other-month': date.isOtherMonth,
-            'today': date.isToday,
-            'selected': date.isSelected,
-            'has-tasks': date.hasTasks
-          }"
-          @click="selectDate(date)"
-        >
-          {{ date.day }}
-          <span v-if="date.hasTasks" class="task-indicator"></span>
+          <div class="calendar-grid">
+            <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
+            <div
+              v-for="date in calendarDates"
+              :key="date.key"
+              class="calendar-day"
+              :class="{
+                'other-month': date.isOtherMonth,
+                'today': date.isToday,
+                'selected': date.isSelected,
+                'has-tasks': date.hasTasks
+              }"
+              @click="selectDate(date)"
+            >
+              {{ date.day }}
+              <span v-if="date.hasTasks" class="task-indicator"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active challenges -->
+        <div class="challenges-section">
+          <h3 class="section-title">Активные челленджи</h3>
+          
+          <div v-if="challengesForSelectedDate.length === 0" class="empty-challenges">
+            <span class="empty-icon">Нет задач</span>
+            <p>На этот день нет активных челленджей</p>
+          </div>
+          <div v-else class="challenges-list">
+            <div
+              v-for="challenge in challengesForSelectedDate"
+              :key="challenge.id"
+              class="challenge-card card"
+              @click="viewChallenge(challenge)"
+            >
+              <h4>{{ challenge.goal }}</h4>
+              <div class="challenge-meta">
+                <span class="challenge-duration">{{ challenge.duration_days }} дней</span>
+                <span class="challenge-progress">{{ challenge.progress_percentage }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: challenge.progress_percentage + '%' }"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Задачи выбранного дня -->
-    <div v-if="selectedDate" class="tasks-section">
-      <h3 class="section-title">
-        Задачи на {{ formatSelectedDate }}
-      </h3>
+      <!-- Tasks for selected day -->
+      <div v-if="selectedDate" class="tasks-section right-column">
+        <h3 class="section-title">
+          Задачи на {{ formatSelectedDate }}
+        </h3>
 
-      <div v-if="loading" class="loading">Загрузка...</div>
+        <div v-if="loading" class="loading">Загрузка...</div>
 
-      <div v-else-if="selectedDayTasks.length === 0" class="empty-tasks">
-        <p>Нет задач на этот день</p>
-      </div>
+        <div v-else-if="selectedDayTasks.length === 0" class="empty-tasks">
+          <p>Нет задач на этот день</p>
+        </div>
 
-      <div v-else class="tasks-list">
-        <TaskCard
-          v-for="task in selectedDayTasks"
-          :key="task.id"
-          :task="task"
-          @toggle="toggleTask"
-        />
-      </div>
-    </div>
-
-    <!-- Активные челленджи -->
-    <div class="challenges-section">
-      <h3 class="section-title">Активные челленджи</h3>
-      
-      <div v-if="activeChallenges.length === 0" class="empty-challenges">
-        <span class="empty-icon">🎯</span>
-        <p>У вас пока нет активных челленджей</p>
-      </div>
-
-      <div v-else class="challenges-list">
-        <div
-          v-for="challenge in activeChallenges"
-          :key="challenge.id"
-          class="challenge-card card"
-          @click="viewChallenge(challenge)"
-        >
-          <h4>{{ challenge.goal }}</h4>
-          <div class="challenge-meta">
-            <span class="challenge-duration">{{ challenge.duration_days }} дней</span>
-            <span class="challenge-progress">{{ challenge.progress_percentage }}%</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: challenge.progress_percentage + '%' }"></div>
-          </div>
+        <div v-else class="tasks-list">
+          <TaskCard
+            v-for="task in selectedDayTasks"
+            :key="task.id"
+            :task="task"
+            @toggle="toggleTask"
+          />
         </div>
       </div>
     </div>
   </div>
-  
 </template>
 
 <script setup>
-import { ref, computed, onMounted} from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TaskCard from '@/components/TaskCard.vue'
-import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
-import axios from 'axios'
+import api from '@/services/api/index.js'
 
 const router = useRouter()
-const loading = ref(false)
+const loading = ref(true)
 const currentDate = ref(new Date())
 const selectedDate = ref(null)
-const activeChallenges = ref([])
+const allChallenges = ref([])
 const allTasks = ref([])
 
 const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -115,20 +116,57 @@ const formatSelectedDate = computed(() => {
   })
 })
 
+const challengesForSelectedDate = computed(() => {
+  if (!selectedDate.value || allTasks.value.length === 0) return []
+
+  const taskChallengeIds = new Set(
+    selectedDayTasks.value
+      .map(task => task.challenge_id)
+      .filter(Boolean)
+  )
+
+  return allChallenges.value.filter(challenge => 
+    challenge.status === 'active' && taskChallengeIds.has(challenge.id)
+  )
+})
+
+const selectedDayTasks = computed(() => {
+  if (!selectedDate.value) return []
+
+  return allTasks.value.filter(task => {
+    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
+    if (!challenge) return false
+
+    const taskDate = new Date(challenge.start_date)
+    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
+
+    return isSameDay(taskDate, selectedDate.value)
+  })
+})
+
+function hasTasksOnDate(date) {
+  return allTasks.value.some(task => {
+    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
+    if (!challenge) return false
+
+    const taskDate = new Date(challenge.start_date)
+    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
+    return isSameDay(taskDate, date)
+  })
+}
+
 const calendarDates = computed(() => {
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
-  
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  
+
   let startDay = firstDay.getDay()
   if (startDay === 0) startDay = 7
   startDay -= 1
-  
+
   const dates = []
-  
-  // Предыдущий месяц
+
   const prevMonthLastDay = new Date(year, month, 0).getDate()
   for (let i = startDay - 1; i >= 0; i--) {
     dates.push({
@@ -138,22 +176,20 @@ const calendarDates = computed(() => {
       key: `prev-${i}`
     })
   }
-  
-  // Текущий месяц
+
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const date = new Date(year, month, i)
     dates.push({
       day: i,
-      date: date,
+      date,
       isOtherMonth: false,
       isToday: isSameDay(date, new Date()),
-      isSelected: selectedDate.value ? isSameDay(date, selectedDate.value) : false,
+      isSelected: selectedDate.value ? isSameDay(date, selectedDate.value) : isSameDay(date, new Date()),
       hasTasks: hasTasksOnDate(date),
       key: `current-${i}`
     })
   }
-  
-  // Следующий месяц
+
   const remainingDays = 42 - dates.length
   for (let i = 1; i <= remainingDays; i++) {
     dates.push({
@@ -163,102 +199,110 @@ const calendarDates = computed(() => {
       key: `next-${i}`
     })
   }
-  
+
   return dates
 })
-
-const selectedDayTasks = computed(() => {
-  if (!selectedDate.value) return []
-  return allTasks.value.filter(task => {
-    return true
-  })
-})
-
-function isSameDay(date1, date2) {
-  return date1.getDate() === date2.getDate() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getFullYear() === date2.getFullYear()
-}
-
-function hasTasksOnDate(date) {
-  return false
-}
 
 function selectDate(dateObj) {
   if (dateObj.isOtherMonth) return
   selectedDate.value = dateObj.date
-  loadTasksForDate(dateObj.date)
 }
 
 function previousMonth() {
-  currentDate.value = new Date(
-    currentDate.value.getFullYear(),
-    currentDate.value.getMonth() - 1,
-    1
-  )
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
 }
 
 function nextMonth() {
-  currentDate.value = new Date(
-    currentDate.value.getFullYear(),
-    currentDate.value.getMonth() + 1,
-    1
-  )
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
 }
 
-async function loadActiveChallenges() {
+async function loadChallenges() {
   try {
-    const response = await axios.get('/api/challenges/')
-    activeChallenges.value = response.data.filter(c => c.status === 'active')
+    const response = await api.get('challenges/')
+    allChallenges.value = response.data.results || []
   } catch (error) {
-    console.error('Error loading challenges:', error)
-    activeChallenges.value = []
+    console.error('Ошибка загрузки челленджей:', error)
+    allChallenges.value = []
   }
 }
 
-async function loadTasksForDate(date) {
-  loading.value = true
-  try {
+async function loadAllTasks() {
+  if (allChallenges.value.length === 0) {
     allTasks.value = []
+    return
+  }
+
+  const challengeIds = allChallenges.value.map(c => c.id)
+  try {
+    const response = await api.get('tasks/', {
+      params: { challenge_ids: challengeIds.join(',') }
+    })
+    const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
+    allTasks.value = tasks.map(task => ({
+      ...task,
+      challenge_id: task.challenge_id
+    }))
   } catch (error) {
-    console.error('Error loading tasks:', error)
-  } finally {
-    loading.value = false
+    console.error('Ошибка загрузки задач:', error)
+    allTasks.value = []
   }
 }
 
 async function toggleTask(task) {
   try {
     if (task.is_completed) {
-      await axios.post(`/api/tasks/${task.id}/uncomplete/`)
+      await api.post(`tasks/${task.id}/uncomplete/`)
     } else {
-      await axios.post(`/api/tasks/${task.id}/complete/`)
+      await api.post(`tasks/${task.id}/complete/`)
     }
     task.is_completed = !task.is_completed
   } catch (error) {
-    console.error('Error toggling task:', error)
+    console.error('Ошибка переключения задачи:', error)
   }
 }
 
 function viewChallenge(challenge) {
-  console.log('View challenge:', challenge)
+  router.push(`/challenge/${challenge.id}`)
 }
 
-onMounted(() => {
-  loadActiveChallenges()
+function isSameDay(d1, d2) {
+  return d1.getDate() === d2.getDate() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getFullYear() === d2.getFullYear()
+}
+
+onMounted(async () => {
+  loading.value = true
+  await loadChallenges()
+  await loadAllTasks()
+  selectedDate.value = new Date()
+  loading.value = false
 })
 </script>
 
 <style scoped lang="scss">
-// ;
 
 .calendar-view {
-  max-width: 700px;
-  margin: 0 auto;
+  width: 100%;
   padding: $spacing-lg;
   padding-bottom: 100px;
-}
 
+  @media (min-width: 768px) {
+    padding-left: $spacing-xl;
+    padding-right: $spacing-xl;
+  }
+
+  @media (min-width: 1440px) {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 1024px) {
+    .calendar-layout {
+      gap: $spacing-xl;
+    }
+  }
+}
 .header-section {
   margin-bottom: $spacing-xl;
   
@@ -280,7 +324,7 @@ onMounted(() => {
   margin-bottom: $spacing-lg;
 }
 
-// ===== КАЛЕНДАРЬ =====
+// ===== Calendar =====
 .calendar-card {
   margin-bottom: $spacing-xl;
 }
@@ -382,7 +426,7 @@ onMounted(() => {
   }
 }
 
-// ===== ЗАДАЧИ =====
+// ===== Tasks =====
 .tasks-section {
   margin-bottom: $spacing-xl;
 }
@@ -414,7 +458,7 @@ onMounted(() => {
   gap: $spacing-md;
 }
 
-// ===== ЧЕЛЛЕНДЖИ =====
+// ===== Challenges =====
 .challenges-section {
   margin-top: $spacing-xl;
 }
@@ -487,5 +531,26 @@ onMounted(() => {
   background: linear-gradient(90deg, $primary, $primary-light);
   transition: width 0.35s ease;
   border-radius: $radius-full;
+}
+
+.calendar-layout {
+  display: flex;
+  flex-direction: column; 
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    gap: $spacing-xl;
+
+    .left-column {
+      flex: 1; 
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-lg;
+    }
+
+    .right-column {
+      flex: 1.5; 
+    }
+  }
 }
 </style>

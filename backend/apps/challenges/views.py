@@ -72,8 +72,18 @@ class TaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Task.objects.filter(challenge__user=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        challenge_ids = request.query_params.get("challenge_ids")
+        if challenge_ids:
+            ids_list = challenge_ids.split(",")
+            queryset = queryset.filter(challenge__id__in=ids_list)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     queryset = Task.objects.all()
-    serializer_class = TaskSerializer
+    serializer_class = TaskSerializer   
+    pagination_class = None
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
