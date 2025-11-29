@@ -5,7 +5,7 @@ const api = axios.create({
 	timeout: 10000,
 })
 
-// Интерцептор — автоматически добавляет токен ко всем запросам
+// Interceptor - automatically adds a token to all requests
 api.interceptors.request.use(config => {
 	const token = localStorage.getItem('access_token')
 	if (token) {
@@ -14,7 +14,7 @@ api.interceptors.request.use(config => {
 	return config
 })
 
-// Опционально: авто-обновление токена при 401 (очень рекомендуется)
+// Auto-renew token on 401
 api.interceptors.response.use(
 	response => response,
 	async error => {

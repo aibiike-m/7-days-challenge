@@ -1,244 +1,252 @@
 <template>
   <div class="profile-view">
-    <div class="card profile-card">
-      <div class="avatar">
-        {{ userInitial }}
-      </div>
-      <h2>{{ username }}</h2>
-      <p class="email">{{ email }}</p>
-    </div>
+    <div class="container">
+      <div class="profile-layout">
+        <!-- Left -->
+        <div class="left-side">
+          <div class="card profile-card">
+            <h2 class="username">{{ username }}</h2>
+            <p class="email">{{ email }}</p>
+          </div>
 
-    <div class="stats-grid">
-      <div class="stat-card card">
-        <div class="stat-value">{{ stats.completedChallenges }}</div>
-        <div class="stat-label">Завершено</div>
-      </div>
-      <div class="stat-card card">
-        <div class="stat-value">{{ stats.activeDays }}</div>
-        <div class="stat-label">Дней активности</div>
-      </div>
-      <div class="stat-card card">
-        <div class="stat-value">{{ stats.completedTasks }}</div>
-        <div class="stat-label">Выполнено задач</div>
-      </div>
-    </div>
-
-    <div class="settings-section mobile-only">
-      <h3>Настройки</h3>
-      
-      <div class="setting-item card">
-        <div class="setting-info">
-          <span class="setting-icon">🌙</span>
-          <span class="setting-label">Тема</span>
+          <button class="btn btn-logout" @click="logout">
+            Выйти из аккаунта
+          </button>
         </div>
-        <select v-model="theme" class="setting-select">
-          <option value="light">Светлая</option>
-          <option value="dark">Темная</option>
-          <option value="auto">Авто</option>
-        </select>
-      </div>
 
-      <div class="setting-item card">
-        <div class="setting-info">
-          <span class="setting-icon">🌐</span>
-          <span class="setting-label">Язык</span>
+        <!-- Right -->
+        <div class="right-side">
+          <div class="card chart-card">
+            <h3 class="chart-title">Статистика за неделю</h3>
+            <div class="chart-wrapper">
+              <canvas ref="chartCanvas"></canvas>
+            </div>
+          </div>
         </div>
-        <select v-model="language" class="setting-select">
-          <option value="ru">Русский</option>
-          <option value="en">English</option>
-        </select>
       </div>
     </div>
-
-    <button class="btn btn-secondary logout-btn" @click="logout">
-      Выйти из аккаунта
-    </button>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import Chart from 'chart.js/auto'
+import api from '@/services/api/index.js'
 
 const router = useRouter()
+const username = ref('')
+const email = ref('')
+const weeklyStats = ref([])
+const chartCanvas = ref(null)
+let chartInstance = null
 
-const username = ref('Пользователь')
-const email = ref('user@example.com')
-
-const userInitial = computed(() => {
-  return username.value.charAt(0).toUpperCase()
-})
-
-const stats = ref({
-  completedChallenges: 0,
-  activeDays: 0,
-  completedTasks: 0
-})
-
-const theme = ref('light')
-const language = ref('ru')
-
-function logout() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  router.push('/auth')
+async function loadProfile() {
+  try {
+    const res = await api.get('users/me/')
+    username.value = res.data.username || 'Пользователь'
+    email.value = res.data.email || ''
+  } catch (e) { console.error(e) }
 }
+
+async function loadStats() {
+  try {
+    const res = await api.get('users/stats/weekly/')
+    weeklyStats.value = res.data
+  } catch (e) { 
+    console.error('Error loading stats:', e)
+  }
+}
+
+function createChart() {
+  if (!chartCanvas.value) return
+  if (chartInstance) chartInstance.destroy()
+
+  chartInstance = new Chart(chartCanvas.value, {
+    type: 'bar',
+    data: {
+      labels: weeklyStats.value.map(d => d.day),
+      datasets: [{
+        data: weeklyStats.value.map(d => d.percent),
+        backgroundColor: '#3b82f6',
+        borderColor: '#3b82f6',
+        borderWidth: 0,
+        borderRadius: 5,
+        borderSkipped: false,
+        barThickness: 28,
+        categoryPercentage: 0.7,
+        barPercentage: 0.85
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 10,
+          titleFont: { size: 14 },
+          bodyFont: { size: 13 },
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + '%'
+            }
+          }
+        }
+      },
+      animation: { duration: 1000, easing: 'easeOutQuart' },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { 
+            stepSize: 20, 
+            color: '#999', 
+            font: { size: 12 },
+            callback: function(value) {
+              return value + '%'
+            }
+          },
+          grid: { 
+            color: 'rgba(0, 0, 0, 0.05)', 
+            lineWidth: 1,
+            drawBorder: false
+          },
+          border: { display: false }
+        },
+        x: {
+          ticks: { color: '#666', font: { size: 13 } },
+          grid: { display: false },
+          border: { display: false }
+        }
+      }
+    }
+  })
+}
+
+watch(weeklyStats, async (newStats) => {
+  if (newStats.length === 7) {
+    await nextTick()
+    createChart()
+  }
+})
+
+async function logout() {
+  try {
+    await api.post('logout/')
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    router.push('/auth')
+  } catch (e) {
+    console.error('Ошибка выхода:', e)
+  }
+}
+
+onMounted(async () => {
+  await loadProfile()
+  await loadStats()
+})
 </script>
 
 <style scoped lang="scss">
-// ;  
-
 .profile-view {
-  max-width: 600px;
+  padding: $spacing-lg 0;
+  min-height: 100vh;
+  background: $bg-primary;
+}
+
+.container {
+  max-width: 900px;
   margin: 0 auto;
-  padding: $spacing-lg;
-  padding-bottom: 100px;
+  padding: 0 $spacing-md;
+
+  @media (min-width: 1024px) {
+    padding: 0 $spacing-lg;
+  }
+}
+
+.profile-layout {
   display: flex;
   flex-direction: column;
   gap: $spacing-xl;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: start;
+    gap: $spacing-xl;
+  }
+}
+
+.left-side {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.right-side {
+  flex: 1;
+  min-width: 0;
 }
 
 .card {
   background: $white;
   border-radius: $radius-lg;
-  padding: $spacing-lg;
   box-shadow: $shadow-sm;
+  padding: $spacing-lg;
 }
 
 .profile-card {
   text-align: center;
-  padding: $spacing-xl;
 }
 
-.avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: $radius-full;
-  background: linear-gradient(135deg, $primary, $primary-light);
-  color: $white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  font-weight: $font-weight-bold;
-  margin: 0 auto $spacing-lg;
+.username {
+  font-size: 22px;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $spacing-sm 0;
 }
 
-.profile-card h2 {
-  margin-bottom: $spacing-sm;
-}
-
-.profile-card .email {
+.email {
   color: $text-muted;
-  font-size: $font-size-sm;
+  font-size: 14px;
+  margin: 0;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-md;
+.chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-secondary;
+  margin: 0 0 $spacing-lg 0;
 }
 
-.stat-card {
-  text-align: center;
-  padding: $spacing-lg;
-}
-
-.stat-value {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-bold;
-  color: $primary;
-  margin-bottom: $spacing-sm;
-}
-
-.stat-label {
-  font-size: $font-size-xs;
-  color: $text-muted;
-}
-
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-  
-  h3 {
-    margin-bottom: $spacing-md;
-    font-size: $font-size-lg;
-  }
-}
-
-.setting-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: $spacing-lg;
-}
-
-.setting-info {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-}
-
-.setting-icon {
-  font-size: 24px;
-}
-
-.setting-label {
-  font-weight: $font-weight-medium;
-}
-
-.setting-select {
-  width: auto;
-  min-width: 120px;
-  padding: $spacing-sm $spacing-md;
-  border: 1px solid $border;
-  border-radius: $radius-md;
-  background: $bg-secondary;
-  font-size: $font-size-sm;
-  cursor: pointer;
-  
-  &:focus {
-    outline: none;
-    border-color: $primary;
-  }
-}
-
-.mobile-only {
-  display: flex;
+.chart-wrapper {
+  position: relative;
+  height: 240px;
   
   @media (min-width: 768px) {
-    display: none;
+    height: 260px;
   }
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-lg;
-  border: none;
+.btn-logout {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  padding: $spacing-md $spacing-lg;
   border-radius: $radius-md;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
-  outline: none;
-}
+  transition: all 0.2s ease;
+  font-size: 15px;
 
-.btn-secondary {
-  background: $bg-secondary;
-  color: $text-primary;
-}
-
-.logout-btn {
-  margin-top: $spacing-lg;
-  color: $danger;
-  
   &:hover {
-    background: rgba($danger, 0.1);
+    background: rgba(239, 68, 68, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 </style>
