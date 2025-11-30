@@ -51,7 +51,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import api from '@/services/api/index.js'
 
 const props = defineProps({
   isOpen: {
@@ -86,7 +86,7 @@ const submit = async () => {
   error.value = ''
   
   try {
-    const response = await axios.post('/challenges/', {
+    const response = await api.post('challenges/', {
       goal: goal.value.trim()
     })
     

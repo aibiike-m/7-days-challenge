@@ -2,7 +2,7 @@
   <div class="app">
     <AppHeader v-if="!isAuthPage" />
     <main class="main-content">
-      <router-view />
+      <router-view @open-modal="isCreateModalOpen = true" />
     </main>
     <BottomNav v-if="!isAuthPage" />
 

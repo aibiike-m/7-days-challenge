@@ -9,26 +9,11 @@
         <router-link to="/profile" class="nav-link">Профиль</router-link>
       </nav>
       
-      <div class="header-actions">
-        <button class="btn-icon" @click="toggleTheme" title="Переключить тему">
-          🌙
-        </button>
-        <button class="btn-icon" @click="toggleLanguage" title="Язык">
-          🌐
-        </button>
-      </div>
     </div>
   </header>
 </template>
 
 <script setup>
-const toggleTheme = () => {
-  console.log('Toggle theme')
-}
-
-const toggleLanguage = () => {
-  console.log('Toggle language')
-}
 </script>
 
 <style scoped lang="scss">
@@ -90,15 +75,6 @@ const toggleLanguage = () => {
     color: $primary;
     background: rgba(91, 159, 216, 0.1);
     font-weight: $font-weight-semibold;
-  }
-}
-
-.header-actions {
-  display: none; 
-  gap: $spacing-sm;
-  
-  @media (min-width: 768px) {
-    display: flex; 
   }
 }
 
