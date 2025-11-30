@@ -39,6 +39,10 @@ const toggleLanguage = () => {
   border-bottom: 1px solid $border;
   z-index: 100;
   box-shadow: $shadow-sm;
+  
+  @media (max-width: 767px) {
+    display: none;
+  }
 }
 
 .header-content {

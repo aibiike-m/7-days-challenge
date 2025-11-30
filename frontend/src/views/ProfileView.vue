@@ -1,6 +1,10 @@
 <template>
   <div class="profile-view">
     <div class="container">
+      <h1 class="page-title">
+        7 Days Challenge
+      </h1>
+      
       <div class="profile-layout">
         <!-- Left -->
         <div class="left-side">
@@ -71,7 +75,7 @@ function createChart() {
         backgroundColor: '#3b82f6',
         borderColor: '#3b82f6',
         borderWidth: 0,
-        borderRadius: 5,
+        borderRadius: 2,
         borderSkipped: false,
         barThickness: 28,
         categoryPercentage: 0.7,
@@ -166,6 +170,20 @@ onMounted(async () => {
   }
 }
 
+.page-title {
+  display: none;
+  text-align: center;
+  color: $primary;               
+  margin: 0 0 $spacing-xl 0;
+  padding-top: $spacing-md;
+
+  @media (max-width: 767px) {
+    display: block;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+}
 .profile-layout {
   display: flex;
   flex-direction: column;
@@ -249,4 +267,4 @@ onMounted(async () => {
     transform: translateY(0);
   }
 }
-</style>
+</style>  

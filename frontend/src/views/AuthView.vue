@@ -1,6 +1,8 @@
 <template>
   <div class="auth-view">
     <div class="auth-container">
+      <div class="app-name">7 Days Challenge</div>
+      
       <div class="auth-card">
         <h1 class="auth-title">{{ isLogin ? 'Вход' : 'Регистрация' }}</h1>
 
@@ -10,7 +12,7 @@
             <input
               id="login"
               v-model="username"
-              :type="isLogin ? 'text' : 'text'"
+              type="text"
               :placeholder="isLogin ? 'Введите имя или email' : 'Введите имя пользователя'"
               required
             />
@@ -182,6 +184,17 @@ onMounted(() => {
 .auth-container {
   width: 100%;
   max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.app-name {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: $white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .auth-card {
