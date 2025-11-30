@@ -1,13 +1,7 @@
 <template>
   <div class="calendar-view">
-    <div class="header-section">
-      <h2>Мои челленджи</h2>
-      <p class="subtitle">Выберите день чтобы увидеть задачи</p>
-    </div>
-
     <div class="calendar-layout">
       <div class="left-column">
-        <!-- Calendar -->
         <div class="calendar-card card">
           <div class="calendar-header">
             <button class="btn-icon" @click="previousMonth">‹</button>
@@ -35,15 +29,8 @@
           </div>
         </div>
 
-        <!-- Active challenges -->
-        <div class="challenges-section">
-          <h3 class="section-title">Активные челленджи</h3>
-          
-          <div v-if="challengesForSelectedDate.length === 0" class="empty-challenges">
-            <span class="empty-icon">Нет задач</span>
-            <p>На этот день нет активных челленджей</p>
-          </div>
-          <div v-else class="challenges-list">
+        <div v-if="challengesForSelectedDate.length > 0" class="challenges-section">
+          <div class="challenges-list">
             <div
               v-for="challenge in challengesForSelectedDate"
               :key="challenge.id"
@@ -63,11 +50,14 @@
         </div>
       </div>
 
-      <!-- Tasks for selected day -->
       <div v-if="selectedDate" class="tasks-section right-column">
-        <h3 class="section-title">
-          Задачи на {{ formatSelectedDate }}
-        </h3>
+        <button 
+          class="fab-desktop"
+          @click="$emit('open-modal')"
+          title="Создать челлендж"
+        >
+          + Создать челлендж
+        </button>
 
         <div v-if="loading" class="loading">Загрузка...</div>
 
@@ -100,6 +90,8 @@ const currentDate = ref(new Date())
 const selectedDate = ref(null)
 const allChallenges = ref([])
 const allTasks = ref([])
+
+defineEmits(['open-modal'])
 
 const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
@@ -281,79 +273,81 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-
 .calendar-view {
   width: 100%;
-  padding: $spacing-lg;
+  padding: $spacing-sm;
   padding-bottom: 100px;
+  position: relative;
 
-  @media (min-width: 768px) {
-    padding-left: $spacing-xl;
-    padding-right: $spacing-xl;
-  }
-
-  @media (min-width: 1440px) {
-    max-width: 1400px;
-    margin: 0 auto;
+  @media (min-width: 640px) {
+    padding: $spacing-md;
   }
 
   @media (min-width: 1024px) {
-    .calendar-layout {
-      gap: $spacing-xl;
-    }
+    padding: $spacing-lg;
+    max-width: 1400px;
+    margin: 0 auto;
   }
-}
-.header-section {
-  margin-bottom: $spacing-xl;
-  
-  h2 {
-    margin-bottom: $spacing-sm;
-  }
-}
-
-.subtitle {
-  color: $text-muted;
-  font-size: $font-size-sm;
 }
 
 .card {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
+  border-radius: $radius-md;
+  padding: $spacing-md;
   box-shadow: $shadow-sm;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
+
+  @media (min-width: 768px) {
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
 }
 
 // ===== Calendar =====
 .calendar-card {
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-lg;
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
+
+  @media (min-width: 768px) {
+    margin-bottom: $spacing-lg;
+  }
 }
 
 .month-title {
-  font-size: $font-size-lg;
+  font-size: $font-size-base;
   font-weight: $font-weight-semibold;
   text-transform: capitalize;
+
+  @media (min-width: 768px) {
+    font-size: $font-size-lg;
+  }
 }
 
 .btn-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: $radius-full;
   border: none;
   background: $bg-secondary;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  @media (min-width: 768px) {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
   
   &:hover {
     background: $border-hover;
@@ -363,7 +357,11 @@ onMounted(async () => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 2px;
+
+  @media (min-width: 768px) {
+    gap: 4px;
+  }
 }
 
 .weekday {
@@ -377,13 +375,19 @@ onMounted(async () => {
 .calendar-day {
   aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: $radius-md;
-  font-size: $font-size-sm;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
+  
+  @media (min-width: 768px) {
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+  }
   
   &:hover {
     background: $bg-secondary;
@@ -412,12 +416,12 @@ onMounted(async () => {
   &.has-tasks::after {
     content: '';
     position: absolute;
-    bottom: 4px;
+    bottom: 30%;
     left: 50%;
     transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
+    width: 10px;
+    height: 2px;
+    border-radius: 1px;
     background: $primary;
   }
   
@@ -428,25 +432,18 @@ onMounted(async () => {
 
 // ===== Tasks =====
 .tasks-section {
-  margin-bottom: $spacing-xl;
-}
-
-.section-title {
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  color: $text-secondary;
-  margin-bottom: $spacing-md;
+  min-height: 200px;
 }
 
 .loading {
   text-align: center;
-  padding: $spacing-xl;
+  padding: $spacing-lg;
   color: $text-muted;
 }
 
 .empty-tasks {
   text-align: center;
-  padding: $spacing-xl;
+  padding: $spacing-lg;
   color: $text-muted;
   background: $bg-primary;
   border-radius: $radius-md;
@@ -456,34 +453,25 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
+
+  @media (min-width: 768px) {
+    gap: $spacing-sm;
+  }
 }
 
 // ===== Challenges =====
 .challenges-section {
-  margin-top: $spacing-xl;
-}
-
-.empty-challenges {
-  text-align: center;
-  padding: $spacing-xl;
-  background: $bg-primary;
-  border-radius: $radius-md;
-  
-  p {
-    color: $text-muted;
-  }
-}
-
-.empty-icon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: $spacing-md;
+  margin-top: $spacing-lg;
 }
 
 .challenges-list {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
+
+  @media (min-width: 768px) {
+    gap: $spacing-lg;
+  }
 }
 
 .challenge-card {
@@ -496,9 +484,13 @@ onMounted(async () => {
   }
   
   h4 {
-    font-size: $font-size-base;
+    font-size: $font-size-sm;
     font-weight: $font-weight-semibold;
     margin-bottom: $spacing-sm;
+
+    @media (min-width: 768px) {
+      font-size: $font-size-base;
+    }
   }
 }
 
@@ -507,7 +499,11 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: $spacing-sm;
-  font-size: $font-size-sm;
+  font-size: $font-size-xs;
+
+  @media (min-width: 768px) {
+    font-size: $font-size-sm;
+  }
 }
 
 .challenge-duration {
@@ -520,10 +516,14 @@ onMounted(async () => {
 }
 
 .progress-bar {
-  height: 6px;
+  height: 4px;
   background: $bg-secondary;
   border-radius: $radius-full;
   overflow: hidden;
+
+  @media (min-width: 768px) {
+    height: 6px;
+  }
 }
 
 .progress-fill {
@@ -535,22 +535,50 @@ onMounted(async () => {
 
 .calendar-layout {
   display: flex;
-  flex-direction: column; 
+  flex-direction: column;
 
-  @media (min-width: 1024px) {
+  @media (min-width: 768px) {
     flex-direction: row;
-    gap: $spacing-xl;
+    gap: $spacing-lg;
 
     .left-column {
-      flex: 1; 
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-lg;
+      flex: 1;
     }
 
     .right-column {
-      flex: 1.5; 
+      flex: 1.2;
     }
+  }
+}
+
+// ===== FAB Desktop Button =====
+.fab-desktop {
+  display: none;
+  width: fit-content;
+  padding: $spacing-md $spacing-lg;
+  background: $primary;
+  color: $white;
+  border: none;
+  border-radius: $radius-md;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: $font-size-base;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+
+  @media (min-width: 768px) {
+    display: block;
+  }
+
+  &:hover {
+    background: $primary-hover;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 </style>

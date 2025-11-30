@@ -22,7 +22,7 @@ defineEmits(['open-modal'])
 <style scoped lang="scss">
 .fab {
   position: fixed;
-  bottom: calc(70px + $spacing-lg);
+  bottom: calc(80px + $spacing-lg);
   right: $spacing-lg;
   width: 56px;
   height: 56px;
@@ -37,6 +37,9 @@ defineEmits(['open-modal'])
   align-items: center;
   justify-content: center;
   transition: all 0.25s ease;
+  @media (min-width: 768px) {
+    display: none;  
+  }
 }
 
 .fab .icon {

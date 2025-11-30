@@ -1,24 +1,16 @@
 <template>
   <div class="profile-view">
     <div class="container">
-      <h1 class="page-title">
-        7 Days Challenge
-      </h1>
+      <h1 class="page-title">7 Days Challenge</h1>
       
       <div class="profile-layout">
-        <!-- Left -->
         <div class="left-side">
           <div class="card profile-card">
             <h2 class="username">{{ username }}</h2>
             <p class="email">{{ email }}</p>
           </div>
-
-          <button class="btn btn-logout" @click="logout">
-            Выйти из аккаунта
-          </button>
         </div>
 
-        <!-- Right -->
         <div class="right-side">
           <div class="card chart-card">
             <h3 class="chart-title">Статистика за неделю</h3>
@@ -26,6 +18,10 @@
               <canvas ref="chartCanvas"></canvas>
             </div>
           </div>
+          
+          <button class="btn-logout" @click="logout">
+            Выйти из аккаунта
+          </button>
         </div>
       </div>
     </div>
@@ -155,15 +151,25 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .profile-view {
-  padding: $spacing-lg 0;
+  padding: $spacing-md 0;
   min-height: 100vh;
   background: $bg-primary;
+
+  @media (min-width: 768px) {
+    padding: $spacing-lg 0;
+  }
 }
 
 .container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 $spacing-md;
+  padding: 0 $spacing-sm;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 640px) {
+    padding: 0 $spacing-md;
+  }
 
   @media (min-width: 1024px) {
     padding: 0 $spacing-lg;
@@ -174,32 +180,39 @@ onMounted(async () => {
   display: none;
   text-align: center;
   color: $primary;               
-  margin: 0 0 $spacing-xl 0;
-  padding-top: $spacing-md;
+  margin: 0 0 $spacing-lg 0;
+  padding-top: $spacing-sm;
+  font-size: 28px;
+  font-weight: $font-weight-bold;
+  letter-spacing: -0.5px;
 
   @media (max-width: 767px) {
     display: block;
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
   }
 }
+
 .profile-layout {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: $spacing-md;
+  flex: 1;
 
   @media (min-width: 768px) {
     flex-direction: row;
     align-items: start;
-    gap: $spacing-xl;
+    gap: $spacing-lg;
   }
 }
 
 .left-side {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-md;
+
+  @media (min-width: 768px) {
+    gap: $spacing-lg;
+    flex: 0 0 auto;
+  }
 }
 
 .right-side {
@@ -209,9 +222,14 @@ onMounted(async () => {
 
 .card {
   background: $white;
-  border-radius: $radius-lg;
+  border-radius: $radius-md;
   box-shadow: $shadow-sm;
-  padding: $spacing-lg;
+  padding: $spacing-md;
+
+  @media (min-width: 768px) {
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+  }
 }
 
 .profile-card {
@@ -219,28 +237,42 @@ onMounted(async () => {
 }
 
 .username {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: $font-weight-semibold;
   color: $text-primary;
   margin: 0 0 $spacing-sm 0;
+
+  @media (min-width: 768px) {
+    font-size: 22px;
+    margin-bottom: $spacing-sm;
+  }
 }
 
 .email {
   color: $text-muted;
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 14px;
+  }
 }
 
 .chart-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: $font-weight-semibold;
   color: $text-secondary;
-  margin: 0 0 $spacing-lg 0;
+  margin: 0 0 $spacing-md 0;
+
+  @media (min-width: 768px) {
+    font-size: 18px;
+    margin-bottom: $spacing-lg;
+  }
 }
 
 .chart-wrapper {
   position: relative;
-  height: 240px;
+  height: 200px;
   
   @media (min-width: 768px) {
     height: 260px;
@@ -248,18 +280,23 @@ onMounted(async () => {
 }
 
 .btn-logout {
-  background: transparent;
-  color: #ef4444;
-  border: 1px solid #ef4444;
-  padding: $spacing-md $spacing-lg;
+  background: $primary-dark;
+  color: $white;
+  border: none;
+  padding: $spacing-sm $spacing-lg;
   border-radius: $radius-md;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 15px;
+  font-size: 14px;
+  width: fit-content;
+  margin-left: auto;
+  margin-top: $spacing-lg;
+  display: block;
 
   &:hover {
-    background: rgba(239, 68, 68, 0.08);
+    background: $danger;
+    color: $white;
     transform: translateY(-1px);
   }
 
@@ -267,4 +304,4 @@ onMounted(async () => {
     transform: translateY(0);
   }
 }
-</style>  
+</style>

@@ -92,6 +92,9 @@ const toggleTask = () => {
   padding: $spacing-lg;
   cursor: pointer;
   user-select: none;
+  @media (max-width: 768px) {
+    padding: $spacing-sm $spacing-sm;
+  }
 }
 
 .hidden-checkbox {
