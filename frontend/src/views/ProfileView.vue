@@ -68,10 +68,10 @@ function createChart() {
       labels: weeklyStats.value.map(d => d.day),
       datasets: [{
         data: weeklyStats.value.map(d => d.percent),
-        backgroundColor: '#3b82f6',
-        borderColor: '#3b82f6',
+        backgroundColor: '#5B9FD8',
+        borderColor: '#5B9FD8',
         borderWidth: 0,
-        borderRadius: 2,
+        borderRadius: 4,
         borderSkipped: false,
         barThickness: 28,
         categoryPercentage: 0.7,
