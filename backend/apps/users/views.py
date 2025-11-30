@@ -1,16 +1,92 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime, timedelta
 
 from apps.challenges.models import Task
 from .serializers import UserSerializer
 
 User = get_user_model()
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def google_login(request):
+    """Google OAuth login"""
+    from google.auth.transport import requests
+    from google.oauth2 import id_token
+
+    token = request.data.get("token")
+
+    if not token:
+        return Response(
+            {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token, requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+        )
+
+        email = idinfo["email"]
+        name = idinfo.get("name", email)
+
+        user, created = User.objects.get_or_create(
+            email=email, defaults={"username": email.split("@")[0], "first_name": name}
+        )
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                },
+            }
+        )
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def login_by_email(request):
+    """Login by email"""
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    if not email or not password:
+        return Response(
+            {"error": "Email and password required"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(email=email)
+        if user.check_password(password):
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                }
+            )
+    except User.DoesNotExist:
+        pass
+
+    return Response(
+        {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+    )
 
 
 class UserViewSet(viewsets.ModelViewSet):

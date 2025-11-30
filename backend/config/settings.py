@@ -1,7 +1,9 @@
-import sys
-from pathlib import Path
 import os
+from datetime import timedelta
+from pathlib import Path
 from dotenv import load_dotenv
+from decouple import config
+
 
 load_dotenv()
 
@@ -33,6 +35,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
+    "djoser",
+    "social_django",
+
     "corsheaders",
     "apps.challenges",
     "apps.users",
@@ -138,8 +143,6 @@ REST_FRAMEWORK = {
 }
 
 # JWT
-from datetime import timedelta
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -158,5 +161,14 @@ SIMPLE_JWT = {
 # AUTH USER MODEL
 AUTH_USER_MODEL = "users.CustomUser"
 
-
 LOGIN_URL = None
+
+# Social Auth
+SOCIAL_AUTH_URL_NAMESPACE = "social"
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("GOOGLE_OAUTH2_KEY")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("GOOGLE_OAUTH2_SECRET")
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "social_core.backends.google.GoogleOAuth2",
+]
