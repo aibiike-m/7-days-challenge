@@ -1,69 +1,55 @@
 from django.db import transaction
+from django.utils import translation
 from ..models import Challenge, Task
 from .ai_service import AIService
 
 
 class ChallengeService:
-    """Сервис для работы с челленджами"""
 
     @staticmethod
     @transaction.atomic
     def create_challenge_with_tasks(
-        goal: str, user, duration_days: int = 7
+        goal: str, user, duration_days: int = 7, language: str = "ru"
     ) -> Challenge:
-        """
-        Создает челлендж и генерирует задачи через AI
+        ai_service = AIService()
+        ai_data = ai_service.generate_challenge_plan(goal, duration_days)
 
-        Args:
-            goal: Цель пользователя
-            user: Пользователь (request.user)
-            duration_days: Длительность в днях
+        with translation.override("ru"):
+            challenge = Challenge.objects.create(
+                user=user,
+                duration_days=duration_days,
+                status="active",
+                goal=ai_data.get("goal_ru", goal),
+            )
 
-        Returns:
-            Challenge: Созданный челлендж с задачами
-        """
+        with translation.override("en"):
+            challenge.goal = ai_data.get("goal_en", goal)
+            challenge.save(update_fields=["goal"])
 
-        challenge = Challenge.objects.create(
-            goal=goal,
-            user=user,  
-            duration_days=duration_days,
-            status="active",
-        )
+        for i, task_data in enumerate(ai_data["tasks"], start=1):
+            with translation.override("ru"):
+                task = Task.objects.create(
+                    challenge=challenge,
+                    day_number=task_data["day"],
+                    title=task_data.get("title_ru", "Задача"),
+                    description=task_data.get("description_ru", ""),
+                    order=i,
+                )
 
-        try:
-            ai_service = AIService()
-            tasks_data = ai_service.generate_challenge_plan(goal, duration_days)
+            title_en = task_data.get("title_en")
+            description_en = task_data.get("description_en")
+            if title_en or description_en:
+                with translation.override("en"):
+                    if title_en:
+                        task.title = title_en
+                    if description_en:
+                        task.description = description_en
+                    task.save(update_fields=["title", "description"])
 
-            tasks_by_day = {}
-            for task_data in tasks_data:
-                day = task_data["day"]
-                if day not in tasks_by_day:
-                    tasks_by_day[day] = []
-                tasks_by_day[day].append(task_data)
-
-            tasks_to_create = []
-            for day in sorted(tasks_by_day.keys()):
-                for order, task_data in enumerate(tasks_by_day[day], start=1):
-                    task = Task(
-                        challenge=challenge,
-                        day_number=task_data["day"],
-                        title=task_data["title"],
-                        description=task_data["description"],
-                        order=order,
-                    )
-                    tasks_to_create.append(task)
-
-            Task.objects.bulk_create(tasks_to_create)
-
-            return challenge
-
-        except Exception as e:
-            challenge.delete()
-            raise Exception(f"Не удалось создать челлендж: {str(e)}")
-
+        return challenge
     @staticmethod
     def get_active_challenge(user):
-        """Получить последний активный челлендж пользователя"""
+        """Get the user's last active challenge"""
         return (
             Challenge.objects.filter(user=user, status="active")
             .order_by("-created_at")

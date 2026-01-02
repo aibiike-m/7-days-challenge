@@ -4,13 +4,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from decouple import config
 
-
 load_dotenv()
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -27,6 +24,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "modeltranslation",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -37,7 +35,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "djoser",
     "social_django",
-
     "corsheaders",
     "apps.challenges",
     "apps.users",
@@ -163,7 +160,7 @@ AUTH_USER_MODEL = "users.CustomUser"
 
 LOGIN_URL = None
 
-# Social Auth
+# SOCIAL AUTH
 SOCIAL_AUTH_URL_NAMESPACE = "social"
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("GOOGLE_OAUTH2_KEY")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("GOOGLE_OAUTH2_SECRET")
@@ -172,3 +169,12 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "social_core.backends.google.GoogleOAuth2",
 ]
+
+# LANGUAGES
+LANGUAGES = [
+    ("ru", "Русский"),
+    ("en", "English"),
+]
+LANGUAGE_CODE = "en"
+
+USE_I18N = True

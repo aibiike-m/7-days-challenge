@@ -1,9 +1,8 @@
 from rest_framework import serializers
+from django.utils import translation
 from .models import Challenge, Task
 
-
 class TaskSerializer(serializers.ModelSerializer):
-    """Сериализатор для задач"""
 
     class Meta:
         model = Task
@@ -11,7 +10,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "id",
             "challenge_id",
             "day_number",
-            "title",
+            "title",  
             "description",
             "order",
             "is_completed",
@@ -19,9 +18,13 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "completed_at"]
 
+    def to_representation(self, instance):
+        lang = self.context.get("language", "ru")
+        with translation.override(lang):
+            return super().to_representation(instance)
+
 
 class ChallengeListSerializer(serializers.ModelSerializer):
-    """Для списка челленджей"""
 
     progress_percentage = serializers.ReadOnlyField()
     tasks_count = serializers.SerializerMethodField()
@@ -30,7 +33,7 @@ class ChallengeListSerializer(serializers.ModelSerializer):
         model = Challenge
         fields = [
             "id",
-            "goal",
+            "goal",  
             "status",
             "created_at",
             "start_date",
@@ -42,9 +45,13 @@ class ChallengeListSerializer(serializers.ModelSerializer):
     def get_tasks_count(self, obj):
         return obj.tasks.count()
 
+    def to_representation(self, instance):
+        lang = self.context.get("language", "ru")
+        with translation.override(lang):
+            return super().to_representation(instance)
+
 
 class ChallengeDetailSerializer(serializers.ModelSerializer):
-    """Информация о челлендже с задачами"""
 
     tasks = TaskSerializer(many=True, read_only=True)
     progress_percentage = serializers.ReadOnlyField()
@@ -53,7 +60,7 @@ class ChallengeDetailSerializer(serializers.ModelSerializer):
         model = Challenge
         fields = [
             "id",
-            "goal",
+            "goal",  
             "status",
             "created_at",
             "start_date",
@@ -63,13 +70,17 @@ class ChallengeDetailSerializer(serializers.ModelSerializer):
             "current_day",
         ]
 
+    def to_representation(self, instance):
+        lang = self.context.get("language", "ru")
+        with translation.override(lang):
+            self.fields["tasks"].context["language"] = lang
+            return super().to_representation(instance)
+
 
 class ChallengeCreateSerializer(serializers.Serializer):
-    """Создание челленджа"""
 
     goal = serializers.CharField(
         required=True,
         min_length=10,
         max_length=500,
-        help_text="Цель, которую хотите достичь за 7 дней",
     )

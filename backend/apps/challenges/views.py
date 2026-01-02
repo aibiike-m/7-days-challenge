@@ -1,22 +1,21 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from .models import Challenge, Task
 from .serializers import (
     ChallengeListSerializer,
-    ChallengeDetailSerializer,
     ChallengeCreateSerializer,
+    ChallengeDetailSerializer,
     TaskSerializer,
 )
 from .services.challenge_service import ChallengeService
 
-
 class ChallengeViewSet(viewsets.ModelViewSet):
-    """API для работы с челленджами"""
+    """API for working with challenges"""
 
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Challenge.objects.filter(user=self.request.user)
@@ -33,70 +32,118 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             return ChallengeCreateSerializer
         return ChallengeDetailSerializer
 
+    def get_serializer_context(self):
+        """Add the language to the serializer context"""
+        context = super().get_serializer_context()
+        lang = self.request.query_params.get("language") or self.request.user.language
+        context["language"] = lang
+        return context
+
     def create(self, request):
-        """Создание нового челленджа с генерацией задач через AI"""
+        """Creating a new challenge"""
         serializer = ChallengeCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         goal = serializer.validated_data["goal"]
+        lang = request.query_params.get("language") or request.user.language
 
         try:
             challenge = ChallengeService.create_challenge_with_tasks(
-                goal=goal, user=request.user  # ← ДОБАВЬТЕ
+                goal=goal, user=request.user, language=lang
             )
 
-            response_serializer = ChallengeDetailSerializer(challenge)
+            response_serializer = ChallengeDetailSerializer(
+                challenge, context=self.get_serializer_context()
+            )
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    def list(self, request, *args, **kwargs):
+        """List of challenges"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(
+            queryset, many=True, context=self.get_serializer_context()
+        )
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        """Challenge details"""
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, context=self.get_serializer_context()
+        )
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-        challenge = ChallengeService.get_active_challenge(request.user)  # ← ИСПРАВЬТЕ
+        """Get an active challenge"""
+        challenge = ChallengeService.get_active_challenge(request.user)
 
         if not challenge:
             return Response(
                 {"detail": "Нет активных челленджей"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = ChallengeDetailSerializer(challenge)
+        serializer = ChallengeDetailSerializer(
+            challenge, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
+    """API for working with tasks"""
 
     permission_classes = [IsAuthenticated]
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    pagination_class = None
 
     def get_queryset(self):
         return Task.objects.filter(challenge__user=self.request.user)
 
+    def get_serializer_context(self):
+        """Add the language to the serializer context"""
+        context = super().get_serializer_context()
+        lang = self.request.query_params.get("language") or self.request.user.language
+        context["language"] = lang
+        return context
+
     def list(self, request, *args, **kwargs):
+        """Task list filtered by challenge"""
         queryset = self.get_queryset()
         challenge_ids = request.query_params.get("challenge_ids")
+
         if challenge_ids:
             ids_list = challenge_ids.split(",")
             queryset = queryset.filter(challenge__id__in=ids_list)
-        serializer = self.get_serializer(queryset, many=True)
+
+        serializer = self.get_serializer(
+            queryset, many=True, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
-    queryset = Task.objects.all()
-    serializer_class = TaskSerializer   
-    pagination_class = None
+    def retrieve(self, request, *args, **kwargs):
+        """Task details"""
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, context=self.get_serializer_context()
+        )
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
-        """Отметить задачу как выполненную"""
+        """Mark a task as completed"""
         task = self.get_object()
         task.mark_completed()
-        serializer = self.get_serializer(task)
+        serializer = self.get_serializer(task, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def uncomplete(self, request, pk=None):
-        """Снять отметку о выполнении"""
+        """Unmark as completed"""
         task = self.get_object()
         task.mark_uncompleted()
-        serializer = self.get_serializer(task)
+        serializer = self.get_serializer(task, context=self.get_serializer_context())
         return Response(serializer.data)
