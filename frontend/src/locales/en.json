@@ -1,0 +1,67 @@
+{
+	"nav": {
+		"today": "Today's Tasks",
+		"calendar": "Calendar",
+		"profile": "Profile"
+	},
+	"today": {
+		"title": "Today's Tasks",
+		"noTasks": "No tasks for today",
+		"remaining": "Tasks remaining",
+		"completed": "Completed",
+		"mark_completed": "Mark as completed",
+		"mark_uncompleted": "Mark as incomplete",
+		"new_challenge": "Create challenge"
+	},
+	"modal": {
+		"goal_label": "What goal do you want to achieve in 7 days?",
+		"goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
+		"ai_help": "AI will create a personalized 7-day plan for you",
+		"cancel": "Cancel",
+		"creating": "Creating plan...",
+		"success": "Challenge created!",
+		"create_error": "Error creating challenge"
+	},
+	"calendar": {
+		"title": "Calendar",
+		"challenge": "Challenge",
+		"day": "days",
+		"day_number": "Day"
+	},
+	"profile": {
+		"default_username": "User",
+		"title": "Profile",
+		"language": "Language",
+		"logout": "Logout",
+		"statistics": "Weekly Statistics",
+		"save": "Save"
+	},
+	"auth": {
+		"login_title": "Login",
+		"register_title": "Register",
+		"username": "Username or Email",
+		"username_register": "Username",
+		"email": "Email",
+		"password": "Password",
+		"login_btn": "Login",
+		"register_btn": "Register",
+		"have_account": "Already have an account?",
+		"no_account": "Don't have an account?",
+		"login_link": "Login",
+		"register_link": "Register",
+		"or": "or"
+	},
+	"challenge": {
+		"load_error": "Error loading challenge",
+		"update_error": "Error updating task",
+		"back": "Back",
+		"day": "Day",
+		"no_tasks": "No tasks",
+		"congratulations": "Congratulations!"
+	},
+	"common": {
+		"error": "An error occurred",
+		"loading": "Loading...",
+		"success": "Success!"
+	}
+}
