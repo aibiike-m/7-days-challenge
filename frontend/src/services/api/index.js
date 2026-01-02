@@ -5,7 +5,6 @@ const api = axios.create({
 	timeout: 60000,
 })
 
-// Interceptor - automatically adds a token to all requests
 api.interceptors.request.use(config => {
 	const token = localStorage.getItem('access_token')
 	if (token) {
@@ -14,7 +13,6 @@ api.interceptors.request.use(config => {
 	return config
 })
 
-// Auto-renew token on 401
 api.interceptors.response.use(
 	response => response,
 	async error => {
@@ -23,7 +21,10 @@ api.interceptors.response.use(
 			try {
 				const refresh = localStorage.getItem('refresh_token')
 				if (refresh) {
-					const res = await axios.post('/api/token/refresh/', { refresh })
+					const res = await axios.post(
+						'http://localhost:8000/api/token/refresh/',
+						{ refresh }
+					)
 					localStorage.setItem('access_token', res.data.access)
 					error.config.headers.Authorization = `Bearer ${res.data.access}`
 					return api(error.config)

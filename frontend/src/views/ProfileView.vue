@@ -2,25 +2,43 @@
   <div class="profile-view">
     <div class="container">
       <h1 class="page-title">7 Days Challenge</h1>
-      
+
       <div class="profile-layout">
         <div class="left-side">
           <div class="card profile-card">
             <h2 class="username">{{ username }}</h2>
             <p class="email">{{ email }}</p>
+
+            <div class="language-section">
+              <div class="custom-select">
+                <div 
+                  class="select-trigger" 
+                  @click.stop="isOpen = !isOpen" 
+                  :class="{ 'is-open': isOpen }"
+                >
+                  <span>{{ selectedLanguage === 'ru' ? 'Русский' : 'English' }}</span>
+                  <span class="arrow"></span>
+                </div>
+                
+                <div v-if="isOpen" class="select-dropdown">
+                  <div class="select-option" @click="changeLanguage('ru')">Русский</div>
+                  <div class="select-option" @click="changeLanguage('en')">English</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="right-side">
           <div class="card chart-card">
-            <h3 class="chart-title">Статистика за неделю</h3>
+            <h3 class="chart-title">{{ $t('profile.statistics') }}</h3>
             <div class="chart-wrapper">
               <canvas ref="chartCanvas"></canvas>
             </div>
           </div>
-          
+
           <button class="btn-logout" @click="logout">
-            Выйти из аккаунта
+            {{ $t('profile.logout') }}
           </button>
         </div>
       </div>
@@ -31,30 +49,49 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
-import api from '@/services/api/index.js'
+import api from '@/services/api' 
 
 const router = useRouter()
-const username = ref('')
+const i18n = useI18n()
+const username = ref('Загрузка...')
 const email = ref('')
 const weeklyStats = ref([])
 const chartCanvas = ref(null)
+const selectedLanguage = ref(i18n.locale.value)
+const isOpen = ref(false)
 let chartInstance = null
+
+onMounted(() => {
+  window.addEventListener('click', () => isOpen.value = false)
+})
 
 async function loadProfile() {
   try {
     const res = await api.get('users/me/')
-    username.value = res.data.username || 'Пользователь'
+    username.value = res.data.username || $t('profile.default_username')
     email.value = res.data.email || ''
-  } catch (e) { console.error(e) }
+    const savedLang = localStorage.getItem('language')
+    const serverLang = res.data.language || 'ru'
+    const finalLang = savedLang || serverLang
+    
+    selectedLanguage.value = finalLang
+    i18n.locale.value = finalLang
+    localStorage.setItem('language', finalLang)
+  } catch (e) {
+    console.error('Ошибка профиля:', e)
+  }
 }
 
 async function loadStats() {
   try {
-    const res = await api.get('users/stats/weekly/')
+    const res = await api.get('users/stats/weekly/', {
+      params: { language: i18n.locale.value }
+    })
     weeklyStats.value = res.data
-  } catch (e) { 
-    console.error('Error loading stats:', e)
+  } catch (e) {
+    console.error('Ошибка статистики:', e)
   }
 }
 
@@ -69,75 +106,55 @@ function createChart() {
       datasets: [{
         data: weeklyStats.value.map(d => d.percent),
         backgroundColor: '#5B9FD8',
-        borderColor: '#5B9FD8',
-        borderWidth: 0,
         borderRadius: 4,
-        borderSkipped: false,
         barThickness: 28,
-        categoryPercentage: 0.7,
-        barPercentage: 0.85
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { 
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 10,
-          titleFont: { size: 14 },
-          bodyFont: { size: 13 },
-          callbacks: {
-            label: function(context) {
-              return context.parsed.y + '%'
-            }
-          }
-        }
-      },
-      animation: { duration: 1000, easing: 'easeOutQuart' },
+      plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          ticks: { 
-            stepSize: 20, 
-            color: '#999', 
-            font: { size: 12 },
-            callback: function(value) {
-              return value + '%'
-            }
-          },
-          grid: { 
-            color: 'rgba(0, 0, 0, 0.05)', 
-            lineWidth: 1,
-            drawBorder: false
-          },
-          border: { display: false }
-        },
-        x: {
-          ticks: { color: '#666', font: { size: 13 } },
-          grid: { display: false },
-          border: { display: false }
-        }
+        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+        x: { grid: { display: false } }
       }
     }
   })
 }
 
 watch(weeklyStats, async (newStats) => {
-  if (newStats.length === 7) {
+  if (newStats.length > 0) {
     await nextTick()
     createChart()
   }
 })
 
+async function changeLanguage(lang) {
+  if (i18n.locale.value === lang) {
+    isOpen.value = false
+    return
+  }
+
+  try {
+    await api.patch('users/me/', { language: lang })
+    
+    selectedLanguage.value = lang
+    i18n.locale.value = lang
+    localStorage.setItem('language', lang)
+    isOpen.value = false
+
+    await loadStats()
+  } catch (error) {
+    console.error('Ошибка сохранения языка:', error)
+    alert(i18n.t('common.error'))
+  }
+}
+
 async function logout() {
   try {
     await api.post('logout/')
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    router.push('/auth')
+    localStorage.clear() 
+    router.push('/login')
   } catch (e) {
     console.error('Ошибка выхода:', e)
   }
@@ -179,11 +196,11 @@ onMounted(async () => {
 .page-title {
   display: none;
   text-align: center;
-  color: $primary;               
+  color: $primary;
   margin: 0 0 $spacing-lg 0;
   padding-top: $spacing-sm;
   font-size: 28px;
-  font-weight: $font-weight-bold;
+  font-weight: 700;
   letter-spacing: -0.5px;
 
   @media (max-width: 767px) {
@@ -238,7 +255,7 @@ onMounted(async () => {
 
 .username {
   font-size: 18px;
-  font-weight: $font-weight-semibold;
+  font-weight: 600;
   color: $text-primary;
   margin: 0 0 $spacing-sm 0;
 
@@ -251,16 +268,82 @@ onMounted(async () => {
 .email {
   color: $text-muted;
   font-size: 13px;
-  margin: 0;
+  margin: 0 0 $spacing-md 0;
 
   @media (min-width: 768px) {
     font-size: 14px;
   }
 }
 
+.custom-select {
+  position: relative;
+  width: 100%;
+  user-select: none;
+}
+
+.select-trigger {
+  padding: 10px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: $radius-md;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  transition: all 0.2s;
+
+  &.is-open {
+    border-color: $primary;
+    background: white;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.arrow {
+  border: solid #6b7280;
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 3px;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.is-open .arrow {
+  transform: rotate(-135deg);
+}
+
+.select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid $primary;
+  border-top: none;
+  border-bottom-left-radius: $radius-md;
+  border-bottom-right-radius: $radius-md;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.select-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba($primary, 0.05);
+    color: $primary;
+  }
+}
+
 .chart-title {
   font-size: 16px;
-  font-weight: $font-weight-semibold;
+  font-weight: 600;
   color: $text-secondary;
   margin: 0 0 $spacing-md 0;
 
@@ -273,7 +356,7 @@ onMounted(async () => {
 .chart-wrapper {
   position: relative;
   height: 200px;
-  
+
   @media (min-width: 768px) {
     height: 260px;
   }
@@ -281,11 +364,11 @@ onMounted(async () => {
 
 .btn-logout {
   background: $primary-dark;
-  color: $white;
+  color: white;
   border: none;
   padding: $spacing-sm $spacing-lg;
   border-radius: $radius-md;
-  font-weight: $font-weight-semibold;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
@@ -296,7 +379,7 @@ onMounted(async () => {
 
   &:hover {
     background: $danger;
-    color: $white;
+    color: white;
     transform: translateY(-1px);
   }
 

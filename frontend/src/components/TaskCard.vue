@@ -32,7 +32,7 @@
       <div class="description-content">
         <p class="task-description">{{ task.description }}</p>
         <div class="task-meta">
-          <span class="task-day">День {{ task.day_number }}</span>
+          <span class="task-day">{{ $t('challenge.day') }} {{ task.day_number }}</span>
         </div>
       </div>
     </div>

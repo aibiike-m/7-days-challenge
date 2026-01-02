@@ -1,19 +1,18 @@
 <template>
   <div class="today-view">
-    <div v-if="loading" class="loading">Загрузка...</div>
+    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
 
     <div v-else-if="todayTasks.length === 0" class="empty-state">
-      <span class="empty-icon">Нет задач</span>
-      <p>Нет задач на сегодня</p>
+      <span class="empty-icon">📝</span>
+      <p>{{ $t('today.noTasks') }}</p>
       <button class="btn btn-primary" @click="$router.push('/calendar')">
-        Создать челлендж
+        {{ $t('today.new_challenge') }}
       </button>
     </div>
 
     <div v-else class="tasks-container">
-      <!-- Незавершённые задачи -->
       <div class="tasks-section" v-if="activeTasks.length > 0">
-        <h3 class="section-title">Осталось сделать {{ activeTasks.length }}</h3>
+        <h3 class="section-title">{{ $t('today.remaining') }} {{ activeTasks.length }}</h3>
         <TaskCard
           v-for="task in activeTasks"
           :key="task.id"
@@ -22,10 +21,9 @@
         />
       </div>
 
-      <!-- Выполненные задачи -->
       <div class="tasks-section" v-if="completedTasks.length > 0">
         <h3 class="section-title completed-title">
-          Выполнено {{ completedTasks.length }}
+          {{ $t('today.completed') }} {{ completedTasks.length }}
         </h3>
         <TaskCard
           v-for="task in completedTasks"
@@ -41,45 +39,39 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import TaskCard from '@/components/TaskCard.vue'
 import api from '@/services/api/index.js'
+import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
 
 const router = useRouter()
+const i18n = useI18n()
 const loading = ref(true)
 const allChallenges = ref([])
 const allTasks = ref([])
 
-const today = new Date()
-today.setHours(0, 0, 0, 0)
-
-const currentDate = computed(() => {
-  return new Date().toLocaleDateString('ru-RU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  })
-})
+const getTodayDate = () => {
+  const date = new Date()
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
 
 const todayTasks = computed(() => {
-  return allTasks.value.filter(task => {
-    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
-    if (!challenge) return false
-
-    const taskDate = new Date(challenge.start_date)
-    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
-    taskDate.setHours(0, 0, 0, 0)
-
-    return taskDate.getTime() === today.getTime()
-  })
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return getTasksForDate(allTasks.value, allChallenges.value, today)
 })
+
 
 const activeTasks = computed(() => todayTasks.value.filter(t => !t.is_completed))
 const completedTasks = computed(() => todayTasks.value.filter(t => t.is_completed))
 
 async function loadChallenges() {
   try {
-    const response = await api.get('challenges/')
-    allChallenges.value = response.data.results || []
+    const response = await api.get('challenges/', {
+      params: { language: i18n.locale.value }
+    })
+    allChallenges.value = response.data.results || response.data || []
   } catch (error) {
     console.error('Ошибка загрузки челленджей:', error)
     allChallenges.value = []
@@ -95,13 +87,13 @@ async function loadTasks() {
   const challengeIds = allChallenges.value.map(c => c.id)
   try {
     const response = await api.get('tasks/', {
-      params: { challenge_ids: challengeIds.join(',') }
+      params: {
+        challenge_ids: challengeIds.join(','),
+        language: i18n.locale.value
+      }
     })
     const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
-    allTasks.value = tasks.map(task => ({
-      ...task,
-      challenge_id: task.challenge_id
-    }))
+    allTasks.value = tasks
   } catch (error) {
     console.error('Ошибка загрузки задач:', error)
     allTasks.value = []
@@ -111,9 +103,13 @@ async function loadTasks() {
 async function toggleTask(task) {
   try {
     if (task.is_completed) {
-      await api.post(`tasks/${task.id}/uncomplete/`)
+      await api.post(`tasks/${task.id}/uncomplete/`, {}, {
+        params: { language: i18n.locale.value }
+      })
     } else {
-      await api.post(`tasks/${task.id}/complete/`)
+      await api.post(`tasks/${task.id}/complete/`, {}, {
+        params: { language: i18n.locale.value }
+      })
     }
     task.is_completed = !task.is_completed
   } catch (error) {
@@ -123,9 +119,16 @@ async function toggleTask(task) {
 
 onMounted(async () => {
   loading.value = true
-  await loadChallenges()
-  await loadTasks()
-  loading.value = false
+  try {
+    await loadChallenges()
+    if (allChallenges.value.length > 0) {
+      await loadTasks()
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки данных:', error)
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -146,22 +149,8 @@ onMounted(async () => {
   }
 }
 
-.header-section {
-  margin-bottom: $spacing-xl;
-  text-align: center;
-
-  h2 {
-    margin-bottom: $spacing-sm;
-  }
-
-  .date {
-    color: $text-muted;
-    font-size: $font-size-lg;
-    text-transform: capitalize;
-  }
-}
-
-.loading, .empty-state {
+.loading,
+.empty-state {
   text-align: center;
   padding: $spacing-xl;
   color: $text-muted;
@@ -187,16 +176,12 @@ onMounted(async () => {
 
 .section-title {
   font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
+  font-weight: 600;
   color: $text-secondary;
   margin-bottom: $spacing-sm;
 }
 
 .completed-title {
   color: $primary;
-}
-
-.btn-primary {
-  margin-top: $spacing-lg;
 }
 </style>

@@ -2,17 +2,17 @@
   <nav class="bottom-nav">
     <router-link to="/today" class="nav-item">
       <span class="icon">✓</span>
-      <span class="label">Сегодня</span>
+      <span class="label">{{ $t('nav.today') }}</span>
     </router-link>
-    
+
     <router-link to="/calendar" class="nav-item">
       <span class="icon">📅</span>
-      <span class="label">Календарь</span>
+      <span class="label">{{ $t('nav.calendar') }}</span>
     </router-link>
-    
+
     <router-link to="/profile" class="nav-item">
       <span class="icon">👤</span>
-      <span class="label">Профиль</span>
+      <span class="label">{{ $t('nav.profile') }}</span>
     </router-link>
   </nav>
 </template>

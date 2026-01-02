@@ -3,7 +3,7 @@
     v-if="showFAB"
     class="fab"
     @click="$emit('open-modal')"
-    title="Создать челлендж"
+    :title="$t('today.new_challenge')"
   >
     <span class="icon">+</span>
   </button>

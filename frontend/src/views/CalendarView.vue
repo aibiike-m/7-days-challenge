@@ -10,7 +10,7 @@
           </div>
 
           <div class="calendar-grid">
-            <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
+            <div class="weekday" v-for="(day, idx) in weekdays" :key="idx">{{ day }}</div>
             <div
               v-for="date in calendarDates"
               :key="date.key"
@@ -39,7 +39,7 @@
             >
               <h4>{{ challenge.goal }}</h4>
               <div class="challenge-meta">
-                <span class="challenge-duration">{{ challenge.duration_days }} дней</span>
+                <span class="challenge-duration">{{ challenge.duration_days }} {{ $t('calendar.day') }}</span>
                 <span class="challenge-progress">{{ challenge.progress_percentage }}%</span>
               </div>
               <div class="progress-bar">
@@ -56,13 +56,13 @@
           @click="$emit('open-modal')"
           title="Создать челлендж"
         >
-          + Создать челлендж
+        {{ $t('today.new_challenge')}}
         </button>
 
-        <div v-if="loading" class="loading">Загрузка...</div>
+        <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
 
         <div v-else-if="selectedDayTasks.length === 0" class="empty-tasks">
-          <p>Нет задач на этот день</p>
+          <p>{{ $t('today.noTasks') }}</p>
         </div>
 
         <div v-else class="tasks-list">
@@ -81,10 +81,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import TaskCard from '@/components/TaskCard.vue'
 import api from '@/services/api/index.js'
+import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
 
 const router = useRouter()
+const i18n = useI18n()
 const loading = ref(true)
 const currentDate = ref(new Date())
 const selectedDate = ref(null)
@@ -93,18 +96,29 @@ const allTasks = ref([])
 
 defineEmits(['open-modal'])
 
-const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const weekdaysRu = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const weekdaysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+const weekdays = computed(() => 
+  i18n.locale.value === 'ru' ? weekdaysRu : weekdaysEn
+)
 
 const currentMonthName = computed(() => {
-  return currentDate.value.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+  const locale = i18n.locale.value === 'ru' ? 'ru-RU' : 'en-US'
+  return currentDate.value.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 })
 
-const formatSelectedDate = computed(() => {
-  if (!selectedDate.value) return ''
-  return selectedDate.value.toLocaleDateString('ru-RU', { 
-    day: 'numeric', 
-    month: 'long',
-    weekday: 'long'
+const selectedDayTasks = computed(() => {
+  if (!selectedDate.value) return []
+
+  return allTasks.value.filter(task => {
+    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
+    if (!challenge) return false
+
+    const taskDate = new Date(challenge.start_date)
+    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
+
+    return isSameDay(taskDate, selectedDate.value)
   })
 })
 
@@ -122,19 +136,12 @@ const challengesForSelectedDate = computed(() => {
   )
 })
 
-const selectedDayTasks = computed(() => {
-  if (!selectedDate.value) return []
-
-  return allTasks.value.filter(task => {
-    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
-    if (!challenge) return false
-
-    const taskDate = new Date(challenge.start_date)
-    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
-
-    return isSameDay(taskDate, selectedDate.value)
-  })
+const todayTasks = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return getTasksForDate(allTasks.value, allChallenges.value, today)
 })
+
 
 function hasTasksOnDate(date) {
   return allTasks.value.some(task => {
@@ -210,8 +217,10 @@ function nextMonth() {
 
 async function loadChallenges() {
   try {
-    const response = await api.get('challenges/')
-    allChallenges.value = response.data.results || []
+    const response = await api.get('challenges/', {
+      params: { language: i18n.locale.value }
+    })
+    allChallenges.value = response.data.results || response.data || []
   } catch (error) {
     console.error('Ошибка загрузки челленджей:', error)
     allChallenges.value = []
@@ -227,13 +236,13 @@ async function loadAllTasks() {
   const challengeIds = allChallenges.value.map(c => c.id)
   try {
     const response = await api.get('tasks/', {
-      params: { challenge_ids: challengeIds.join(',') }
+      params: {
+        challenge_ids: challengeIds.join(','),
+        language: i18n.locale.value
+      }
     })
     const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
-    allTasks.value = tasks.map(task => ({
-      ...task,
-      challenge_id: task.challenge_id
-    }))
+    allTasks.value = tasks
   } catch (error) {
     console.error('Ошибка загрузки задач:', error)
     allTasks.value = []
@@ -243,9 +252,13 @@ async function loadAllTasks() {
 async function toggleTask(task) {
   try {
     if (task.is_completed) {
-      await api.post(`tasks/${task.id}/uncomplete/`)
+      await api.post(`tasks/${task.id}/uncomplete/`, {}, {
+        params: { language: i18n.locale.value }
+      })
     } else {
-      await api.post(`tasks/${task.id}/complete/`)
+      await api.post(`tasks/${task.id}/complete/`, {}, {
+        params: { language: i18n.locale.value }
+      })
     }
     task.is_completed = !task.is_completed
   } catch (error) {
@@ -257,18 +270,19 @@ function viewChallenge(challenge) {
   router.push(`/challenge/${challenge.id}`)
 }
 
-function isSameDay(d1, d2) {
-  return d1.getDate() === d2.getDate() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getFullYear() === d2.getFullYear()
-}
-
 onMounted(async () => {
   loading.value = true
-  await loadChallenges()
-  await loadAllTasks()
-  selectedDate.value = new Date()
-  loading.value = false
+  try {
+    await loadChallenges()
+    if (allChallenges.value.length > 0) {
+      await loadAllTasks()
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки данных:', error)
+  } finally {
+    loading.value = false
+    selectedDate.value = new Date()
+  }
 })
 </script>
 

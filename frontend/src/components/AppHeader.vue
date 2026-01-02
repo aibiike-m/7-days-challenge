@@ -4,17 +4,13 @@
       <h1 class="logo">7 Days Challenge</h1>
       
       <nav class="desktop-nav">
-        <router-link to="/today" class="nav-link">Сегодня</router-link>
-        <router-link to="/calendar" class="nav-link">Календарь</router-link>
-        <router-link to="/profile" class="nav-link">Профиль</router-link>
+        <router-link to="/today" class="nav-link">{{ $t('nav.today') }}</router-link>
+        <router-link to="/calendar" class="nav-link">{{ $t('nav.calendar') }}</router-link>
+        <router-link to="/profile" class="nav-link">{{ $t('nav.profile') }}</router-link>
       </nav>
-      
     </div>
   </header>
 </template>
-
-<script setup>
-</script>
 
 <style scoped lang="scss">
 .app-header {

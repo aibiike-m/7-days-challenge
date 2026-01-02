@@ -3,22 +3,22 @@
     <div v-if="isOpen" class="modal-overlay" @click="close">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h2>Создать челлендж</h2>
+          <h2>{{ $t('today.new_challenge') }}</h2>
           <button class="close-btn" @click="close">×</button>
         </div>
         
         <form @submit.prevent="submit">
           <div class="form-group">
-            <label for="goal">Какую цель хотите достичь за 7 дней?</label>
+            <label for="goal">{{ $t('modal.goal_label') }}</label>
             <textarea 
               id="goal"
               v-model="goal" 
-              placeholder="Например: Выучить 50 английских слов, начать бегать по утрам, научиться готовить 5 новых блюд..."
+              :placeholder="$t('modal.goal_placeholder')"
               rows="4"
               required
               :disabled="loading"
             ></textarea>
-            <p class="hint">AI создаст для вас персональный план на 7 дней</p>
+            <p class="hint">{{ $t('modal.ai_help') }}</p>
           </div>
           
           <div class="modal-actions">
@@ -28,7 +28,7 @@
               @click="close"
               :disabled="loading"
             >
-              Отмена
+              {{ $t('modal.cancel') }}
             </button>
             <button 
               type="submit" 
@@ -36,7 +36,7 @@
               :disabled="loading || !goal.trim()"
             >
               <span v-if="loading" class="loading-spinner">⏳</span>
-              {{ loading ? 'Создаем план...' : 'Создать челлендж' }}
+              {{ loading ? $t('modal.creating') : $t('today.new_challenge') }}
             </button>
           </div>
         </form>
@@ -51,20 +51,20 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api/index.js'
 
+const emit = defineEmits(['close', 'created'])
+const { locale } = useI18n()
+const goal = ref('')
+const loading = ref(false)
+const error = ref('')
 const props = defineProps({
   isOpen: {
     type: Boolean,
     default: false
   }
 })
-
-const emit = defineEmits(['close', 'created'])
-
-const goal = ref('')
-const loading = ref(false)
-const error = ref('')
 
 watch(() => props.isOpen, (newVal) => {
   if (!newVal) {
@@ -87,16 +87,18 @@ const submit = async () => {
   
   try {
     const response = await api.post('challenges/', {
-      goal: goal.value.trim()
+      goal: goal.value.trim(),
+      language: locale.value
     })
     
     emit('created', response.data)
     emit('close')
+    goal.value = ''
     
-    alert('Челлендж успешно создан! 🎉')
+    alert($t('modal.success'))
   } catch (err) {
     console.error('Error creating challenge:', err)
-    error.value = err.response?.data?.error || 'Произошла ошибка при создании челленджа'
+    error.value = err.response?.data?.error || $t('common.error')
   } finally {
     loading.value = false
   }
