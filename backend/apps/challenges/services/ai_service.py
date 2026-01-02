@@ -1,14 +1,15 @@
 import os
 import json
-import re
 import google.generativeai as genai
 from dotenv import load_dotenv
+from google.generativeai import GenerationConfig
+
 
 load_dotenv()
 
 
 class AIService:
-    """Сервис для работы с Google Gemini AI"""
+    """Google Gemini AI Service"""
 
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
@@ -18,98 +19,79 @@ class AIService:
 
         genai.configure(api_key=api_key)
 
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        generation_config = GenerationConfig(
+            response_mime_type="application/json"
+        )
 
-        # self.model = genai.GenerativeModel('gemini-2.0-flash')
-        # self.model = genai.GenerativeModel('gemini-2.5-pro') 
+        
+        self.model = genai.GenerativeModel(
+            "gemini-2.5-flash",
+            generation_config=generation_config
+        )
 
-    def generate_challenge_plan(self, goal: str, days: int = 7) -> list:
-        """Генерирует план задач на основе цели"""
+    def generate_challenge_plan(self, goal: str, days: int = 7) -> dict:
+        """Generates a task plan based on the goal"""
 
-        prompt = f"""Ты помощник для создания планов достижения целей.
+        prompt = f"""
 
-Создай детальный план на {days} дней для достижения следующей цели:
-"{goal}"
+            You are an assistant in creating plans to achieve goals.
+            Create a detailed {days} day plan to achieve the following goal:
+            "{goal}"
+                        
+            Requirements:
+                - Create 1 to 8 tasks each day (depending on the complexity of the goal)
+                - Tasks should be specific and achievable within a day
+                - Consider the context of the goal:
+                    * For learning (languages, skills) → repetitive tasks
+                    * For projects (creating something) → unique tasks
+                    * For habits (sports, health) → gradual increase in workload
+                - Tasks from simple to complex
+                - Task title: short (up to 100 characters)
+                - Description: detailed with specific steps
 
-Требования:
-- На каждый день создай от 1 до 8 задач (в зависимости от сложности цели)
-- Задачи должны быть конкретными и выполнимыми за день
-- Учитывай контекст цели:
-  * Для обучения (языки, навыки) → повторяющиеся задачи
-  * Для проектов (создать что-то) → уникальные задачи  
-  * Для привычек (спорт, здоровье) → постепенное увеличение нагрузки
-- Задачи от простого к сложному
-- Название задачи: кратко (до 100 символов)
-- Описание: подробно с конкретными шагами
 
-Верни ответ СТРОГО в формате JSON массива, без дополнительного текста:
-[
-  {{"day": 1, "title": "Название задачи", "description": "Подробное описание что делать"}},
-  {{"day": 1, "title": "Еще одна задача дня 1", "description": "Описание"}},
-  {{"day": 2, "title": "Задача дня 2", "description": "Описание"}},
-  ...
-]
 
-ВАЖНО: 
-- Верни ТОЛЬКО JSON массив
-- Без markdown форматирования
-- Без ```json``` или других символов
-- Чистый валидный JSON"""
+            Return the response STRICTLY in JSON array format, without additional text:            
+            {{
+                "goal_ru": "Перевод цели на русский",
+                "goal_en": "Goal translation to English",
+                "tasks": [
+                    {{"day": 1, "title_ru": "...", "title_en": "...", "description_ru": "...", "description_en": "..."}},
+                    {{"day": 1, "title_ru": "...", "title_en": "...", "description_ru": "...", "description_en": "..."}}
+                ]
+            }}
+            
+            IMPORTANT:
+            - Provide titles and descriptions in BOTH Russian and English.
+            - Return ONLY the JSON array
+            - No Markdown formatting
+            - No ```json``` or other characters
+            - Pure, valid JSON
+            """
 
         try:
             response = self.model.generate_content(prompt)
             response_text = response.text.strip()
+            data = json.loads(response_text)
 
-            print(f"📝 Ответ AI (первые 200 символов): {response_text[:200]}")
-
-            if "```" in response_text:
-                json_match = re.search(
-                    r"```(?:json)?\s*(\[.*?\])\s*```", response_text, re.DOTALL
+            if not isinstance(data, dict) or "tasks" not in data:
+                raise ValueError(
+                    "AI вернул неверный формат (ожидался словарь с ключом 'tasks')"
                 )
-                if json_match:
-                    response_text = json_match.group(1)
-                else:
-                    response_text = (
-                        response_text.replace("```json", "").replace("```", "").strip()
-                    )
 
-            tasks = json.loads(response_text)
-
-            if not isinstance(tasks, list):
-                raise ValueError("AI вернул не список")
-
-            if len(tasks) == 0:
-                raise ValueError("AI не вернул ни одной задачи")
-
-            for i, task in enumerate(tasks):
-                
-                if 'daym' in task and 'day' not in task:
-                    task['day'] = task.pop('daym')
-
-                if not all(key in task for key in ["day", "title", "description"]):
-                    raise ValueError(
-                        f"Задача {i+1} имеет неправильную структуру: {task}"
-                    )
-                if task["day"] < 1 or task["day"] > days:
-                    raise ValueError(f"Неверный номер дня: {task['day']}")
-
-            days_present = set(task["day"] for task in tasks)
-            missing_days = set(range(1, days + 1)) - days_present
-            if missing_days:
-                print(f"⚠️ Предупреждение: нет задач для дней {missing_days}")
-
-            print(f"✅ Успешно сгенерировано {len(tasks)} задач")
-            return tasks
-
+            return data  
+        except Exception as e:
+            print(f"Ошибка AI: {e}")
+            raise e
         except json.JSONDecodeError as e:
-            print(f"❌ Ответ AI не является валидным JSON:")
+            print(f"Ответ AI не является валидным JSON:")
             print(response_text)
             raise ValueError(f"AI вернул невалидный JSON: {str(e)}")
 
         except AttributeError as e:
-            print(f"❌ Ошибка при получении ответа от AI: {e}")
+            print(f"Ошибка при получении ответа от AI: {e}")
             raise Exception(f"Не удалось получить текст ответа: {str(e)}")
 
         except Exception as e:
-            print(f"❌ Ошибка: {e}")
+            print(f"Ошибка: {e}")
             raise Exception(f"Ошибка при генерации плана: {str(e)}")
