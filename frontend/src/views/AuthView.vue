@@ -4,49 +4,49 @@
       <div class="app-name">7 Days Challenge</div>
       
       <div class="auth-card">
-        <h1 class="auth-title">{{ isLogin ? 'Вход' : 'Регистрация' }}</h1>
+        <h1 class="auth-title">{{ isLogin ? $t('auth.login_title') : $t('auth.register_title') }}</h1>
 
         <form @submit.prevent="handleSubmit" class="auth-form">
           <div class="form-group">
-            <label for="login">{{ isLogin ? 'Имя пользователя или Email' : 'Имя пользователя' }}</label>
+            <label for="login">{{ isLogin ? $t('auth.username') : $t('auth.username_register') }}</label>
             <input
               id="login"
               v-model="username"
               type="text"
-              :placeholder="isLogin ? 'Введите имя или email' : 'Введите имя пользователя'"
+              :placeholder="isLogin ? $t('auth.username') : $t('auth.username_register')"
               required
             />
           </div>
 
           <div v-if="!isLogin" class="form-group">
-            <label for="email">Email</label>
+            <label for="email">{{ $t('auth.email') }}</label>
             <input
               id="email"
               v-model="email"
               type="email"
-              placeholder="Введите email"
+              :placeholder="$t('auth.email')"
               required
             />
           </div>
 
           <div class="form-group">
-            <label for="password">Пароль</label>
+            <label for="password">{{ $t('auth.password') }}</label>
             <input
               id="password"
               v-model="password"
               type="password"
-              placeholder="Введите пароль"
+              :placeholder="$t('auth.password')"
               required
             />
           </div>
 
           <button type="submit" class="btn btn-primary btn-full">
-            {{ isLogin ? 'Войти' : 'Зарегистрироваться' }}
+            {{ isLogin ? $t('auth.login_btn') : $t('auth.register_btn') }}
           </button>
         </form>
 
         <div class="divider">
-          <span>или</span>
+          <span>{{ $t('auth.or') }}</span>
         </div>
 
         <div id="g_id_onload"
@@ -57,13 +57,13 @@
         <div id="g_id_signin" data-type="standard"></div>
 
         <p class="auth-toggle">
-          {{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
+          {{ isLogin ? $t('auth.no_account') : $t('auth.have_account') }}
           <button
             type="button"
             @click="isLogin = !isLogin"
             class="toggle-btn"
           >
-            {{ isLogin ? 'Зарегистрируйтесь' : 'Войдите' }}
+            {{ isLogin ? $t('auth.register_link') : $t('auth.login_link') }}
           </button>
         </p>
       </div>
@@ -74,9 +74,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api/index.js'
 
 const router = useRouter()
+const i18n = useI18n()
 const isLogin = ref(true)
 const username = ref('')
 const email = ref('')
@@ -95,6 +97,8 @@ async function loginWithGoogle(googleToken) {
 
     localStorage.setItem('access_token', response.data.access)
     localStorage.setItem('refresh_token', response.data.refresh)
+    localStorage.setItem('language', response.data.user.language)
+    i18n.locale.value = response.data.user.language
     router.push('/today')
   } catch (error) {
     alert('Ошибка при входе с Google')
@@ -114,6 +118,10 @@ async function handleSubmit() {
         
         localStorage.setItem('access_token', response.data.access)
         localStorage.setItem('refresh_token', response.data.refresh)
+        if (response.data.user?.language) {
+          localStorage.setItem('language', response.data.user.language)
+          i18n.locale.value = response.data.user.language
+        }
         router.push('/today')
       } else {
         const response = await api.post('token/', {
@@ -133,7 +141,7 @@ async function handleSubmit() {
       })
 
       if (response.data.success) {
-        alert('Регистрация успешна! Войдите с вашими данными.')
+        alert(i18n.t('auth.register_success'))
         isLogin.value = true
         username.value = ''
         email.value = ''
@@ -146,6 +154,8 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  if (window.google?.accounts) return
+
   const script = document.createElement('script')
   script.src = 'https://accounts.google.com/gsi/client'
   script.async = true
