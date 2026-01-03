@@ -12,7 +12,7 @@ from apps.users.views import (
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 router = DefaultRouter()
-router.register(r"users", UserViewSet) 
+router.register(r"users", UserViewSet, basename="user")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

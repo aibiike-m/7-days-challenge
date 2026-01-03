@@ -9,3 +9,5 @@ media/
 staticfiles/
 
 .env
+
+show_tree.py
