@@ -53,7 +53,7 @@ class Task(models.Model):
         verbose_name="Челлендж",
     )
     day_number = models.IntegerField(verbose_name="День №")
-    title = models.CharField(max_length=255, verbose_name="Название")
+    title = models.CharField(max_length=255, verbose_name="Название") 
     description = models.TextField(verbose_name="Описание")
     order = models.IntegerField(default=0, verbose_name="Порядок")
     is_completed = models.BooleanField(default=False, verbose_name="Выполнена")

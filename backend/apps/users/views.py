@@ -9,54 +9,13 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime, timedelta
 
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+
 from apps.challenges.models import Task
 from .serializers import UserSerializer
 
 User = get_user_model()
-
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def google_login(request):
-    """Google OAuth login"""
-    from google.auth.transport import requests
-    from google.oauth2 import id_token
-
-    token = request.data.get("token")
-
-    if not token:
-        return Response(
-            {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
-        )
-
-    try:
-        idinfo = id_token.verify_oauth2_token(
-            token, requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-        )
-
-        email = idinfo["email"]
-        name = idinfo.get("name", email)
-
-        user, created = User.objects.get_or_create(
-            email=email, defaults={"username": email.split("@")[0], "first_name": name}
-        )
-
-        refresh = RefreshToken.for_user(user)
-
-        return Response(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                },
-            }
-        )
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["POST"])
@@ -79,6 +38,12 @@ def login_by_email(request):
                 {
                     "access": str(refresh.access_token),
                     "refresh": str(refresh),
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "language": user.language,
+                    },
                 }
             )
     except User.DoesNotExist:
@@ -89,49 +54,100 @@ def login_by_email(request):
     )
 
 
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def google_login(request):
+
+    token = request.data.get("token")
+    idinfo = id_token.verify_oauth2_token(
+        token, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+    )
+
+    if not token:
+        return Response(
+            {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token, requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+        )
+
+        email = idinfo["email"]
+        name = idinfo.get("name", email)
+
+        user, created = User.objects.get_or_create(
+            email=email, defaults={"username": email.split("@")[0], "first_name": name}
+        )
+
+        refresh = RefreshToken.for_user(user)
+        user_data = UserSerializer(user).data
+
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": user_data,
+            }
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"Invalid token or Google error: {str(e)}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
-    queryset = User.objects.none()
+    queryset = User.objects.all()
 
     def get_queryset(self):
-        return User.objects.filter(id=self.request.user.id)
+        return self.queryset.filter(id=self.request.user.id)
 
-    @action(detail=False, methods=["get"], url_path="me")
+    @action(detail=False, methods=["get", "patch"], url_path="me")
     def me(self, request):
-        serializer = self.get_serializer(request.user)
+        user = request.user
+        if request.method == "PATCH":
+            serializer = self.get_serializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+        serializer = self.get_serializer(user)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="stats/weekly")
     def weekly_stats(self, request):
+        """Get statistics for the week"""
         user = request.user
         today = datetime.now().date()
         start_of_week = today - timedelta(days=today.weekday())
 
-        stats = []
-        weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+        lang = request.query_params.get("language", user.language)
+        weekdays = (
+            ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+            if lang == "ru"
+            else ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        )
 
+        all_tasks = Task.objects.filter(
+            challenge__user=user, challenge__status="active"
+        ).select_related("challenge")
+
+        stats = []
         for i in range(7):
             current_date = start_of_week + timedelta(days=i)
 
-            all_tasks = Task.objects.filter(
-                challenge__user=user, challenge__status="active"
-            )
+            day_tasks = [
+                t
+                for t in all_tasks
+                if (t.challenge.start_date + timedelta(days=t.day_number - 1))
+                == current_date
+            ]
 
-            total = 0
-            completed = 0
-
-            for task in all_tasks:
-                try:
-                    task_date = task.challenge.start_date + timedelta(
-                        days=task.day_number - 1
-                    )
-                    if task_date == current_date:
-                        total += 1
-                        if task.is_completed:
-                            completed += 1
-                except Exception:
-                    continue
+            total = len(day_tasks)
+            completed = len([t for t in day_tasks if t.is_completed])
 
             percent = round((completed / total * 100)) if total > 0 else 0
             stats.append(
@@ -142,7 +158,6 @@ class UserViewSet(viewsets.ModelViewSet):
             )
 
         return Response(stats)
-
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
