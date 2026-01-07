@@ -3,22 +3,22 @@
     <div v-if="isOpen" class="modal-overlay" @click="close">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h2>{{ $t('today.new_challenge') }}</h2>
+          <h2>{{ t('today.new_challenge') }}</h2>
           <button class="close-btn" @click="close">×</button>
         </div>
         
         <form @submit.prevent="submit">
           <div class="form-group">
-            <label for="goal">{{ $t('modal.goal_label') }}</label>
+            <label for="goal">{{ t('modal.goal_label') }}</label>
             <textarea 
               id="goal"
               v-model="goal" 
-              :placeholder="$t('modal.goal_placeholder')"
+              :placeholder="t('modal.goal_placeholder')"
               rows="4"
               required
               :disabled="loading"
             ></textarea>
-            <p class="hint">{{ $t('modal.ai_help') }}</p>
+            <p class="hint">{{ t('modal.ai_help') }}</p>
           </div>
           
           <div class="modal-actions">
@@ -28,7 +28,7 @@
               @click="close"
               :disabled="loading"
             >
-              {{ $t('modal.cancel') }}
+              {{ t('modal.cancel') }}
             </button>
             <button 
               type="submit" 
@@ -36,7 +36,7 @@
               :disabled="loading || !goal.trim()"
             >
               <span v-if="loading" class="loading-spinner">⏳</span>
-              {{ loading ? $t('modal.creating') : $t('today.new_challenge') }}
+              {{ loading ? t('modal.creating') : t('today.new_challenge') }}
             </button>
           </div>
         </form>
@@ -52,6 +52,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import api from '@/services/api/index.js'
 
 const emit = defineEmits(['close', 'created'])
@@ -95,10 +96,10 @@ const submit = async () => {
     emit('close')
     goal.value = ''
     
-    alert($t('modal.success'))
+    alert(t('modal.success'))
   } catch (err) {
     console.error('Error creating challenge:', err)
-    error.value = err.response?.data?.error || $t('common.error')
+    error.value = err.response?.data?.error || t('common.error')
   } finally {
     loading.value = false
   }
@@ -161,7 +162,7 @@ const submit = async () => {
   h2 {
     margin: 0;
     font-size: $font-size-xl;
-    color: $text-primary;
+    color: text-primary;
   }
 }
 
@@ -171,7 +172,7 @@ const submit = async () => {
   border-radius: $radius-full;
   border: none;
   background: $bg-secondary;
-  color: $text-secondary;
+  color: text-secondary;
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
@@ -182,7 +183,7 @@ const submit = async () => {
   
   &:hover {
     background: $border-hover;
-    color: $text-primary;
+    color: text-primary;
   }
 }
 
@@ -192,7 +193,7 @@ const submit = async () => {
   label {
     display: block;
     font-weight: $font-weight-semibold;
-    color: $text-primary;
+    color: text-primary;
     margin-bottom: $spacing-sm;
     font-size: $font-size-base;
   }
@@ -214,7 +215,7 @@ const submit = async () => {
     }
     
     &::placeholder {
-      color: $text-muted;
+      color: text-muted;
     }
     
     &:disabled {
@@ -226,7 +227,7 @@ const submit = async () => {
   .hint {
     margin-top: $spacing-sm;
     font-size: $font-size-sm;
-    color: $text-muted;
+    color: text-muted;
     margin-bottom: 0;
   }
 }
@@ -269,7 +270,7 @@ const submit = async () => {
 
 .btn-secondary {
   background: $bg-secondary;
-  color: $text-primary;
+  color: text-primary;
   
   &:hover:not(:disabled) {
     background: $border-hover;

@@ -2,6 +2,9 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.utils import timezone
+from datetime import timedelta
+from django.utils.translation import gettext as _
 
 from .models import Challenge, Task
 from .serializers import (
@@ -82,13 +85,11 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         challenge = ChallengeService.get_active_challenge(request.user)
 
         if not challenge:
-            return Response(
-                {"detail": "Нет активных челленджей"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND) 
 
         serializer = ChallengeDetailSerializer(
-            challenge, context=self.get_serializer_context()
-        )
+                challenge, context=self.get_serializer_context()
+            )
         return Response(serializer.data)
 
 
@@ -132,10 +133,37 @@ class TaskViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    def _validate_task_modification(self, task):
+        """
+        Checks whether editing (checking/unchecking) a task is allowed.
+
+        Allowed: tasks for today and in the past.
+        Prohibited: tasks for future days.
+
+        Returns:
+            tuple[bool, str | None]: (allowed, error message, or None)
+        """
+        challenge = task.challenge
+        task_date = challenge.start_date + timedelta(days=task.day_number - 1)
+        today = timezone.now().date()
+
+        if task_date > today:
+            return False, _("cannot_modify_future_tasks")
+
+        return True, None
+
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
         """Mark a task as completed"""
         task = self.get_object()
+
+        allowed, error_msg = self._validate_task_modification(task)
+        if not allowed:
+            return Response(
+                {"detail": error_msg}, 
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         task.mark_completed()
         serializer = self.get_serializer(task, context=self.get_serializer_context())
         return Response(serializer.data)
@@ -144,6 +172,14 @@ class TaskViewSet(viewsets.ModelViewSet):
     def uncomplete(self, request, pk=None):
         """Unmark as completed"""
         task = self.get_object()
+
+        allowed, error_msg = self._validate_task_modification(task)
+        if not allowed:
+            return Response(
+                {"detail": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         task.mark_uncompleted()
         serializer = self.get_serializer(task, context=self.get_serializer_context())
         return Response(serializer.data)

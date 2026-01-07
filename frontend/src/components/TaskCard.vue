@@ -1,11 +1,11 @@
 <template>
-  <div class="task-card" :class="{ completed: task.is_completed }">
+  <div class="task-card" :class="{ completed: task.is_completed, locked: isTaskLocked }">
     <div class="task-main" @click.stop="toggleDescription">
-      <div class="custom-checkbox" @click.stop="toggleTask">
+      <div class="custom-checkbox" @click.stop="handleCheckboxClick">
         <input
           type="checkbox"
           :checked="task.is_completed"
-          @change="$emit('toggle', task)"
+          :disabled="isTaskLocked"
           class="hidden-checkbox"
         />
         <div class="checkbox-box">
@@ -40,25 +40,62 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import api from '@/services/api/index.js'
 
 const props = defineProps({
-  task: {
-    type: Object,
-    required: true
-  }
+  task: { type: Object, required: true },
+  challenge: { type: Object, required: true }
 })
 
-const emit = defineEmits(['toggle'])
+const emit = defineEmits(['toggle', 'notify']) 
 
+const { t, locale } = useI18n()
 const showDescription = ref(false)
 
 const toggleDescription = () => {
   showDescription.value = !showDescription.value
 }
 
-const toggleTask = () => {
-  emit('toggle', props.task)
+
+const taskDate = computed(() => {
+  const start = new Date(props.challenge.start_date + 'T00:00:00Z') 
+  start.setUTCDate(start.getUTCDate() + props.task.day_number - 1)
+  return new Date(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())  
+})
+
+const today = computed(() => {
+  const d = new Date()
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())  
+})
+
+const isTaskLocked = computed(() => {
+  return taskDate.value > today.value
+})
+
+async function handleCheckboxClick() {
+  if (isTaskLocked.value) {
+    emit('notify', {
+      message: t('common.cannot_modify_future_tasks'),
+      type: 'error'
+    })
+    return
+  }
+
+  try {
+    const endpoint = props.task.is_completed ? 'uncomplete' : 'complete'
+    await api.post(`tasks/${props.task.id}/${endpoint}/`, {}, {
+      params: { language: locale.value }
+    })
+    emit('toggle', props.task)
+  } catch (err) {
+    const message = err.response?.data?.detail || t('common.cannot_modify_future_tasks')
+    emit('notify', {
+      message,
+      type: 'error'
+    })
+  }
 }
 </script>
 
@@ -83,6 +120,21 @@ const toggleTask = () => {
       color: $text-muted;
     }
   }
+
+  &.locked {
+    &:hover {
+      border-color: $border;
+      box-shadow: none;
+    }
+
+    .checkbox-box:hover {
+      border-color: $border; 
+    }
+
+    .custom-checkbox {
+      cursor: pointer;
+    }
+  }
 }
 
 .task-main {
@@ -95,18 +147,6 @@ const toggleTask = () => {
   @media (max-width: 768px) {
     padding: $spacing-sm $spacing-sm;
   }
-}
-
-.hidden-checkbox {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.custom-checkbox {
-  flex-shrink: 0;
-  position: relative;
 }
 
 .checkbox-box {
@@ -128,6 +168,18 @@ const toggleTask = () => {
   &:hover {
     border-color: $primary;
   }
+}
+
+.hidden-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.custom-checkbox {
+  flex-shrink: 0;
+  position: relative;
 }
 
 .check-icon {

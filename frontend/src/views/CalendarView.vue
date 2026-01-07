@@ -67,12 +67,19 @@
 
         <div v-else class="tasks-list">
           <TaskCard
-            v-for="task in selectedDayTasks"
-            :key="task.id"
-            :task="task"
-            @toggle="toggleTask"
+          v-for="task in selectedDayTasks"
+          :key="task.id"
+          :task="task"
+          :challenge="getChallengeForTask(task)"
+          @toggle="onTaskToggled"
+          @notify="showToast"
           />
         </div>
+        <transition name="toast">
+          <div v-if="toast.message" class="toast-notification" :class="toast.type">
+            {{ toast.message }}
+          </div>
+        </transition>
       </div>
     </div>
   </div>
@@ -85,6 +92,16 @@ import { useI18n } from 'vue-i18n'
 import TaskCard from '@/components/TaskCard.vue'
 import api from '@/services/api/index.js'
 import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
+
+const toast = ref({ message: '', type: 'info' })
+
+function showToast({ message, type = 'info' }, duration = 4500) {
+  toast.value = { message, type }
+
+  setTimeout(() => {
+    toast.value = { message: '', type: 'info' }
+  }, duration)
+}
 
 const router = useRouter()
 const i18n = useI18n()
@@ -215,6 +232,14 @@ function nextMonth() {
   currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
 }
 
+function getChallengeForTask(task) {
+  return allChallenges.value.find(c => c.id === task.challenge_id)
+}
+
+function onTaskToggled(task) {
+  task.is_completed = !task.is_completed
+}
+
 async function loadChallenges() {
   try {
     const response = await api.get('challenges/', {
@@ -246,23 +271,6 @@ async function loadAllTasks() {
   } catch (error) {
     console.error('Ошибка загрузки задач:', error)
     allTasks.value = []
-  }
-}
-
-async function toggleTask(task) {
-  try {
-    if (task.is_completed) {
-      await api.post(`tasks/${task.id}/uncomplete/`, {}, {
-        params: { language: i18n.locale.value }
-      })
-    } else {
-      await api.post(`tasks/${task.id}/complete/`, {}, {
-        params: { language: i18n.locale.value }
-      })
-    }
-    task.is_completed = !task.is_completed
-  } catch (error) {
-    console.error('Ошибка переключения задачи:', error)
   }
 }
 
@@ -317,7 +325,47 @@ onMounted(async () => {
     margin-bottom: $spacing-lg;
   }
 }
+.toast-notification {
+  position: fixed;
+  bottom: 120px; 
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 300px;
+  max-width: 90%;
+  padding: $spacing-lg $spacing-xl;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  text-align: center;
+  z-index: 10000;
+  color: white;
+  background: rgba(30, 30, 30, 0.92); 
+  backdrop-filter: blur(12px); 
+  animation: toastSlideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
 
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.toast-enter-active {
+  transition: all 0.4s ease;
+}
+.toast-leave-active {
+  transition: opacity 0.3s ease;
+}
+.toast-enter-from, .toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(30px);
+}
 // ===== Calendar =====
 .calendar-card {
   margin-bottom: $spacing-lg;

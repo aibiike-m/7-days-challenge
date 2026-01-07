@@ -62,6 +62,7 @@
 	"common": {
 		"error": "An error occurred",
 		"loading": "Loading...",
-		"success": "Success!"
+		"success": "Success!",
+		"cannot_modify_future_tasks": "You cannot modify tasks for future days"
 	}
 }

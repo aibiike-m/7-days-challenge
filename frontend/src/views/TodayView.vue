@@ -17,7 +17,8 @@
           v-for="task in activeTasks"
           :key="task.id"
           :task="task"
-          @toggle="toggleTask"
+          :challenge="getChallengeForTask(task)"
+          @toggle="onTaskToggled"
         />
       </div>
 
@@ -29,7 +30,8 @@
           v-for="task in completedTasks"
           :key="task.id"
           :task="task"
-          @toggle="toggleTask"
+          :challenge="getChallengeForTask(task)"
+          @toggle="onTaskToggled"  
         />
       </div>
     </div>
@@ -42,7 +44,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import TaskCard from '@/components/TaskCard.vue'
 import api from '@/services/api/index.js'
-import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
+import { getTasksForDate } from '@/utils/taskHelpers'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -50,21 +52,22 @@ const loading = ref(true)
 const allChallenges = ref([])
 const allTasks = ref([])
 
-const getTodayDate = () => {
-  const date = new Date()
-  date.setHours(0, 0, 0, 0)
-  return date.getTime()
-}
-
 const todayTasks = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return getTasksForDate(allTasks.value, allChallenges.value, today)
 })
 
-
 const activeTasks = computed(() => todayTasks.value.filter(t => !t.is_completed))
 const completedTasks = computed(() => todayTasks.value.filter(t => t.is_completed))
+
+function onTaskToggled(task) {
+  task.is_completed = !task.is_completed
+}
+
+function getChallengeForTask(task) {
+  return allChallenges.value.find(c => c.id === task.challenge_id)
+}
 
 async function loadChallenges() {
   try {
@@ -97,23 +100,6 @@ async function loadTasks() {
   } catch (error) {
     console.error('Ошибка загрузки задач:', error)
     allTasks.value = []
-  }
-}
-
-async function toggleTask(task) {
-  try {
-    if (task.is_completed) {
-      await api.post(`tasks/${task.id}/uncomplete/`, {}, {
-        params: { language: i18n.locale.value }
-      })
-    } else {
-      await api.post(`tasks/${task.id}/complete/`, {}, {
-        params: { language: i18n.locale.value }
-      })
-    }
-    task.is_completed = !task.is_completed
-  } catch (error) {
-    console.error('Ошибка переключения задачи:', error)
   }
 }
 
