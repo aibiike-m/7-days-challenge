@@ -53,15 +53,11 @@ def login_by_email(request):
         {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
     )
 
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def google_login(request):
-
+    """Google OAuth login"""
     token = request.data.get("token")
-    idinfo = id_token.verify_oauth2_token(
-        token, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-    )
 
     if not token:
         return Response(
@@ -70,31 +66,39 @@ def google_login(request):
 
     try:
         idinfo = id_token.verify_oauth2_token(
-            token, requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+            token, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
         )
 
         email = idinfo["email"]
         name = idinfo.get("name", email)
-
+        preferred_language = request.data.get("language", "en")
         user, created = User.objects.get_or_create(
-            email=email, defaults={"username": email.split("@")[0], "first_name": name}
+            email=email,
+            defaults={
+                "username": email.split("@")[0],
+                "first_name": name,
+                "language": preferred_language, 
+            },
         )
 
         refresh = RefreshToken.for_user(user)
-        user_data = UserSerializer(user).data
 
         return Response(
             {
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "user": user_data,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "language": user.language,
+                },
+                "created": created, 
             }
         )
+
     except Exception as e:
-        return Response(
-            {"error": f"Invalid token or Google error: {str(e)}"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -159,6 +163,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(stats)
 
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -166,19 +171,31 @@ class RegisterView(APIView):
         username = request.data.get("username")
         email = request.data.get("email")
         password = request.data.get("password")
+        language = request.data.get("language", "en")
 
         if User.objects.filter(username=username).exists():
             return Response(
                 {"error": "Пользователь существует"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        User.objects.create_user(username=username, email=email, password=password)
+        User.objects.create_user(
+            username=username, email=email, password=password, language=language
+        )
         return Response({"success": True}, status=status.HTTP_201_CREATED)
 
 
 class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        response = Response({"message": "Logged out"})
-        response.delete_cookie("access")
-        response.delete_cookie("refresh")
-        return response
+        try:
+            refresh_token = request.data.get("refresh_token")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()  
+        except Exception:
+            pass
+
+        return Response(
+            {"message": "Logged out successfully"}, status=status.HTTP_200_OK
+        )

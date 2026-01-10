@@ -2,6 +2,23 @@
   <div class="auth-view">
     <div class="auth-container">
       <div class="app-name">7 Days Challenge</div>
+
+      <div class="language-switcher">
+        <button 
+          @click="changeLanguage('en')" 
+          :class="{ active: i18n.locale.value === 'en' }"
+          class="lang-btn"
+        >
+          EN
+        </button>
+        <button 
+          @click="changeLanguage('ru')"
+          :class="{ active: i18n.locale.value === 'ru' }"
+          class="lang-btn"
+        >
+          RU
+        </button>
+      </div>
       
       <div class="auth-card">
         <h1 class="auth-title">{{ isLogin ? $t('auth.login_title') : $t('auth.register_title') }}</h1>
@@ -49,12 +66,9 @@
           <span>{{ $t('auth.or') }}</span>
         </div>
 
-        <div id="g_id_onload"
-          :data-client_id="GOOGLE_CLIENT_ID"
-          data-callback="handleCredentialResponse"
-          class="google-button-container"
-        ></div>
-        <div id="g_id_signin" data-type="standard"></div>
+        <div class="google-button-container">
+          <div id="g_id_signin"></div>
+        </div>
 
         <p class="auth-toggle">
           {{ isLogin ? $t('auth.no_account') : $t('auth.have_account') }}
@@ -73,11 +87,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api/index.js'
 
-const router = useRouter()
 const i18n = useI18n()
 const isLogin = ref(true)
 const username = ref('')
@@ -85,59 +97,94 @@ const email = ref('')
 const password = ref('')
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
-window.handleCredentialResponse = async (response) => {
-  await loginWithGoogle(response.credential)
-}
-
-async function loginWithGoogle(googleToken) {
+const handleGoogleResponse = async (response) => {
   try {
-    const response = await api.post('auth/google/', {
-      token: googleToken
+    const res = await api.post('auth/google/', { 
+      token: response.credential,
+      language: i18n.locale.value  
     })
-
-    localStorage.setItem('access_token', response.data.access)
-    localStorage.setItem('refresh_token', response.data.refresh)
-    localStorage.setItem('language', response.data.user.language)
-    i18n.locale.value = response.data.user.language
-    router.push('/today')
+    
+    localStorage.setItem('access_token', res.data.access)
+    localStorage.setItem('refresh_token', res.data.refresh)
+    
+    const serverLanguage = res.data.user?.language || 'en'
+    localStorage.setItem('language', serverLanguage)
+    i18n.locale.value = serverLanguage
+    
+    window.location.href = '/today'
   } catch (error) {
+    console.error('Google login error:', error)
     alert('Ошибка при входе с Google')
   }
 }
+
+function renderGoogleButton() {
+  const container = document.getElementById('g_id_signin')
+  if (!container || !window.google?.accounts) return
+
+  container.innerHTML = ''
+
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleResponse,
+    auto_select: false,
+    context: 'signin'
+  })
+
+  window.google.accounts.id.renderButton(container, {
+    type: 'icon',
+    shape: 'circle',
+    theme: 'outline',
+    size: 'large'
+  })
+}
+
+function changeLanguage(lang) {
+  i18n.locale.value = lang
+  localStorage.setItem('language', lang)
+}
+
+
+onMounted(() => {
+  if (window.google?.accounts) {
+    renderGoogleButton()
+    return
+  }
+
+  const script = document.createElement('script')
+  script.src = 'https://accounts.google.com/gsi/client'
+  script.async = true
+  script.defer = true
+  script.onload = renderGoogleButton
+  script.onerror = () => console.error('Failed to load Google Identity Services')
+  document.head.appendChild(script)
+})
 
 async function handleSubmit() {
   try {
     if (isLogin.value) {
       const isEmail = username.value.includes('@')
-      
-      if (isEmail) {
-        const response = await api.post('auth/login-by-email/', {
-          email: username.value,
-          password: password.value
-        })
-        
-        localStorage.setItem('access_token', response.data.access)
-        localStorage.setItem('refresh_token', response.data.refresh)
-        if (response.data.user?.language) {
-          localStorage.setItem('language', response.data.user.language)
-          i18n.locale.value = response.data.user.language
-        }
-        router.push('/today')
-      } else {
-        const response = await api.post('token/', {
-          username: username.value,
-          password: password.value
-        })
+      const endpoint = isEmail ? 'auth/login-by-email/' : 'token/'
+      const payload = isEmail 
+        ? { email: username.value, password: password.value }
+        : { username: username.value, password: password.value }
 
-        localStorage.setItem('access_token', response.data.access)
-        localStorage.setItem('refresh_token', response.data.refresh)
-        router.push('/today')
-      }
+      const response = await api.post(endpoint, payload)
+      
+      localStorage.setItem('access_token', response.data.access)
+      localStorage.setItem('refresh_token', response.data.refresh)
+      
+      const serverLanguage = response.data.user?.language || 'en'
+      localStorage.setItem('language', serverLanguage)
+      i18n.locale.value = serverLanguage
+      
+      window.location.href = '/today'
     } else {
       const response = await api.post('register/', {
         username: username.value,
         email: email.value,
-        password: password.value
+        password: password.value,
+        language: i18n.locale.value  
       })
 
       if (response.data.success) {
@@ -149,36 +196,10 @@ async function handleSubmit() {
       }
     }
   } catch (error) {
+    console.error('Auth error:', error)
     alert('Ошибка: ' + (error.response?.data?.error || error.message))
   }
 }
-
-onMounted(() => {
-  if (window.google?.accounts) return
-
-  const script = document.createElement('script')
-  script.src = 'https://accounts.google.com/gsi/client'
-  script.async = true
-  script.defer = true
-  document.head.appendChild(script)
-
-  script.onload = () => {
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: window.handleCredentialResponse
-      })
-      window.google.accounts.id.renderButton(
-        document.getElementById('g_id_signin'),
-        {
-          theme: 'outline',
-          size: 'large',
-          text: 'signin'
-        }
-      )
-    }
-  }
-})
 </script>
 
 <style scoped lang="scss">
@@ -205,6 +226,36 @@ onMounted(() => {
   font-weight: 700;
   color: $white;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.language-switcher {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: $spacing-md;
+}
+
+.lang-btn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  color: $white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-md;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background: $white;
+    color: $primary;
+    border-color: $white;
+  }
 }
 
 .auth-card {
@@ -280,17 +331,6 @@ onMounted(() => {
   }
 }
 
-.google-button-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: $spacing-lg;
-}
-
-#g_id_signin {
-  display: flex;
-  justify-content: center !important;
-}
-
 .auth-toggle {
   text-align: center;
   font-size: 14px;
@@ -309,6 +349,21 @@ onMounted(() => {
     &:hover {
       color: $primary-light;
     }
+  }
+}
+
+.google-button-container {
+  display: flex;
+  justify-content: center;
+  margin: $spacing-md 0;
+}
+
+#g_id_signin {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.05);
   }
 }
 

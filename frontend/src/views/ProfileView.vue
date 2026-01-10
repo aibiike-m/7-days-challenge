@@ -10,20 +10,19 @@
             <p class="email">{{ email }}</p>
 
             <div class="language-section">
-              <div class="custom-select">
-                <div 
-                  class="select-trigger" 
+              <div class="custom-select">             
+                <div class="select-trigger" 
                   @click.stop="isOpen = !isOpen" 
                   :class="{ 'is-open': isOpen }"
                 >
-                  <span>{{ selectedLanguage === 'ru' ? 'Русский' : 'English' }}</span>
+                  <span>{{ i18n.locale.value === 'ru' ? 'Русский' : 'English' }}</span>
                   <span class="arrow"></span>
                 </div>
-                
                 <div v-if="isOpen" class="select-dropdown">
                   <div class="select-option" @click="changeLanguage('ru')">Русский</div>
                   <div class="select-option" @click="changeLanguage('en')">English</div>
                 </div>
+
               </div>
             </div>
           </div>
@@ -59,7 +58,6 @@ const username = ref('Загрузка...')
 const email = ref('')
 const weeklyStats = ref([])
 const chartCanvas = ref(null)
-const selectedLanguage = ref(i18n.locale.value)
 const isOpen = ref(false)
 let chartInstance = null
 
@@ -70,15 +68,12 @@ onMounted(() => {
 async function loadProfile() {
   try {
     const res = await api.get('users/me/')
-    username.value = res.data.username || $t('profile.default_username')
+    username.value = res.data.username || 'User'
     email.value = res.data.email || ''
-    const savedLang = localStorage.getItem('language')
-    const serverLang = res.data.language || 'ru'
-    const finalLang = savedLang || serverLang
     
-    selectedLanguage.value = finalLang
-    i18n.locale.value = finalLang
-    localStorage.setItem('language', finalLang)
+    const serverLang = res.data.language || 'en'
+    i18n.locale.value = serverLang
+    localStorage.setItem('language', serverLang)
   } catch (e) {
     console.error('Ошибка профиля:', e)
   }
@@ -138,7 +133,6 @@ async function changeLanguage(lang) {
   try {
     await api.patch('users/me/', { language: lang })
     
-    selectedLanguage.value = lang
     i18n.locale.value = lang
     localStorage.setItem('language', lang)
     isOpen.value = false
@@ -152,13 +146,23 @@ async function changeLanguage(lang) {
 
 async function logout() {
   try {
-    await api.post('logout/')
-    localStorage.clear() 
-    router.push('/login')
-  } catch (e) {
-    console.error('Ошибка выхода:', e)
+    const refreshToken = localStorage.getItem('refresh_token')
+    
+    if (refreshToken) {
+      await api.post('logout/', {
+        refresh_token: refreshToken
+      })
+    }
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    
+    window.location.href = '/auth'
   }
 }
+
 
 onMounted(async () => {
   await loadProfile()
