@@ -5,9 +5,6 @@
     <div v-else-if="todayTasks.length === 0" class="empty-state">
       <span class="empty-icon">📝</span>
       <p>{{ $t('today.noTasks') }}</p>
-      <button class="btn btn-primary" @click="$router.push('/calendar')">
-        {{ $t('today.new_challenge') }}
-      </button>
     </div>
 
     <div v-else class="tasks-container">

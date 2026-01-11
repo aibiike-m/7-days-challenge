@@ -282,6 +282,7 @@ onMounted(async () => {
 .custom-select {
   position: relative;
   width: 100%;
+  min-width: 160px;
   user-select: none;
 }
 

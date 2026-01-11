@@ -9,26 +9,29 @@
             <button class="btn-icon" @click="nextMonth">›</button>
           </div>
 
-          <div class="calendar-grid">
-            <div class="weekday" v-for="(day, idx) in weekdays" :key="idx">{{ day }}</div>
-            <div
-              v-for="date in calendarDates"
-              :key="date.key"
-              class="calendar-day"
-              :class="{
-                'other-month': date.isOtherMonth,
-                'today': date.isToday,
-                'selected': date.isSelected,
-                'has-tasks': date.hasTasks
-              }"
-              @click="selectDate(date)"
-            >
-              {{ date.day }}
-              <span v-if="date.hasTasks" class="task-indicator"></span>
-            </div>
+          <div class="calendar-overflow-container">
+            <transition name="calendar-fade" mode="out-in">
+              <div class="calendar-grid" :key="currentMonthName">
+                <div class="weekday" v-for="(day, idx) in weekdays" :key="idx">{{ day }}</div>
+                <div
+                  v-for="date in calendarDates"
+                  :key="date.key"
+                  class="calendar-day"
+                  :class="{
+                    'other-month': date.isOtherMonth,
+                    'today': date.isToday,
+                    'selected': date.isSelected,
+                    'has-tasks': date.hasTasks
+                  }"
+                  @click="selectDate(date)"
+                >
+                  {{ date.day }}
+                  <span v-if="date.hasTasks" class="task-indicator"></span>
+                </div>
+              </div>
+            </transition>
           </div>
         </div>
-
         <div v-if="challengesForSelectedDate.length > 0" class="challenges-section">
           <div class="challenges-list">
             <div
@@ -206,22 +209,52 @@ const calendarDates = computed(() => {
     })
   }
 
-  const remainingDays = 42 - dates.length
-  for (let i = 1; i <= remainingDays; i++) {
-    dates.push({
-      day: i,
-      date: new Date(year, month + 1, i),
-      isOtherMonth: true,
-      key: `next-${i}`
-    })
-  }
+  // const remainingDays = 42 - dates.length
+  // for (let i = 1; i <= remainingDays; i++) {
+  //   dates.push({
+  //     day: i,
+  //     date: new Date(year, month + 1, i),
+  //     isOtherMonth: true,
+  //     key: `next-${i}`
+  //   })
+  // }
+
+const totalDaysSoFar = dates.length;
+
+const targetTotal = totalDaysSoFar <= 35 ? 35 : 42;
+const remainingDays = targetTotal - totalDaysSoFar;
+
+for (let i = 1; i <= remainingDays; i++) {
+  dates.push({
+    day: i,
+    date: new Date(year, month + 1, i),
+    isOtherMonth: true,
+    key: `next-${i}`
+  })
+}
 
   return dates
 })
 
+// function selectDate(dateObj) {
+//   if (dateObj.isOtherMonth) return
+//   selectedDate.value = dateObj.date
+// }
 function selectDate(dateObj) {
-  if (dateObj.isOtherMonth) return
+  // 1. Устанавливаем выбранную дату в любом случае
   selectedDate.value = dateObj.date
+  
+  // 2. Проверяем, нужно ли перелистнуть календарь
+  const newDate = dateObj.date
+  const currentView = currentDate.value
+
+  // Если месяц или год не совпадают с текущим видом календаря
+  if (newDate.getMonth() !== currentView.getMonth() || 
+      newDate.getFullYear() !== currentView.getFullYear()) {
+    
+    // Обновляем currentDate, чтобы календарь перерисовал сетку на нужный месяц
+    currentDate.value = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
+  }
 }
 
 function previousMonth() {
@@ -455,12 +488,19 @@ onMounted(async () => {
     background: $bg-secondary;
   }
   
+  // &.other-month {
+  //   color: $border-hover;
+  //   cursor: default;
+    
+  //   &:hover {
+  //     background: transparent;
+  //   }
   &.other-month {
-    color: $border-hover;
-    cursor: default;
+    color: $border-hover; // Оставляем цвет более тусклым
+    cursor: pointer;      // МЕНЯЕМ с default на pointer
     
     &:hover {
-      background: transparent;
+      background: $bg-secondary; // РАЗРЕШАЕМ подсветку при наведении
     }
   }
   
@@ -642,5 +682,29 @@ onMounted(async () => {
   &:active {
     transform: translateY(0);
   }
+}
+
+
+
+/* Контейнер, чтобы при анимации ничего не "прыгало" */
+.calendar-overflow-container {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Анимация затухания и легкого смещения */
+.calendar-fade-enter-active,
+.calendar-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.calendar-fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px); // Появляется справа
+}
+
+.calendar-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px); // Исчезает влево
 }
 </style>
