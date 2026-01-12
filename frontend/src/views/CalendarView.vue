@@ -38,15 +38,24 @@
               v-for="challenge in challengesForSelectedDate"
               :key="challenge.id"
               class="challenge-card card"
+              :style="{ borderLeftColor: challenge.color, borderLeftWidth: '4px' }"
               @click="viewChallenge(challenge)"
             >
               <h4>{{ challenge.goal }}</h4>
               <div class="challenge-meta">
                 <span class="challenge-duration">{{ challenge.duration_days }} {{ $t('calendar.day') }}</span>
-                <span class="challenge-progress">{{ challenge.progress_percentage }}%</span>
+                <span class="challenge-progress" :style="{ color: challenge.color }">
+                  {{ challenge.progress_percentage }}%
+                </span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: challenge.progress_percentage + '%' }"></div>
+                <div 
+                  class="progress-fill" 
+                  :style="{ 
+                    width: challenge.progress_percentage + '%',
+                    background: challenge.color 
+                  }"
+                ></div>
               </div>
             </div>
           </div>
@@ -209,16 +218,6 @@ const calendarDates = computed(() => {
     })
   }
 
-  // const remainingDays = 42 - dates.length
-  // for (let i = 1; i <= remainingDays; i++) {
-  //   dates.push({
-  //     day: i,
-  //     date: new Date(year, month + 1, i),
-  //     isOtherMonth: true,
-  //     key: `next-${i}`
-  //   })
-  // }
-
 const totalDaysSoFar = dates.length;
 
 const targetTotal = totalDaysSoFar <= 35 ? 35 : 42;
@@ -236,23 +235,15 @@ for (let i = 1; i <= remainingDays; i++) {
   return dates
 })
 
-// function selectDate(dateObj) {
-//   if (dateObj.isOtherMonth) return
-//   selectedDate.value = dateObj.date
-// }
 function selectDate(dateObj) {
-  // 1. Устанавливаем выбранную дату в любом случае
   selectedDate.value = dateObj.date
   
-  // 2. Проверяем, нужно ли перелистнуть календарь
   const newDate = dateObj.date
   const currentView = currentDate.value
 
-  // Если месяц или год не совпадают с текущим видом календаря
   if (newDate.getMonth() !== currentView.getMonth() || 
       newDate.getFullYear() !== currentView.getFullYear()) {
     
-    // Обновляем currentDate, чтобы календарь перерисовал сетку на нужный месяц
     currentDate.value = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
   }
 }
@@ -399,6 +390,7 @@ onMounted(async () => {
   opacity: 0;
   transform: translateX(-50%) translateY(30px);
 }
+
 // ===== Calendar =====
 .calendar-card {
   margin-bottom: $spacing-lg;
@@ -449,6 +441,26 @@ onMounted(async () => {
   }
 }
 
+.calendar-overflow-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.calendar-fade-enter-active,
+.calendar-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.calendar-fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px); 
+}
+
+.calendar-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px); 
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -488,19 +500,12 @@ onMounted(async () => {
     background: $bg-secondary;
   }
   
-  // &.other-month {
-  //   color: $border-hover;
-  //   cursor: default;
-    
-  //   &:hover {
-  //     background: transparent;
-  //   }
   &.other-month {
-    color: $border-hover; // Оставляем цвет более тусклым
-    cursor: pointer;      // МЕНЯЕМ с default на pointer
+    color: $border-hover; 
+    cursor: pointer;      
     
     &:hover {
-      background: $bg-secondary; // РАЗРЕШАЕМ подсветку при наведении
+      background: $bg-secondary; 
     }
   }
   
@@ -579,6 +584,7 @@ onMounted(async () => {
 .challenge-card {
   cursor: pointer;
   transition: all 0.25s ease;
+  border-left: 4px solid transparent;
   
   &:hover {
     box-shadow: $shadow-md;
@@ -614,7 +620,6 @@ onMounted(async () => {
 
 .challenge-progress {
   font-weight: $font-weight-semibold;
-  color: $primary;
 }
 
 .progress-bar {
@@ -630,7 +635,6 @@ onMounted(async () => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $primary, $primary-light);
   transition: width 0.35s ease;
   border-radius: $radius-full;
 }
@@ -684,27 +688,4 @@ onMounted(async () => {
   }
 }
 
-
-
-/* Контейнер, чтобы при анимации ничего не "прыгало" */
-.calendar-overflow-container {
-  overflow: hidden;
-  position: relative;
-}
-
-/* Анимация затухания и легкого смещения */
-.calendar-fade-enter-active,
-.calendar-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.calendar-fade-enter-from {
-  opacity: 0;
-  transform: translateX(10px); // Появляется справа
-}
-
-.calendar-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-10px); // Исчезает влево
-}
 </style>

@@ -33,13 +33,14 @@ class ChallengeListSerializer(serializers.ModelSerializer):
         model = Challenge
         fields = [
             "id",
-            "goal",  
+            "goal",
             "status",
             "created_at",
             "start_date",
             "duration_days",
             "progress_percentage",
             "tasks_count",
+            "color",
         ]
 
     def get_tasks_count(self, obj):
@@ -60,7 +61,7 @@ class ChallengeDetailSerializer(serializers.ModelSerializer):
         model = Challenge
         fields = [
             "id",
-            "goal",  
+            "goal",
             "status",
             "created_at",
             "start_date",
@@ -68,6 +69,7 @@ class ChallengeDetailSerializer(serializers.ModelSerializer):
             "progress_percentage",
             "tasks",
             "current_day",
+            "color",
         ]
 
     def to_representation(self, instance):

@@ -28,6 +28,24 @@ class Challenge(models.Model):
         verbose_name="Текущий день",
     )
 
+    color = models.CharField(
+        max_length=7, 
+        verbose_name="Цвет"
+    )
+
+    COLORS = [
+        "#F4A7B9",  # Cherry Blossom (Soft Pink)
+        "#E0B2C8",  # Orchid Petal (Muted Pink/Purple)
+        "#A7E6D8",  # Aquamarine (Bright Mint)
+        "#B6EB6E",  # Lime Sorbet (Fresh Light Green)
+        "#479FC8",  # Ocean Blue (Clear Blue)
+        "#B58FEB",  # Bright Lavender (Soft Violet)
+        "#FF8080",  # Coral Red (Warm Salmon)
+        "#F72F57",  # Deep Rose (Vibrant Pink/Red)
+        "#8FECF7",  # Electric Ice (Bright Cyan)
+        "#EDCB5A",  # Golden Sand (Warm Mustard/Yellow)
+    ]
+
     class Meta:
         verbose_name = "Челлендж"
         verbose_name_plural = "Челленджи"
@@ -35,6 +53,13 @@ class Challenge(models.Model):
 
     def __str__(self):
         return f"Челлендж: {self.goal[:50]}"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.color:
+            user_challenges_count = Challenge.objects.filter(user=self.user).count()
+            color_index = user_challenges_count % len(self.COLORS)
+            self.color = self.COLORS[color_index]
+        super().save(*args, **kwargs)
 
     @property
     def progress_percentage(self):

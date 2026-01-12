@@ -58,7 +58,6 @@ const toggleDescription = () => {
   showDescription.value = !showDescription.value
 }
 
-
 const taskDate = computed(() => {
   const start = new Date(props.challenge.start_date + 'T00:00:00Z') 
   start.setUTCDate(start.getUTCDate() + props.task.day_number - 1)
@@ -103,12 +102,14 @@ async function handleCheckboxClick() {
 .task-card {
   background: $bg-card;
   border: 1px solid $border;
+  border-left: 4px solid v-bind('props.challenge.color');
   border-radius: $radius-lg;
   overflow: hidden;
   transition: all 0.25s ease;
 
   &:hover {
     border-color: $primary-light;
+    border-left-color: v-bind('props.challenge.color');
     box-shadow: $shadow-sm;
   }
 
@@ -161,12 +162,12 @@ async function handleCheckboxClick() {
   background: $white;
 
   .hidden-checkbox:checked + & {
-    background: $primary;
-    border-color: $primary;
+    background: v-bind('props.challenge.color');
+    border-color: v-bind('props.challenge.color');
   }
 
   &:hover {
-    border-color: $primary;
+    border-color: v-bind('props.challenge.color');
   }
 }
 
@@ -237,8 +238,8 @@ async function handleCheckboxClick() {
 
 .task-day {
   font-size: $font-size-xs;
-  color: $text-muted;
-  background: $bg-secondary;
+  color: white;
+  background: v-bind('props.challenge.color');
   padding: 4px $spacing-sm;
   border-radius: $radius-sm;
 }
