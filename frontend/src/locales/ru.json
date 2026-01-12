@@ -29,13 +29,15 @@
     "day_number": "День"
   },
   "profile": {
-    "default_username": "Пользователь",
-    "title": "Профиль",
-    "language": "Язык",
-    "logout": "Выйти из аккаунта",
-    "statistics": "Статистика за неделю",
-    "save": "Сохранить"
-  },
+		"default_username": "Пользователь",
+		"title": "Профиль",
+		"language": "Язык",
+		"logout": "Выйти из аккаунта",
+		"statistics": "Статистика за неделю",
+		"save": "Сохранить",
+		"logout_confirm_title": "Выход из аккаунта",
+		"logout_confirm_message": "Вы уверены, что хотите выйти из своего аккаунта?"
+	},
   "auth": {
     "login_title": "Вход",
     "register_title": "Регистрация",

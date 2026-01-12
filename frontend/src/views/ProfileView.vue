@@ -22,7 +22,6 @@
                   <div class="select-option" @click="changeLanguage('ru')">Русский</div>
                   <div class="select-option" @click="changeLanguage('en')">English</div>
                 </div>
-
               </div>
             </div>
           </div>
@@ -36,29 +35,46 @@
             </div>
           </div>
 
-          <button class="btn-logout" @click="logout">
+          <button class="btn-logout" @click="showLogoutModal = true">
             {{ $t('profile.logout') }}
           </button>
         </div>
       </div>
     </div>
+
+    <transition name="modal-fade">
+      <div v-if="showLogoutModal" class="modal-overlay" @click="showLogoutModal = false">
+        <div class="modal-content" @click.stop>
+          <h3 class="modal-title">{{ $t('profile.logout_confirm_title') }}</h3>
+          <p class="modal-message">{{ $t('profile.logout_confirm_message') }}</p>
+          
+          <div class="modal-actions">
+            <button class="btn-cancel" @click="showLogoutModal = false">
+              {{ $t('modal.cancel') }}
+            </button>
+            <button class="btn-confirm" @click="confirmLogout">
+              {{ $t('profile.logout') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import api from '@/services/api' 
 
-const router = useRouter()
 const i18n = useI18n()
 const username = ref('Загрузка...')
 const email = ref('')
 const weeklyStats = ref([])
 const chartCanvas = ref(null)
 const isOpen = ref(false)
+const showLogoutModal = ref(false)
 let chartInstance = null
 
 onMounted(() => {
@@ -144,7 +160,7 @@ async function changeLanguage(lang) {
   }
 }
 
-async function logout() {
+async function confirmLogout() {
   try {
     const refreshToken = localStorage.getItem('refresh_token')
     
@@ -162,7 +178,6 @@ async function logout() {
     window.location.href = '/auth'
   }
 }
-
 
 onMounted(async () => {
   await loadProfile()
@@ -390,6 +405,108 @@ onMounted(async () => {
 
   &:active {
     transform: translateY(0);
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $spacing-md;
+}
+
+.modal-content {
+  background: white;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 $spacing-sm 0;
+
+  @media (min-width: 768px) {
+    font-size: 20px;
+  }
+}
+
+.modal-message {
+  color: $text-secondary;
+  font-size: 14px;
+  margin: 0 0 $spacing-lg 0;
+  line-height: 1.5;
+
+  @media (min-width: 768px) {
+    font-size: 15px;
+  }
+}
+
+.modal-actions {
+  display: flex;
+  gap: $spacing-sm;
+  justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-md;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  border: none;
+}
+
+.btn-cancel {
+  background: $bg-secondary;
+  color: $text-secondary;
+
+  &:hover {
+    background: $border-hover;
+  }
+}
+
+.btn-confirm {
+  background: $danger;
+  color: white;
+
+  &:hover {
+    background: darken($danger, 8%);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+  
+  .modal-content {
+    transition: transform 0.2s ease;
+  }
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+  
+  .modal-content {
+    transform: scale(0.95);
   }
 }
 </style>
