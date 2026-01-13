@@ -14,33 +14,30 @@
               id="goal"
               v-model="goal" 
               :placeholder="t('modal.goal_placeholder')"
+              :maxlength="MAX_GOAL_LENGTH"
               rows="4"
               required
               :disabled="loading"
             ></textarea>
-            <p class="hint">{{ t('modal.ai_help') }}</p>
+            <div 
+            class="char-counter" 
+            :class="{ valid: goal.trim().length >= MIN_GOAL_LENGTH }"
+          >
+            {{ goal.trim().length }} / {{ MIN_GOAL_LENGTH }}
+          </div>
           </div>
           
           <div class="modal-actions">
             <button 
-              type="button" 
-              class="btn btn-secondary" 
-              @click="close"
-              :disabled="loading"
-            >
-              {{ t('modal.cancel') }}
-            </button>
-            <button 
               type="submit" 
               class="btn btn-primary" 
-              :disabled="loading || !goal.trim()"
+              :disabled="loading || !isGoalValid"
             >
               <span v-if="loading" class="loading-spinner">⏳</span>
               {{ loading ? t('modal.creating') : t('today.new_challenge') }}
             </button>
           </div>
         </form>
-        
         <div v-if="error" class="error-message">
           {{ error }}
         </div>
@@ -50,21 +47,28 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
 import api from '@/services/api/index.js'
+import { MIN_GOAL_LENGTH, MAX_GOAL_LENGTH } from '@/constants/index'
 
+const { t, locale } = useI18n()
 const emit = defineEmits(['close', 'created'])
-const { locale } = useI18n()
+
 const goal = ref('')
 const loading = ref(false)
 const error = ref('')
+
 const props = defineProps({
   isOpen: {
     type: Boolean,
     default: false
   }
+})
+
+const isGoalValid = computed(() => {
+  const length = goal.value.trim().length
+  return length >= MIN_GOAL_LENGTH && length <= MAX_GOAL_LENGTH
 })
 
 watch(() => props.isOpen, (newVal) => {
@@ -80,8 +84,8 @@ const close = () => {
   }
 }
 
-const submit = async () => {
-  if (!goal.value.trim()) return
+const submit = async () => {  
+  if (!isGoalValid.value) return
   
   loading.value = true
   error.value = ''
@@ -162,7 +166,7 @@ const submit = async () => {
   h2 {
     margin: 0;
     font-size: $font-size-xl;
-    color: text-primary;
+    color: $text-primary;
   }
 }
 
@@ -172,7 +176,7 @@ const submit = async () => {
   border-radius: $radius-full;
   border: none;
   background: $bg-secondary;
-  color: text-secondary;
+  color: $text-secondary;
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
@@ -183,7 +187,7 @@ const submit = async () => {
   
   &:hover {
     background: $border-hover;
-    color: text-primary;
+    color: $text-primary;
   }
 }
 
@@ -193,7 +197,7 @@ const submit = async () => {
   label {
     display: block;
     font-weight: $font-weight-semibold;
-    color: text-primary;
+    color: $text-primary;
     margin-bottom: $spacing-sm;
     font-size: $font-size-base;
   }
@@ -215,7 +219,7 @@ const submit = async () => {
     }
     
     &::placeholder {
-      color: text-muted;
+      color: $text-muted;
     }
     
     &:disabled {
@@ -223,13 +227,29 @@ const submit = async () => {
       cursor: not-allowed;
     }
   }
+}
+
+.char-counter {
+  margin-top: 6px;
+  text-align: right;
+  font-size: $font-size-sm;       
+  font-weight: 500;
+  transition: color 0.25s ease;  
+  color: $text-secondary;      
   
-  .hint {
-    margin-top: $spacing-sm;
-    font-size: $font-size-sm;
-    color: text-muted;
-    margin-bottom: 0;
+  &.valid {
+    color: $primary-hover;     
   }
+}
+
+.error-message {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background: rgba($danger, 0.1);
+  border: 1px solid rgba($danger, 0.3);
+  border-radius: $radius-md;
+  color: $danger;
+  font-size: $font-size-sm;
 }
 
 .modal-actions {
@@ -268,15 +288,6 @@ const submit = async () => {
   }
 }
 
-.btn-secondary {
-  background: $bg-secondary;
-  color: text-primary;
-  
-  &:hover:not(:disabled) {
-    background: $border-hover;
-  }
-}
-
 .loading-spinner {
   animation: spin 1s linear infinite;
 }
@@ -288,15 +299,5 @@ const submit = async () => {
   to {
     transform: rotate(360deg);
   }
-}
-
-.error-message {
-  margin-top: $spacing-md;
-  padding: $spacing-md;
-  background: rgba($danger, 0.1);
-  border: 1px solid rgba($danger, 0.3);
-  border-radius: $radius-md;
-  color: $danger;
-  font-size: $font-size-sm;
 }
 </style>

@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.utils import translation
 from .models import Challenge, Task
+from .constants import MIN_GOAL_LENGTH, MAX_GOAL_LENGTH
+
 
 class TaskSerializer(serializers.ModelSerializer):
 
@@ -83,6 +85,6 @@ class ChallengeCreateSerializer(serializers.Serializer):
 
     goal = serializers.CharField(
         required=True,
-        min_length=10,
-        max_length=500,
+        min_length=MIN_GOAL_LENGTH,
+        max_length=MAX_GOAL_LENGTH,
     )

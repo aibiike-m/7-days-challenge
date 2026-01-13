@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from datetime import date  
 from django.contrib.auth import get_user_model
+from .constants import CHALLENGE_DURATION_DAYS
+
 
 User = get_user_model()
 
@@ -14,7 +16,9 @@ class Challenge(models.Model):
         default=date.today, verbose_name="Дата начала" 
     )
 
-    duration_days = models.IntegerField(default=7, verbose_name="Длительность")
+    duration_days = models.IntegerField(
+        default=CHALLENGE_DURATION_DAYS, verbose_name="Длительность"
+    )
 
     STATUS_CHOICES = [
         ("active", "Активный"),

@@ -484,7 +484,7 @@ onMounted(async () => {
   color: white;
 
   &:hover {
-    background: darken($danger, 8%);
+    background: $danger-dark;
   }
 
   &:active {

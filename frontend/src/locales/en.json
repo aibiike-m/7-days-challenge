@@ -16,7 +16,6 @@
 	"modal": {
 		"goal_label": "What goal do you want to achieve in 7 days?",
 		"goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
-		"ai_help": "AI will create a personalized 7-day plan for you",
 		"cancel": "Cancel",
 		"creating": "Creating plan...",
 		"success": "Challenge created!",
