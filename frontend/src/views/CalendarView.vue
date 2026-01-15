@@ -66,7 +66,7 @@
         <button 
           class="fab-desktop"
           @click="$emit('open-modal')"
-          title="Создать челлендж"
+          title="Create challenge"
         >
         {{ $t('today.new_challenge')}}
         </button>
@@ -79,243 +79,251 @@
 
         <div v-else class="tasks-list">
           <TaskCard
-          v-for="task in selectedDayTasks"
-          :key="task.id"
-          :task="task"
-          :challenge="getChallengeForTask(task)"
-          @toggle="onTaskToggled"
-          @notify="showToast"
+            v-for="task in selectedDayTasks"
+            :key="task.id"
+            :task="task"
+            :challenge="getChallengeForTask(task)"
+            @toggle="onTaskToggled"
           />
         </div>
-        <transition name="toast">
-          <div v-if="toast.message" class="toast-notification" :class="toast.type">
-            {{ toast.message }}
-          </div>
-        </transition>
       </div>
     </div>
   </div>
 </template>
+<script setup >
+  import { ref, computed, onMounted } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { useI18n } from 'vue-i18n'
+  import { useNotification } from '@/composables/useNotification'
+  import TaskCard from '@/components/TaskCard.vue'
+  import api from '@/services/api/index.js'
+  import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import TaskCard from '@/components/TaskCard.vue'
-import api from '@/services/api/index.js'
-import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
+  const router = useRouter()
+  const i18n = useI18n()
+  const notify = useNotification()
 
-const toast = ref({ message: '', type: 'info' })
+  const loading = ref(true)
+  const currentDate = ref(new Date())
+  const selectedDate = ref(null)
+  const allChallenges = ref([])
+  const allTasks = ref([])
 
-function showToast({ message, type = 'info' }, duration = 4500) {
-  toast.value = { message, type }
+  defineEmits(['open-modal'])
 
-  setTimeout(() => {
-    toast.value = { message: '', type: 'info' }
-  }, duration)
-}
+  const weekdaysRu = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+  const weekdaysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-const router = useRouter()
-const i18n = useI18n()
-const loading = ref(true)
-const currentDate = ref(new Date())
-const selectedDate = ref(null)
-const allChallenges = ref([])
-const allTasks = ref([])
-
-defineEmits(['open-modal'])
-
-const weekdaysRu = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-const weekdaysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-const weekdays = computed(() => 
-  i18n.locale.value === 'ru' ? weekdaysRu : weekdaysEn
-)
-
-const currentMonthName = computed(() => {
-  const locale = i18n.locale.value === 'ru' ? 'ru-RU' : 'en-US'
-  return currentDate.value.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
-})
-
-const selectedDayTasks = computed(() => {
-  if (!selectedDate.value) return []
-
-  return allTasks.value.filter(task => {
-    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
-    if (!challenge) return false
-
-    const taskDate = new Date(challenge.start_date)
-    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
-
-    return isSameDay(taskDate, selectedDate.value)
-  })
-})
-
-const challengesForSelectedDate = computed(() => {
-  if (!selectedDate.value || allTasks.value.length === 0) return []
-
-  const taskChallengeIds = new Set(
-    selectedDayTasks.value
-      .map(task => task.challenge_id)
-      .filter(Boolean)
+  const weekdays = computed(() => 
+    i18n.locale.value === 'ru' ? weekdaysRu : weekdaysEn
   )
 
-  return allChallenges.value.filter(challenge => 
-    challenge.status === 'active' && taskChallengeIds.has(challenge.id)
-  )
-})
-
-const todayTasks = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return getTasksForDate(allTasks.value, allChallenges.value, today)
-})
-
-
-function hasTasksOnDate(date) {
-  return allTasks.value.some(task => {
-    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
-    if (!challenge) return false
-
-    const taskDate = new Date(challenge.start_date)
-    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
-    return isSameDay(taskDate, date)
+  const currentMonthName = computed(() => {
+    const locale = i18n.locale.value === 'ru' ? 'ru-RU' : 'en-US'
+    return currentDate.value.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
   })
-}
 
-const calendarDates = computed(() => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
+  const selectedDayTasks = computed(() => {
+    if (!selectedDate.value) return []
 
-  let startDay = firstDay.getDay()
-  if (startDay === 0) startDay = 7
-  startDay -= 1
+    return allTasks.value.filter(task => {
+      const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
+      if (!challenge) return false
 
-  const dates = []
+      const taskDate = new Date(challenge.start_date)
+      taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
 
-  const prevMonthLastDay = new Date(year, month, 0).getDate()
-  for (let i = startDay - 1; i >= 0; i--) {
-    dates.push({
-      day: prevMonthLastDay - i,
-      date: new Date(year, month - 1, prevMonthLastDay - i),
-      isOtherMonth: true,
-      key: `prev-${i}`
+      return isSameDay(taskDate, selectedDate.value)
     })
-  }
-
-  for (let i = 1; i <= lastDay.getDate(); i++) {
-    const date = new Date(year, month, i)
-    dates.push({
-      day: i,
-      date,
-      isOtherMonth: false,
-      isToday: isSameDay(date, new Date()),
-      isSelected: selectedDate.value ? isSameDay(date, selectedDate.value) : isSameDay(date, new Date()),
-      hasTasks: hasTasksOnDate(date),
-      key: `current-${i}`
-    })
-  }
-
-const totalDaysSoFar = dates.length;
-
-const targetTotal = totalDaysSoFar <= 35 ? 35 : 42;
-const remainingDays = targetTotal - totalDaysSoFar;
-
-for (let i = 1; i <= remainingDays; i++) {
-  dates.push({
-    day: i,
-    date: new Date(year, month + 1, i),
-    isOtherMonth: true,
-    key: `next-${i}`
   })
-}
 
-  return dates
-})
+  const challengesForSelectedDate = computed(() => {
+    if (!selectedDate.value || allTasks.value.length === 0) return []
 
-function selectDate(dateObj) {
-  selectedDate.value = dateObj.date
-  
-  const newDate = dateObj.date
-  const currentView = currentDate.value
+    const taskChallengeIds = new Set(
+      selectedDayTasks.value
+        .map(task => task.challenge_id)
+        .filter(Boolean)
+    )
 
-  if (newDate.getMonth() !== currentView.getMonth() || 
-      newDate.getFullYear() !== currentView.getFullYear()) {
-    
-    currentDate.value = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
-  }
-}
+    return allChallenges.value.filter(challenge => 
+      challenge.status === 'active' && taskChallengeIds.has(challenge.id)
+    )
+  })
 
-function previousMonth() {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
-}
+  const todayTasks = computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return getTasksForDate(allTasks.value, allChallenges.value, today)
+  })
 
-function nextMonth() {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
-}
+  function hasTasksOnDate(date) {
+    return allTasks.value.some(task => {
+      const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
+      if (!challenge) return false
 
-function getChallengeForTask(task) {
-  return allChallenges.value.find(c => c.id === task.challenge_id)
-}
-
-function onTaskToggled(task) {
-  task.is_completed = !task.is_completed
-}
-
-async function loadChallenges() {
-  try {
-    const response = await api.get('challenges/', {
-      params: { language: i18n.locale.value }
+      const taskDate = new Date(challenge.start_date)
+      taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
+      return isSameDay(taskDate, date)
     })
-    allChallenges.value = response.data.results || response.data || []
-  } catch (error) {
-    console.error('Ошибка загрузки челленджей:', error)
-    allChallenges.value = []
-  }
-}
-
-async function loadAllTasks() {
-  if (allChallenges.value.length === 0) {
-    allTasks.value = []
-    return
   }
 
-  const challengeIds = allChallenges.value.map(c => c.id)
-  try {
-    const response = await api.get('tasks/', {
-      params: {
-        challenge_ids: challengeIds.join(','),
-        language: i18n.locale.value
-      }
-    })
-    const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
-    allTasks.value = tasks
-  } catch (error) {
-    console.error('Ошибка загрузки задач:', error)
-    allTasks.value = []
-  }
-}
+  const calendarDates = computed(() => {
+    const year = currentDate.value.getFullYear()
+    const month = currentDate.value.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
 
-function viewChallenge(challenge) {
-  router.push(`/challenge/${challenge.id}`)
-}
+    let startDay = firstDay.getDay()
+    if (startDay === 0) startDay = 7
+    startDay -= 1
 
-onMounted(async () => {
-  loading.value = true
-  try {
-    await loadChallenges()
-    if (allChallenges.value.length > 0) {
-      await loadAllTasks()
+    const dates = []
+
+    const prevMonthLastDay = new Date(year, month, 0).getDate()
+    for (let i = startDay - 1; i >= 0; i--) {
+      dates.push({
+        day: prevMonthLastDay - i,
+        date: new Date(year, month - 1, prevMonthLastDay - i),
+        isOtherMonth: true,
+        key: `prev-${i}`
+      })
     }
-  } catch (error) {
-    console.error('Ошибка загрузки данных:', error)
-  } finally {
-    loading.value = false
-    selectedDate.value = new Date()
+
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const date = new Date(year, month, i)
+      dates.push({
+        day: i,
+        date,
+        isOtherMonth: false,
+        isToday: isSameDay(date, new Date()),
+        isSelected: selectedDate.value ? isSameDay(date, selectedDate.value) : isSameDay(date, new Date()),
+        hasTasks: hasTasksOnDate(date),
+        key: `current-${i}`
+      })
+    }
+
+    const totalDaysSoFar = dates.length
+    const targetTotal = totalDaysSoFar <= 35 ? 35 : 42
+    const remainingDays = targetTotal - totalDaysSoFar
+
+    for (let i = 1; i <= remainingDays; i++) {
+      dates.push({
+        day: i,
+        date: new Date(year, month + 1, i),
+        isOtherMonth: true,
+        key: `next-${i}`
+      })
+    }
+
+    return dates
+  })
+
+  function selectDate(dateObj) {
+    selectedDate.value = dateObj.date
+    
+    const newDate = dateObj.date
+    const currentView = currentDate.value
+
+    if (newDate.getMonth() !== currentView.getMonth() || 
+        newDate.getFullYear() !== currentView.getFullYear()) {
+      
+      currentDate.value = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
+    }
   }
-})
+
+  function previousMonth() {
+    currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
+  }
+
+  function nextMonth() {
+    currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+  }
+
+  function getChallengeForTask(task) {
+    return allChallenges.value.find(c => c.id === task.challenge_id)
+  }
+
+  function onTaskToggled(task) {
+    task.is_completed = !task.is_completed
+  }
+
+  async function loadChallenges() {
+    try {
+      const response = await api.get('challenges/', {
+        params: { language: i18n.locale.value }
+      })
+      allChallenges.value = response.data.results || response.data || []
+      
+    } catch (error) {
+      if (!error.response) {
+        notify.error('errors.network')
+      } else {
+        notify.error('errors.server')
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading challenges:', error)
+      }
+      
+      allChallenges.value = []
+    }
+  }
+
+  async function loadAllTasks() {
+    if (allChallenges.value.length === 0) {
+      allTasks.value = []
+      return
+    }
+
+    const challengeIds = allChallenges.value.map(c => c.id)
+    
+    try {
+      const response = await api.get('tasks/', {
+        params: {
+          challenge_ids: challengeIds.join(','),
+          language: i18n.locale.value
+        }
+      })
+      const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
+      allTasks.value = tasks
+      
+    } catch (error) {
+      if (!error.response) {
+        notify.error('errors.network')
+      } else {
+        notify.error('errors.server')
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading tasks:', error)
+      }
+      
+      allTasks.value = []
+    }
+  }
+
+  function viewChallenge(challenge) {
+    router.push(`/challenge/${challenge.id}`)
+  }
+
+  onMounted(async () => {
+    loading.value = true
+    
+    try {
+      await loadChallenges()
+      if (allChallenges.value.length > 0) {
+        await loadAllTasks()
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading data:', error)
+      }
+    } finally {
+      loading.value = false
+      selectedDate.value = new Date()
+    }
+  })
 </script>
 
 <style scoped lang="scss">

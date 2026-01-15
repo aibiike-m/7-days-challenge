@@ -1,7 +1,7 @@
 <template>
   <header class="app-header">
     <div class="header-content">
-      <h1 class="logo">7 Days Challenge</h1>
+      <h1 class="logo">{{ APP_NAME }}</h1>
       
       <nav class="desktop-nav">
         <router-link to="/today" class="nav-link">{{ $t('nav.today') }}</router-link>
@@ -11,6 +11,10 @@
     </div>
   </header>
 </template>
+
+<script setup>
+import { APP_NAME } from '@/constants/index'
+</script>
 
 <style scoped lang="scss">
 .app-header {

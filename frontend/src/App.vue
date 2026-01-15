@@ -17,21 +17,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useNotification } from '@/composables/useNotification'
 import AppHeader from '@/components/AppHeader.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import FAB from '@/components/FAB.vue'
 import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
 
 const route = useRoute()
+const router = useRouter()
+const notify = useNotification()
+
 const isAuthPage = computed(() => route.path === '/auth')
 const isCreateModalOpen = ref(false)
 
 const onChallengeCreated = () => {
   isCreateModalOpen.value = false
-  alert('Челлендж успешно создан!')
-  window.location.reload()
 }
 </script>
 

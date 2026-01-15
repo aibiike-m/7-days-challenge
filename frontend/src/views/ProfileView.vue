@@ -1,7 +1,7 @@
 <template>
   <div class="profile-view">
     <div class="container">
-      <h1 class="page-title">7 Days Challenge</h1>
+      <h1 class="page-title">{{ APP_NAME }}</h1>
 
       <div class="profile-layout">
         <div class="left-side">
@@ -67,9 +67,12 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import api from '@/services/api' 
+import { useNotification } from '@/composables/useNotification'
+import { APP_NAME } from '@/constants/index'
 
 const i18n = useI18n()
-const username = ref('Загрузка...')
+const notify = useNotification()
+const username = ref('Loading...')
 const email = ref('')
 const weeklyStats = ref([])
 const chartCanvas = ref(null)
@@ -90,8 +93,17 @@ async function loadProfile() {
     const serverLang = res.data.language || 'en'
     i18n.locale.value = serverLang
     localStorage.setItem('language', serverLang)
+    
   } catch (e) {
-    console.error('Ошибка профиля:', e)
+    if (!e.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Profile error:', e)
+    }
   }
 }
 
@@ -101,8 +113,11 @@ async function loadStats() {
       params: { language: i18n.locale.value }
     })
     weeklyStats.value = res.data
+    
   } catch (e) {
-    console.error('Ошибка статистики:', e)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Statistics error:', e)
+    }
   }
 }
 
@@ -154,9 +169,18 @@ async function changeLanguage(lang) {
     isOpen.value = false
 
     await loadStats()
+    notify.success('success.profile_saved')
+    
   } catch (error) {
-    console.error('Ошибка сохранения языка:', error)
-    alert(i18n.t('common.error'))
+    if (!error.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error saving language:', error)
+    }
   }
 }
 
@@ -169,13 +193,18 @@ async function confirmLogout() {
         refresh_token: refreshToken
       })
     }
+    
   } catch (error) {
-    console.error('Logout error:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Logout error:', error)
+    }
   } finally {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     
-    window.location.href = '/auth'
+    setTimeout(() => {
+      window.location.href = '/auth'
+    }, 500)
   }
 }
 

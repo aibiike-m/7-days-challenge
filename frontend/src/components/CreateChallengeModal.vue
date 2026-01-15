@@ -20,11 +20,11 @@
               :disabled="loading"
             ></textarea>
             <div 
-            class="char-counter" 
-            :class="{ valid: goal.trim().length >= MIN_GOAL_LENGTH }"
-          >
-            {{ goal.trim().length }} / {{ MIN_GOAL_LENGTH }}
-          </div>
+              class="char-counter" 
+              :class="{ valid: goal.trim().length >= MIN_GOAL_LENGTH }"
+            >
+              {{ goal.trim().length }} / {{ MIN_GOAL_LENGTH }}
+            </div>
           </div>
           
           <div class="modal-actions">
@@ -34,13 +34,10 @@
               :disabled="loading || !isGoalValid"
             >
               <span v-if="loading" class="loading-spinner">⏳</span>
-              {{ loading ? t('modal.creating') : t('today.new_challenge') }}
+              {{ loading ? t('modal.creating') : t('modal.create') }}
             </button>
           </div>
         </form>
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
       </div>
     </div>
   </transition>
@@ -49,15 +46,18 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { MIN_GOAL_LENGTH, MAX_GOAL_LENGTH } from '@/constants/index'
 
 const { t, locale } = useI18n()
+const router = useRouter()
+const notify = useNotification()
 const emit = defineEmits(['close', 'created'])
 
 const goal = ref('')
 const loading = ref(false)
-const error = ref('')
 
 const props = defineProps({
   isOpen: {
@@ -74,7 +74,6 @@ const isGoalValid = computed(() => {
 watch(() => props.isOpen, (newVal) => {
   if (!newVal) {
     goal.value = ''
-    error.value = ''
   }
 })
 
@@ -85,10 +84,12 @@ const close = () => {
 }
 
 const submit = async () => {  
-  if (!isGoalValid.value) return
+  if (!isGoalValid.value) {
+    notify.warning('errors.validation')
+    return
+  }
   
   loading.value = true
-  error.value = ''
   
   try {
     const response = await api.post('challenges/', {
@@ -96,14 +97,29 @@ const submit = async () => {
       language: locale.value
     })
     
+    notify.success('success.challenge_created')
+    
     emit('created', response.data)
     emit('close')
     goal.value = ''
     
-    alert(t('modal.success'))
+    setTimeout(() => {
+      router.go(0) 
+    }, 2000)
+    
   } catch (err) {
-    console.error('Error creating challenge:', err)
-    error.value = err.response?.data?.error || t('common.error')
+    if (err.response?.status === 401) {
+      notify.error('errors.unauthorized')
+    } else if (!err.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.challenge_create')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Challenge creation error:', err)
+    }
+    
   } finally {
     loading.value = false
   }
@@ -240,16 +256,6 @@ const submit = async () => {
   &.valid {
     color: $primary-hover;     
   }
-}
-
-.error-message {
-  margin-top: $spacing-md;
-  padding: $spacing-md;
-  background: rgba($danger, 0.1);
-  border: 1px solid rgba($danger, 0.3);
-  border-radius: $radius-md;
-  color: $danger;
-  font-size: $font-size-sm;
 }
 
 .modal-actions {

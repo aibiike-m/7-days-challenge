@@ -1,0 +1,78 @@
+@use "@/styles/variables" as *;
+@use "@/styles/mixins" as *;
+
+.Vue-Toastification__toast {
+  font-family: $font-family;
+  border-radius: $radius-lg;
+  border: none;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.22);
+  padding: $spacing-md;
+  min-height: 60px;
+  color: $white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+.Vue-Toastification__toast--success { background-color: $success; }
+.Vue-Toastification__toast--error   { background-color: $danger; }
+.Vue-Toastification__toast--info    { background-color: $primary-dark; }
+.Vue-Toastification__toast--warning { background-color: $warning; }
+
+.Vue-Toastification__toast--success,
+.Vue-Toastification__toast--error,
+.Vue-Toastification__toast--info,
+.Vue-Toastification__toast--warning {
+  .Vue-Toastification__icon {
+    color: $white;
+  }
+}
+
+@media (max-width: 768px) {
+  .Vue-Toastification__container {
+    width: calc(100% - 32px) !important;
+    max-width: 420px;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    top: $spacing-lg !important;
+    padding: 0;
+  }
+
+  .Vue-Toastification__toast {
+    margin: 0 auto;
+    max-width: 100%;                    
+    min-width: 240px;                  
+    width: auto;
+    border-radius: $radius-md;
+    padding: $spacing-sm $spacing-md;
+    min-height: 52px;
+    font-size: $font-size-sm;
+    word-break: break-word;
+    overflow-wrap: break-word;          
+  }
+
+  .Vue-Toastification__icon {
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+
+  .Vue-Toastification__toast-body {
+    flex: 1;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+@media (max-width: 360px) {
+  .Vue-Toastification__container {
+    width: calc(100% - 16px);
+  }
+
+  .Vue-Toastification__toast {
+    min-width: 220px;                  
+    padding: 8px 12px;
+    font-size: $font-size-xs;
+  }
+}

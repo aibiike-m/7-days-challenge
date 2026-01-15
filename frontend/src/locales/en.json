@@ -18,8 +18,7 @@
 		"goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
 		"cancel": "Cancel",
 		"creating": "Creating plan...",
-		"success": "Challenge created!",
-		"create_error": "Error creating challenge"
+		"create": "Create challenge"
 	},
 	"calendar": {
 		"title": "Calendar",
@@ -53,17 +52,38 @@
 		"or": "or"
 	},
 	"challenge": {
-		"load_error": "Error loading challenge",
-		"update_error": "Error updating task",
 		"back": "Back",
 		"day": "Day",
 		"no_tasks": "No tasks",
 		"congratulations": "Congratulations!"
 	},
+	"success": {
+		"challenge_created": "Challenge created successfully!",
+		"task_updated": "Task updated",
+		"profile_saved": "Profile saved successfully",
+		"login": "Welcome back!",
+		"register": "Registration successful! Please log in",
+		"logged_out": "Logged out successfully"
+	},
+	"errors": {
+		"network": "Network error. Please check your connection",
+		"server": "Server error. Please try again later",
+		"unauthorized": "Please log in to continue",
+		"validation": "Please fill all required fields",
+		"challenge_load": "Error loading challenge",
+		"challenge_create": "Error creating challenge",
+		"challenge_not_found": "Challenge not found",
+		"task_update": "Error updating task",
+		"future_task": "You cannot mark tasks for future days.",
+		"unknown": "An error occurred",
+		"invalid_credentials": "Invalid username or password",
+		"username_taken": "This username is already taken",
+		"email_taken": "This email is already registered",
+		"google_login": "Google login failed. Please try again"
+	},
 	"common": {
-		"error": "An error occurred",
 		"loading": "Loading...",
-		"success": "Success!",
-		"cannot_modify_future_tasks": "You cannot modify tasks for future days"
+		"confirm": "Confirm",
+		"cancel": "Cancel"
 	}
 }

@@ -37,14 +37,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useNotification } from '@/composables/useNotification'
 import TaskCard from '@/components/TaskCard.vue'
 import api from '@/services/api/index.js'
 import { getTasksForDate } from '@/utils/taskHelpers'
 
-const router = useRouter()
-const i18n = useI18n()
+const { locale } = useI18n()
+const notify = useNotification()
+
 const loading = ref(true)
 const allChallenges = ref([])
 const allTasks = ref([])
@@ -69,11 +70,21 @@ function getChallengeForTask(task) {
 async function loadChallenges() {
   try {
     const response = await api.get('challenges/', {
-      params: { language: i18n.locale.value }
+      params: { language: locale.value }
     })
     allChallenges.value = response.data.results || response.data || []
+    
   } catch (error) {
-    console.error('Ошибка загрузки челленджей:', error)
+    if (!error.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error loading challenges:', error)
+    }
+    
     allChallenges.value = []
   }
 }
@@ -85,30 +96,44 @@ async function loadTasks() {
   }
 
   const challengeIds = allChallenges.value.map(c => c.id)
+  
   try {
     const response = await api.get('tasks/', {
       params: {
         challenge_ids: challengeIds.join(','),
-        language: i18n.locale.value
+        language: locale.value
       }
     })
     const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
     allTasks.value = tasks
+    
   } catch (error) {
-    console.error('Ошибка загрузки задач:', error)
+    if (!error.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error loading tasks:', error)
+    }
+    
     allTasks.value = []
   }
 }
 
 onMounted(async () => {
   loading.value = true
+  
   try {
     await loadChallenges()
     if (allChallenges.value.length > 0) {
       await loadTasks()
     }
   } catch (error) {
-    console.error('Ошибка загрузки данных:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error loading data:', error)
+    }
   } finally {
     loading.value = false
   }

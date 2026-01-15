@@ -1,69 +1,89 @@
 {
-  "nav": {
-    "today": "Сегодня",
-    "calendar": "Календарь",
-    "profile": "Профиль"
-  },
-  "today": {
-    "title": "Сегодняшние задачи",
-    "noTasks": "Нет задач на сегодня",
-    "remaining": "Осталось сделать",
-    "completed": "Выполнено",
-    "mark_completed": "Отметить выполненной",
-    "mark_uncompleted": "Отметить невыполненной",
-    "new_challenge": "Создать челлендж"
-  },
-  "modal": {
-		"goal_label": "Какую цель хотите достичь за 7 дней?",
+	"nav": {
+		"today": "Сегодня",
+		"calendar": "Календарь",
+		"profile": "Профиль"
+	},
+	"today": {
+		"title": "Задачи на сегодня",
+		"noTasks": "Нет задач на сегодня",
+		"remaining": "Осталось задач",
+		"completed": "Выполнено",
+		"mark_completed": "Отметить как выполненное",
+		"mark_uncompleted": "Отметить как невыполненное",
+		"new_challenge": "Создать челлендж"
+	},
+	"modal": {
+		"goal_label": "Какую цель вы хотите достичь за 7 дней?",
 		"goal_placeholder": "Например: Выучить 50 английских слов, начать бегать по утрам, научиться готовить 5 новых блюд...",
 		"cancel": "Отмена",
-		"creating": "Создаем план...",
-		"success": "Челлендж создан!",
-		"create_error": "Ошибка при создании челленджа"
+		"creating": "Создание плана...",
+		"create": "Создать челлендж"
 	},
-  "calendar": {
-    "title": "Календарь",
-    "challenge": "Челлендж",
-    "day": "дней",
-    "day_number": "День"
-  },
-  "profile": {
+	"calendar": {
+		"title": "Календарь",
+		"challenge": "Челлендж",
+		"day": "дней",
+		"day_number": "День"
+	},
+	"profile": {
 		"default_username": "Пользователь",
 		"title": "Профиль",
 		"language": "Язык",
-		"logout": "Выйти из аккаунта",
+		"logout": "Выйти",
 		"statistics": "Статистика за неделю",
 		"save": "Сохранить",
 		"logout_confirm_title": "Выход из аккаунта",
 		"logout_confirm_message": "Вы уверены, что хотите выйти из своего аккаунта?"
 	},
-  "auth": {
-    "login_title": "Вход",
-    "register_title": "Регистрация",
-    "username": "Имя пользователя или Email",
-    "username_register": "Имя пользователя",
-    "email": "Email",
-    "password": "Пароль",
-    "login_btn": "Войти",
-    "register_btn": "Зарегистрироваться",
-    "have_account": "Уже есть аккаунт?",
-    "no_account": "Нет аккаунта?",
-    "login_link": "Войдите",
-    "register_link": "Зарегистрируйтесь",
-    "or": "или"
+	"auth": {
+		"login_title": "Вход",
+		"register_title": "Регистрация",
+		"username": "Имя пользователя или Email",
+		"username_register": "Имя пользователя",
+		"email": "Email",
+		"password": "Пароль",
+		"login_btn": "Войти",
+		"register_btn": "Зарегистрироваться",
+		"have_account": "Уже есть аккаунт?",
+		"no_account": "Нет аккаунта?",
+		"login_link": "Войти",
+		"register_link": "Зарегистрироваться",
+		"or": "или"
+	},
+	"challenge": {
+		"back": "Назад",
+		"day": "День",
+		"no_tasks": "Нет задач",
+		"congratulations": "Поздравляем!"
+	}, 
+  "success": {
+    "challenge_created": "Челлендж успешно создан!",
+    "task_updated": "Задача обновлена",
+    "profile_saved": "Профиль успешно сохранен",
+    "login": "С возвращением!",
+    "register": "Регистрация прошла успешно! Пожалуйста, войдите",
+    "logged_out": "Вы успешно вышли из системы"
   },
-  "challenge": {
-    "load_error": "Ошибка при загрузке челленджа",
-    "update_error": "Ошибка при обновлении задачи",
-    "back": "Назад",
-    "day": "День",
-    "no_tasks": "Нет задач",
-    "congratulations": "Поздравляем!"
+  "errors": {
+    "network": "Ошибка сети. Проверьте подключение",
+    "server": "Ошибка сервера. Попробуйте позже",
+    "unauthorized": "Войдите в систему для продолжения",
+    "validation": "Заполните все обязательные поля",
+    "challenge_load": "Ошибка загрузки челленджа",
+    "challenge_create": "Ошибка создания челленджа",
+    "challenge_not_found": "Челлендж не найден",
+    "task_update": "Ошибка обновления задачи",
+    "future_task": "Вы не можете отмечать задачи будущих дней",
+    "unknown": "Произошла ошибка",
+    "invalid_credentials": "Неверный логин или пароль",
+    "username_taken": "Это имя пользователя уже занято",
+    "email_taken": "Этот email уже зарегистрирован",
+    "google_login": "Ошибка входа через Google. Попробуйте снова"
   },
   "common": {
-		"error": "Произошла ошибка",
 		"loading": "Загрузка...",
-		"success": "Успешно!",
-		"cannot_modify_future_tasks": "Нельзя изменять задачи на будущие дни"
+		"confirm": "Подтвердить",
+		"cancel": "Отмена"
 	}
 }

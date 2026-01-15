@@ -1,7 +1,7 @@
 <template>
   <div class="auth-view">
     <div class="auth-container">
-      <div class="app-name">7 Days Challenge</div>
+      <div class="app-name">{{ APP_NAME }}</div>
 
       <div class="language-switcher">
         <button 
@@ -88,9 +88,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
+import { APP_NAME } from '@/constants/index'
 
 const i18n = useI18n()
+const notify = useNotification()
+
 const isLogin = ref(true)
 const username = ref('')
 const email = ref('')
@@ -111,10 +115,24 @@ const handleGoogleResponse = async (response) => {
     localStorage.setItem('language', serverLanguage)
     i18n.locale.value = serverLanguage
     
-    window.location.href = '/today'
+    notify.success('success.login')
+    
+    setTimeout(() => {
+      window.location.href = '/today'
+    }, 500)
+    
   } catch (error) {
-    console.error('Google login error:', error)
-    alert('Ошибка при входе с Google')
+    if (!error.response) {
+      notify.error('errors.network')
+    } else if (error.response?.status === 401) {
+      notify.error('errors.google_login')
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Google login error:', error)
+    }
   }
 }
 
@@ -144,7 +162,6 @@ function changeLanguage(lang) {
   localStorage.setItem('language', lang)
 }
 
-
 onMounted(() => {
   if (window.google?.accounts) {
     renderGoogleButton()
@@ -156,13 +173,18 @@ onMounted(() => {
   script.async = true
   script.defer = true
   script.onload = renderGoogleButton
-  script.onerror = () => console.error('Failed to load Google Identity Services')
+  script.onerror = () => {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to load Google Identity Services')
+    }
+  }
   document.head.appendChild(script)
 })
 
 async function handleSubmit() {
   try {
     if (isLogin.value) {
+      // Login
       const isEmail = username.value.includes('@')
       const endpoint = isEmail ? 'auth/login-by-email/' : 'token/'
       const payload = isEmail 
@@ -178,8 +200,14 @@ async function handleSubmit() {
       localStorage.setItem('language', serverLanguage)
       i18n.locale.value = serverLanguage
       
-      window.location.href = '/today'
+      notify.success('success.login')
+      
+      setTimeout(() => {
+        window.location.href = '/today'
+      }, 500)
+      
     } else {
+      // Register
       const response = await api.post('register/', {
         username: username.value,
         email: email.value,
@@ -187,8 +215,7 @@ async function handleSubmit() {
         language: i18n.locale.value  
       })
 
-      if (response.data.success) {
-        alert(i18n.t('auth.register_success'))
+      if (response.data.success) {        
         isLogin.value = true
         username.value = ''
         email.value = ''
@@ -196,8 +223,26 @@ async function handleSubmit() {
       }
     }
   } catch (error) {
-    console.error('Auth error:', error)
-    alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    if (!error.response) {
+      notify.error('errors.network')
+    } else if (error.response?.status === 401) {
+      notify.error('errors.invalid_credentials')
+    } else if (error.response?.status === 400) {
+      const serverError = error.response?.data?.error
+      if (serverError?.includes('username') || serverError?.includes('Username')) {
+        notify.error('errors.username_taken')
+      } else if (serverError?.includes('email') || serverError?.includes('Email')) {
+        notify.error('errors.email_taken')
+      } else {
+        notify.error('errors.validation')
+      }
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Auth error:', error)
+    }
   }
 }
 </script>

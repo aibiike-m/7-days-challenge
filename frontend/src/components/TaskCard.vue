@@ -42,6 +42,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 
 const props = defineProps({
@@ -49,9 +50,10 @@ const props = defineProps({
   challenge: { type: Object, required: true }
 })
 
-const emit = defineEmits(['toggle', 'notify']) 
+const emit = defineEmits(['toggle'])
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
+const notify = useNotification()
 const showDescription = ref(false)
 
 const toggleDescription = () => {
@@ -75,10 +77,7 @@ const isTaskLocked = computed(() => {
 
 async function handleCheckboxClick() {
   if (isTaskLocked.value) {
-    emit('notify', {
-      message: t('common.cannot_modify_future_tasks'),
-      type: 'error'
-    })
+    notify.warning('errors.future_task')
     return
   }
 
@@ -87,13 +86,21 @@ async function handleCheckboxClick() {
     await api.post(`tasks/${props.task.id}/${endpoint}/`, {}, {
       params: { language: locale.value }
     })
+    
     emit('toggle', props.task)
+    
   } catch (err) {
-    const message = err.response?.data?.detail || t('common.cannot_modify_future_tasks')
-    emit('notify', {
-      message,
-      type: 'error'
-    })
+    if (!err.response) {
+      notify.error('errors.network')
+    } else if (err.response?.status === 403) {
+      notify.error('errors.future_task')
+    } else {
+      notify.error('errors.task_update')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Task toggle error:', err)
+    }
   }
 }
 </script>
