@@ -41,24 +41,14 @@
         </div>
       </div>
     </div>
-
-    <transition name="modal-fade">
-      <div v-if="showLogoutModal" class="modal-overlay" @click="showLogoutModal = false">
-        <div class="modal-content" @click.stop>
-          <h3 class="modal-title">{{ $t('profile.logout_confirm_title') }}</h3>
-          <p class="modal-message">{{ $t('profile.logout_confirm_message') }}</p>
-          
-          <div class="modal-actions">
-            <button class="btn-cancel" @click="showLogoutModal = false">
-              {{ $t('modal.cancel') }}
-            </button>
-            <button class="btn-confirm" @click="confirmLogout">
-              {{ $t('profile.logout') }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <ConfirmModal
+      :is-open="showLogoutModal"
+      :title="$t('profile.logout_confirm_title')"
+      :confirm-text="$t('profile.logout')"
+      :danger-mode="true"
+      @close="showLogoutModal = false"
+      @confirm="confirmLogout"
+    />
   </div>
 </template>
 
@@ -69,6 +59,7 @@ import Chart from 'chart.js/auto'
 import api from '@/services/api' 
 import { useNotification } from '@/composables/useNotification'
 import { APP_NAME } from '@/constants/index'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const i18n = useI18n()
 const notify = useNotification()
@@ -331,27 +322,27 @@ onMounted(async () => {
 }
 
 .select-trigger {
-  padding: 10px 16px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-primary;
+  border: 1px solid $border;      
   border-radius: $radius-md;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  font-size: $font-size-sm;        
   transition: all 0.2s;
 
   &.is-open {
     border-color: $primary;
-    background: white;
+    background: $white;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
 }
 
 .arrow {
-  border: solid #6b7280;
+  border: solid $text-secondary; 
   border-width: 0 2px 2px 0;
   display: inline-block;
   padding: 3px;
@@ -434,108 +425,6 @@ onMounted(async () => {
 
   &:active {
     transform: translateY(0);
-  }
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: $spacing-md;
-}
-
-.modal-content {
-  background: white;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  max-width: 400px;
-  width: 100%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: $text-primary;
-  margin: 0 0 $spacing-sm 0;
-
-  @media (min-width: 768px) {
-    font-size: 20px;
-  }
-}
-
-.modal-message {
-  color: $text-secondary;
-  font-size: 14px;
-  margin: 0 0 $spacing-lg 0;
-  line-height: 1.5;
-
-  @media (min-width: 768px) {
-    font-size: 15px;
-  }
-}
-
-.modal-actions {
-  display: flex;
-  gap: $spacing-sm;
-  justify-content: flex-end;
-}
-
-.btn-cancel,
-.btn-confirm {
-  padding: $spacing-sm $spacing-lg;
-  border-radius: $radius-md;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  border: none;
-}
-
-.btn-cancel {
-  background: $bg-secondary;
-  color: $text-secondary;
-
-  &:hover {
-    background: $border-hover;
-  }
-}
-
-.btn-confirm {
-  background: $danger;
-  color: white;
-
-  &:hover {
-    background: $danger-dark;
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-}
-
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-  
-  .modal-content {
-    transition: transform 0.2s ease;
-  }
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-  
-  .modal-content {
-    transform: scale(0.95);
   }
 }
 </style>

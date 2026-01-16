@@ -1,89 +1,98 @@
 {
-	"nav": {
-		"today": "Today",
-		"calendar": "Calendar",
-		"profile": "Profile"
-	},
-	"today": {
-		"title": "Today's Tasks",
-		"noTasks": "No tasks for today",
-		"remaining": "Tasks remaining",
-		"completed": "Completed",
-		"mark_completed": "Mark as completed",
-		"mark_uncompleted": "Mark as incomplete",
-		"new_challenge": "Create challenge"
-	},
-	"modal": {
-		"goal_label": "What goal do you want to achieve in 7 days?",
-		"goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
-		"cancel": "Cancel",
-		"creating": "Creating plan...",
-		"create": "Create challenge"
-	},
-	"calendar": {
-		"title": "Calendar",
-		"challenge": "Challenge",
-		"day": "days",
-		"day_number": "Day"
-	},
-	"profile": {
-		"default_username": "User",
-		"title": "Profile",
-		"language": "Language",
-		"logout": "Logout",
-		"statistics": "Weekly Statistics",
-		"save": "Save",
-		"logout_confirm_title": "Sign Out",
-		"logout_confirm_message": "Are you sure you want to sign out of your account?"
-	},
-	"auth": {
-		"login_title": "Login",
-		"register_title": "Register",
-		"username": "Username or Email",
-		"username_register": "Username",
-		"email": "Email",
-		"password": "Password",
-		"login_btn": "Login",
-		"register_btn": "Register",
-		"have_account": "Already have an account?",
-		"no_account": "Don't have an account?",
-		"login_link": "Login",
-		"register_link": "Register",
-		"or": "or"
-	},
-	"challenge": {
-		"back": "Back",
-		"day": "Day",
-		"no_tasks": "No tasks",
-		"congratulations": "Congratulations!"
-	},
-	"success": {
-		"challenge_created": "Challenge created successfully!",
-		"task_updated": "Task updated",
-		"profile_saved": "Profile saved successfully",
-		"login": "Welcome back!",
-		"register": "Registration successful! Please log in",
-		"logged_out": "Logged out successfully"
-	},
-	"errors": {
-		"network": "Network error. Please check your connection",
-		"server": "Server error. Please try again later",
-		"unauthorized": "Please log in to continue",
-		"validation": "Please fill all required fields",
-		"challenge_load": "Error loading challenge",
-		"challenge_create": "Error creating challenge",
-		"challenge_not_found": "Challenge not found",
-		"task_update": "Error updating task",
-		"future_task": "You cannot mark tasks for future days.",
-		"unknown": "An error occurred",
-		"invalid_credentials": "Invalid username or password",
-		"username_taken": "This username is already taken",
-		"email_taken": "This email is already registered",
-		"google_login": "Google login failed. Please try again"
-	},
-	"common": {
-		"loading": "Loading...",
-		"confirm": "Confirm",
-		"cancel": "Cancel"
-	}
+  "nav": {
+    "today": "Today",
+    "calendar": "Calendar",
+    "profile": "Profile"
+  },
+  "today": {
+    "title": "Today's Tasks",
+    "noTasks": "No tasks for today",
+    "remaining": "Tasks remaining",
+    "completed": "Completed",
+    "mark_completed": "Mark as completed",
+    "mark_uncompleted": "Mark as incomplete",
+    "new_challenge": "Create challenge"
+  },
+  "modal": {
+    "goal_label": "What goal do you want to achieve in 7 days?",
+    "goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
+    "cancel": "Cancel",
+    "creating": "Creating plan...",
+    "create": "Create challenge",
+    "delete_title": "Delete Challenges",
+    "delete_message": "Are you sure you want to delete the selected challenges? This action cannot be undone.",
+    "delete_confirm": "Delete",
+    "deleting": "Deleting..."
+  },
+  "calendar": {
+    "title": "Calendar",
+    "challenge": "Challenge",
+    "day": "days",
+    "day_number": "Day",
+    "manage_challenges": "Manage Challenges",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "delete_selected": "Delete Selected ({count})"
+  },
+  "profile": {
+    "default_username": "User",
+    "title": "Profile",
+    "language": "Language",
+    "logout": "Logout",
+    "statistics": "Weekly Statistics",
+    "save": "Save",
+    "logout_confirm_title": "Are you sure you want to sign out?"
+  },
+  "auth": {
+    "login_title": "Login",
+    "register_title": "Register",
+    "username": "Username or Email",
+    "username_register": "Username",
+    "email": "Email",
+    "password": "Password",
+    "login_btn": "Login",
+    "register_btn": "Register",
+    "have_account": "Already have an account?",
+    "no_account": "Don't have an account?",
+    "login_link": "Login",
+    "register_link": "Register",
+    "or": "or"
+  },
+  "challenge": {
+    "back": "Back",
+    "day": "Day",
+    "no_tasks": "No tasks",
+    "congratulations": "Congratulations!"
+  },
+  "success": {
+    "challenge_created": "Challenge created successfully!",
+    "task_updated": "Task updated",
+    "profile_saved": "Profile saved successfully",
+    "login": "Welcome back!",
+    "register": "Registration successful! Please log in",
+    "logged_out": "Logged out successfully",
+    "challenges_deleted": "Challenges deleted successfully"
+  },
+  "errors": {
+    "network": "Network error. Please check your connection",
+    "server": "Server error. Please try again later",
+    "unauthorized": "Please log in to continue",
+    "validation": "Please fill all required fields",
+    "challenge_load": "Error loading challenge",
+    "challenge_create": "Error creating challenge",
+    "challenge_not_found": "Challenge not found",
+    "task_update": "Error updating task",
+    "future_task": "You cannot mark tasks for future days.",
+    "unknown": "An error occurred",
+    "invalid_credentials": "Invalid username or password",
+    "username_taken": "This username is already taken",
+    "email_taken": "This email is already registered",
+    "google_login": "Google login failed. Please try again",
+    "challenge_delete": "Error deleting challenges"
+  },
+  "common": {
+    "loading": "Loading...",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  }
 }
