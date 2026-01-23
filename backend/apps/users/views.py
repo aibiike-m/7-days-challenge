@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.conf import settings
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -8,9 +7,6 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime, timedelta
-
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 
 from apps.challenges.models import Task
 from .serializers import UserSerializer
@@ -40,8 +36,7 @@ def login_by_email(request):
                     "refresh": str(refresh),
                     "user": {
                         "id": user.id,
-                        "username": user.username,
-                        "email": user.email,
+                        "email": user.email,  
                         "language": user.language,
                     },
                 }
@@ -52,53 +47,6 @@ def login_by_email(request):
     return Response(
         {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
     )
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def google_login(request):
-    """Google OAuth login"""
-    token = request.data.get("token")
-
-    if not token:
-        return Response(
-            {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
-        )
-
-    try:
-        idinfo = id_token.verify_oauth2_token(
-            token, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-        )
-
-        email = idinfo["email"]
-        name = idinfo.get("name", email)
-        preferred_language = request.data.get("language", "en")
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                "username": email.split("@")[0],
-                "first_name": name,
-                "language": preferred_language, 
-            },
-        )
-
-        refresh = RefreshToken.for_user(user)
-
-        return Response(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "language": user.language,
-                },
-                "created": created, 
-            }
-        )
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -163,27 +111,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(stats)
 
-
-class RegisterView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        username = request.data.get("username")
-        email = request.data.get("email")
-        password = request.data.get("password")
-        language = request.data.get("language", "en")
-
-        if User.objects.filter(username=username).exists():
-            return Response(
-                {"error": "Пользователь существует"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        User.objects.create_user(
-            username=username, email=email, password=password, language=language
-        )
-        return Response({"success": True}, status=status.HTTP_201_CREATED)
-
-
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -192,7 +119,7 @@ class LogoutView(APIView):
             refresh_token = request.data.get("refresh_token")
             if refresh_token:
                 token = RefreshToken(refresh_token)
-                token.blacklist()  
+                token.blacklist()
         except Exception:
             pass
 

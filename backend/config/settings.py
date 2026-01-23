@@ -161,7 +161,6 @@ AUTH_USER_MODEL = "users.CustomUser"
 LOGIN_URL = None
 
 # SOCIAL AUTH
-SOCIAL_AUTH_URL_NAMESPACE = "social"
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("GOOGLE_OAUTH2_KEY")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("GOOGLE_OAUTH2_SECRET")
 
@@ -169,6 +168,17 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "social_core.backends.google.GoogleOAuth2",
 ]
+
+# DJOSER
+DJOSER = {
+    "LOGIN_FIELD": "email",  
+    "USER_CREATE_PASSWORD_RETYPE": True,
+    "SERIALIZERS": {
+        "user_create": "apps.users.serializers.RegisterSerializer",
+        "user": "apps.users.serializers.UserSerializer",
+        "current_user": "apps.users.serializers.UserSerializer",
+    },
+}
 
 # LANGUAGES
 LANGUAGES = [

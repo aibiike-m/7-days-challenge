@@ -56,7 +56,8 @@
 		"no_account": "Нет аккаунта?",
 		"login_link": "Войти",
 		"register_link": "Зарегистрироваться",
-		"or": "или"
+		"or": "или",
+		"password_confirm": "Подтвердите пароль"
 	},
 	"challenge": {
 		"back": "Назад",
@@ -88,7 +89,8 @@
 		"username_taken": "Это имя пользователя уже занято",
 		"email_taken": "Этот email уже зарегистрирован",
 		"google_login": "Ошибка входа через Google. Попробуйте снова",
-		"challenge_delete": "Ошибка при удалении челленджей"
+		"challenge_delete": "Ошибка при удалении челленджей",
+		"passwords_dont_match": "Пароли не совпадают"
 	},
 	"common": {
 		"loading": "Загрузка...",
