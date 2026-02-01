@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,12 +8,15 @@ from django.conf import settings
 
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
+from .throttles import LoginRateThrottle
+
 
 User = get_user_model()
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def exchange_token(request):
     """
     Exchange Google token for JWT tokens
