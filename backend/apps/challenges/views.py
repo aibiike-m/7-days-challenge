@@ -15,18 +15,15 @@ from .serializers import (
 )
 from .services.challenge_service import ChallengeService
 
+
 class ChallengeViewSet(viewsets.ModelViewSet):
     """API for working with challenges"""
 
     permission_classes = [IsAuthenticated]
+    queryset = Challenge.objects.none() 
 
     def get_queryset(self):
         return Challenge.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    queryset = Challenge.objects.all()
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -85,11 +82,11 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         challenge = ChallengeService.get_active_challenge(request.user)
 
         if not challenge:
-            return Response(status=status.HTTP_404_NOT_FOUND) 
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         serializer = ChallengeDetailSerializer(
-                challenge, context=self.get_serializer_context()
-            )
+            challenge, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
 
@@ -97,7 +94,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     """API for working with tasks"""
 
     permission_classes = [IsAuthenticated]
-    queryset = Task.objects.all()
+    queryset = Task.objects.none()
     serializer_class = TaskSerializer
     pagination_class = None
 
@@ -117,8 +114,16 @@ class TaskViewSet(viewsets.ModelViewSet):
         challenge_ids = request.query_params.get("challenge_ids")
 
         if challenge_ids:
-            ids_list = challenge_ids.split(",")
-            queryset = queryset.filter(challenge__id__in=ids_list)
+            try:
+                ids_list = [
+                    int(id.strip()) for id in challenge_ids.split(",") if id.strip()
+                ]
+                queryset = queryset.filter(challenge__id__in=ids_list)
+            except ValueError:
+                return Response(
+                    {"error": "Invalid challenge_ids format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = self.get_serializer(
             queryset, many=True, context=self.get_serializer_context()
@@ -160,7 +165,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         allowed, error_msg = self._validate_task_modification(task)
         if not allowed:
             return Response(
-                {"detail": error_msg}, 
+                {"detail": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

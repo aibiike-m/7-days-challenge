@@ -1,97 +1,181 @@
 import os
 import json
+import time
 import google.generativeai as genai
-from dotenv import load_dotenv
 from google.generativeai import GenerationConfig
-
-
-load_dotenv()
+from ..constants import (
+    AI_PROMPT_TEMPLATE,
+    AI_MAX_RETRIES,
+    AI_RETRY_DELAY,
+    AI_RETRY_BACKOFF,
+    ERROR_GEMINI_API_KEY_MISSING,
+    ERROR_AI_INVALID_FORMAT,
+    ERROR_AI_INVALID_JSON,
+    ERROR_AI_NO_RESPONSE,
+    ERROR_AI_GENERATION_FAILED,
+    CHALLENGE_DURATION_DAYS,
+)
+import logging
+logger = logging.getLogger(__name__)
 
 
 class AIService:
     """Google Gemini AI Service"""
 
     def __init__(self):
+        """
+        Initialize AI service with Gemini API.
+
+        Raises:
+            ValueError: If GEMINI_API_KEY is not set in environment
+        """
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
-            raise ValueError("GEMINI_API_KEY не найден в .env файле!")
+            logger.error("GEMINI_API_KEY not found in environment variables")
+            raise ValueError(ERROR_GEMINI_API_KEY_MISSING)
 
         genai.configure(api_key=api_key)
 
-        generation_config = GenerationConfig(
-            response_mime_type="application/json"
-        )
+        generation_config = GenerationConfig(response_mime_type="application/json")
 
-        
         self.model = genai.GenerativeModel(
-            "gemini-2.5-flash",
-            generation_config=generation_config
+            "gemini-2.5-flash", generation_config=generation_config
         )
+        logger.info("AI Service initialized successfully")
 
-    def generate_challenge_plan(self, goal: str, days: int = 7) -> dict:
-        """Generates a task plan based on the goal"""
+    def _parse_ai_response(self, response_text: str) -> dict:
+        """
+        Parse and validate AI response.
 
-        prompt = f"""
+        Args:
+            response_text: Raw response text from AI
 
-            You are an assistant in creating plans to achieve goals.
-            Create a detailed {days} day plan to achieve the following goal:
-            "{goal}"
-                        
-            Requirements:
-                - Create 1 to 8 tasks each day (depending on the complexity of the goal)
-                - Tasks should be specific and achievable within a day
-                - Consider the context of the goal:
-                    * For learning (languages, skills) → repetitive tasks
-                    * For projects (creating something) → unique tasks
-                    * For habits (sports, health) → gradual increase in workload
-                - Tasks from simple to complex
-                - Task title: short (up to 100 characters)
-                - Description: detailed with specific steps
+        Returns:
+            dict: Parsed and validated response data
 
-
-
-            Return the response STRICTLY in JSON array format, without additional text:            
-            {{
-                "goal_ru": "Перевод цели на русский",
-                "goal_en": "Goal translation to English",
-                "tasks": [
-                    {{"day": 1, "title_ru": "...", "title_en": "...", "description_ru": "...", "description_en": "..."}},
-                    {{"day": 1, "title_ru": "...", "title_en": "...", "description_ru": "...", "description_en": "..."}}
-                ]
-            }}
-            
-            IMPORTANT:
-            - Provide titles and descriptions in BOTH Russian and English.
-            - Return ONLY the JSON array
-            - No Markdown formatting
-            - No ```json``` or other characters
-            - Pure, valid JSON
-            """
-
+        Raises:
+            ValueError: If response format is invalid
+        """
         try:
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
-            data = json.loads(response_text)
+            clean_text = response_text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            if clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+            clean_text = clean_text.strip()
+
+            data = json.loads(clean_text)
 
             if not isinstance(data, dict) or "tasks" not in data:
-                raise ValueError(
-                    "AI вернул неверный формат (ожидался словарь с ключом 'tasks')"
+                logger.warning(
+                    f"Invalid AI response structure: {list(data.keys()) if isinstance(data, dict) else type(data)}"
+                )
+                raise ValueError(ERROR_AI_INVALID_FORMAT)
+
+            logger.debug(
+                f"Successfully parsed AI response with {len(data.get('tasks', []))} tasks"
+            )
+            return data
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON decode error: {str(e)}")
+            raise ValueError(f"{ERROR_AI_INVALID_JSON}: {str(e)}")
+
+    def generate_challenge_plan(
+        self, goal: str, days: int = CHALLENGE_DURATION_DAYS
+    ) -> dict:
+        """
+        Generate a task plan based on the goal with retry mechanism.
+
+        Attempts to generate a plan up to AI_MAX_RETRIES times with
+        exponential backoff between attempts.
+
+        Args:
+            goal: User's goal description
+            days: Number of days for the challenge (default: 7)
+
+        Returns:
+            dict: Challenge plan with tasks in both languages
+                  Structure: {
+                      'goal_ru': str,
+                      'goal_en': str,
+                      'tasks': [
+                          {
+                              'day': int,
+                              'title_ru': str,
+                              'title_en': str,
+                              'description_ru': str,
+                              'description_en': str
+                          },
+                          ...
+                      ]
+                  }
+
+        Raises:
+            ValueError: If AI returns invalid format
+            Exception: If generation fails after all retries
+        """
+        logger.info(
+            f"Generating challenge plan for goal: '{goal[:50]}{'...' if len(goal) > 50 else ''}' ({days} days)"
+        )
+
+        prompt = AI_PROMPT_TEMPLATE.format(days=days, goal=goal)
+
+        last_error = None
+        retry_delay = AI_RETRY_DELAY
+
+        for attempt in range(AI_MAX_RETRIES):
+            try:
+                logger.debug(
+                    f"Attempt {attempt + 1}/{AI_MAX_RETRIES}: Calling Gemini API"
+                )
+                response = self.model.generate_content(prompt)
+
+                if not response or not hasattr(response, "text"):
+                    raise AttributeError(ERROR_AI_NO_RESPONSE)
+
+                response_text = response.text.strip()
+                data = self._parse_ai_response(response_text)
+
+                tasks_count = len(data.get("tasks", []))
+                logger.info(
+                    f"✓ Successfully generated plan with {tasks_count} tasks on attempt {attempt + 1}"
+                )
+                return data
+
+            except json.JSONDecodeError as e:
+                last_error = e
+                logger.warning(
+                    f"Attempt {attempt + 1}/{AI_MAX_RETRIES}: Invalid JSON from AI - {str(e)}"
+                )
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Response preview: {response_text[:200]}...")
+    
+            except ValueError as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1}/{AI_MAX_RETRIES}: {str(e)}")
+
+            except AttributeError as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1}/{AI_MAX_RETRIES}: {str(e)}")
+
+            except Exception as e:
+                last_error = e
+                logger.error(
+                    f"Attempt {attempt + 1}/{AI_MAX_RETRIES}: Unexpected error: {str(e)}",
+                    exc_info=True, 
                 )
 
-            return data  
-        except Exception as e:
-            print(f"Ошибка AI: {e}")
-            raise e
-        except json.JSONDecodeError as e:
-            print(f"Ответ AI не является валидным JSON:")
-            print(response_text)
-            raise ValueError(f"AI вернул невалидный JSON: {str(e)}")
+            if attempt < AI_MAX_RETRIES - 1:
+                logger.debug(f"Waiting {retry_delay}s before retry...")
+                time.sleep(retry_delay)
+                retry_delay *= AI_RETRY_BACKOFF
 
-        except AttributeError as e:
-            print(f"Ошибка при получении ответа от AI: {e}")
-            raise Exception(f"Не удалось получить текст ответа: {str(e)}")
-
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            raise Exception(f"Ошибка при генерации плана: {str(e)}")
+        error_message = f"{ERROR_AI_GENERATION_FAILED}: {str(last_error)}"
+        logger.error(
+            f"Failed to generate plan after {AI_MAX_RETRIES} attempts: {error_message}"
+        )
+        raise Exception(error_message)

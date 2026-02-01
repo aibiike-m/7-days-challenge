@@ -52,6 +52,6 @@ class ChallengeService:
         """Get the user's last active challenge"""
         return (
             Challenge.objects.filter(user=user, status="active")
-            .order_by("-created_at")
+            .order_by("-created_at", "-id")
             .first()
         )
