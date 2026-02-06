@@ -21,7 +21,7 @@ urlpatterns = [
     path("api/auth/", include("djoser.urls")),
     path("api/auth/", include("djoser.urls.jwt")),
     path("api/auth/google/", exchange_token, name="google_login"),
-    path("api/logout/", LogoutView.as_view()),
+    path("api/logout/", LogoutView.as_view(), name="logout"),
     path("api/auth/login-by-email/", login_by_email, name="login_by_email"),
     # API
     path("api/", include("apps.challenges.urls")),
