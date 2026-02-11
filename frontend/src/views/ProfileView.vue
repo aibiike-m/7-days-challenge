@@ -6,8 +6,7 @@
       <div class="profile-layout">
         <div class="left-side">
           <div class="card profile-card">
-            <h2 class="username">{{ username }}</h2>
-            <p class="email">{{ email }}</p>
+            <h2 class="username">{{ displayName }}</h2>
 
             <div class="language-section">
               <div class="custom-select">             
@@ -24,6 +23,8 @@
                 </div>
               </div>
             </div>
+
+            <button class="btn-settings" @click="goToSettings">{{ $t('profile.settings') }}</button>
           </div>
         </div>
 
@@ -55,16 +56,17 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
 import api from '@/services/api' 
 import { useNotification } from '@/composables/useNotification'
 import { APP_NAME } from '@/constants/index'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
+const router = useRouter()
 const i18n = useI18n()
 const notify = useNotification()
-const username = ref('Loading...')
-const email = ref('')
+const displayName = ref('Loading...')
 const weeklyStats = ref([])
 const chartCanvas = ref(null)
 const isOpen = ref(false)
@@ -78,8 +80,7 @@ onMounted(() => {
 async function loadProfile() {
   try {
     const res = await api.get('users/me/')
-    username.value = res.data.username || 'User'
-    email.value = res.data.email || ''
+    displayName.value = res.data.display_name || 'User'
     
     const serverLang = res.data.language || 'en'
     i18n.locale.value = serverLang
@@ -175,13 +176,17 @@ async function changeLanguage(lang) {
   }
 }
 
+function goToSettings() {
+  router.push('/settings')
+}
+
 async function confirmLogout() {
   try {
-    const refreshToken = localStorage.getItem('refresh_token')
+    const refreshToken = localStorage.getItem('refresh')
     
     if (refreshToken) {
       await api.post('logout/', {
-        refresh_token: refreshToken
+        refresh: refreshToken
       })
     }
     
@@ -191,7 +196,7 @@ async function confirmLogout() {
     }
   } finally {
     localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('refresh')
     
     setTimeout(() => {
       window.location.href = '/auth'
@@ -296,21 +301,11 @@ onMounted(async () => {
   font-size: 18px;
   font-weight: 600;
   color: $text-primary;
-  margin: 0 0 $spacing-sm 0;
-
-  @media (min-width: 768px) {
-    font-size: 22px;
-    margin-bottom: $spacing-sm;
-  }
-}
-
-.email {
-  color: $text-muted;
-  font-size: 13px;
   margin: 0 0 $spacing-md 0;
 
   @media (min-width: 768px) {
-    font-size: 14px;
+    font-size: 22px;
+    margin-bottom: $spacing-md;
   }
 }
 
@@ -319,6 +314,7 @@ onMounted(async () => {
   width: 100%;
   min-width: 160px;
   user-select: none;
+  margin-bottom: $spacing-md;
 }
 
 .select-trigger {
@@ -378,6 +374,37 @@ onMounted(async () => {
   &:hover {
     background: rgba($primary, 0.05);
     color: $primary;
+  }
+}
+
+.btn-settings {
+  background: $primary;
+  color: white;
+  border: none;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: $primary-hover;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 

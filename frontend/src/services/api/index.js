@@ -19,7 +19,7 @@ api.interceptors.response.use(
 		if (error.response?.status === 401 && !error.config._retry) {
 			error.config._retry = true
 			try {
-				const refresh = localStorage.getItem('refresh_token')
+				const refresh = localStorage.getItem('refresh')
 				if (refresh) {
 					const res = await axios.post(
 						'http://localhost:8000/api/token/refresh/',
@@ -31,7 +31,7 @@ api.interceptors.response.use(
 				}
 			} catch (refreshError) {
 				localStorage.removeItem('access_token')
-				localStorage.removeItem('refresh_token')
+				localStorage.removeItem('refresh')
 				window.location.href = '/login' 
 			}
 		}
