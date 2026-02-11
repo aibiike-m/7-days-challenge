@@ -227,7 +227,7 @@ class TestLogout:
         refresh = login_resp.data["refresh"]
 
         url_logout = "/api/logout/"
-        data = {"refresh_token": refresh}
+        data = {"refresh": refresh}
         response = auth_client.post(url_logout, data)
 
         assert response.status_code == status.HTTP_200_OK
