@@ -1,10 +1,13 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework import status
+
 from apps.users.models import EmailVerification
-from unittest.mock import patch
 
 User = get_user_model()
+
 
 @pytest.mark.django_db
 class TestDisplayName:
@@ -33,6 +36,7 @@ class TestDisplayName:
         user1 = User.objects.create_user(email=faker.email(), password="pass")
         user2 = User.objects.create_user(email=faker.email(), password="pass")
         assert user1.username != user2.username
+
 
 @pytest.mark.django_db
 class TestPasswordManagement:
@@ -103,6 +107,7 @@ class TestPasswordManagement:
         response = auth_client.post(url, data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+
 @pytest.mark.django_db
 class TestEmailChange:
     @patch("apps.users.views.send_mail")
@@ -119,7 +124,7 @@ class TestEmailChange:
         assert verification is not None
         assert len(verification.code) == 6
         assert verification.is_used is False
-        mock_send_mail.assert_called_once()
+        assert mock_send_mail.call_count == 2  
 
     def test_request_email_change_same_email(self, auth_client, test_user):
         url = "/api/users/request-email-change/"
@@ -166,6 +171,7 @@ class TestEmailChange:
     ):
         from datetime import timedelta
         from django.utils import timezone
+
         new_email = faker.email()
         verification = EmailVerification.objects.create(
             user=test_user, new_email=new_email
@@ -194,6 +200,7 @@ class TestEmailChange:
         response = auth_client.post(url, data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+
 @pytest.mark.django_db
 class TestEmailVerificationModel:
     def test_code_auto_generation(self, test_user, faker):
@@ -207,6 +214,7 @@ class TestEmailVerificationModel:
     def test_expires_at_auto_set(self, test_user, faker):
         from django.utils import timezone
         from datetime import timedelta
+
         before = timezone.now()
         verification = EmailVerification.objects.create(
             user=test_user, new_email=faker.email()
@@ -219,6 +227,7 @@ class TestEmailVerificationModel:
     def test_is_valid_method(self, test_user, faker):
         from django.utils import timezone
         from datetime import timedelta
+
         valid = EmailVerification.objects.create(
             user=test_user, new_email=faker.email()
         )
@@ -233,6 +242,7 @@ class TestEmailVerificationModel:
         expired.expires_at = timezone.now() - timedelta(minutes=1)
         expired.save()
         assert expired.is_valid() is False
+
 
 @pytest.mark.django_db
 class TestIntegrationScenarios:
@@ -304,6 +314,7 @@ class TestIntegrationScenarios:
         )
         assert response.status_code == status.HTTP_200_OK
 
+
 @pytest.mark.django_db
 class TestGoogleOAuthPasswordHandling:
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
@@ -311,7 +322,7 @@ class TestGoogleOAuthPasswordHandling:
         self, mock_verify, api_client, faker
     ):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google123"}
+        mock_verify.return_value = {"email": email, "sub": "google123", "email_verified": True}
         url = "/api/auth/google/"
         data = {"credential": "fake_google_token", "language": "en"}
         response = api_client.post(url, data)
@@ -324,7 +335,11 @@ class TestGoogleOAuthPasswordHandling:
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
     def test_google_user_password_field_format(self, mock_verify, api_client, faker):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google456"}
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google456",
+            "email_verified": True,
+        }
         url = "/api/auth/google/"
         data = {"credential": "fake_token", "language": "en"}
         api_client.post(url, data)
@@ -336,7 +351,11 @@ class TestGoogleOAuthPasswordHandling:
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
     def test_google_user_api_returns_no_password(self, mock_verify, api_client, faker):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google789"}
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google789",
+            "email_verified": True,
+        }
         url = "/api/auth/google/"
         data = {"credential": "fake_token", "language": "en"}
         response = api_client.post(url, data)
@@ -352,7 +371,7 @@ class TestGoogleOAuthPasswordHandling:
         self, mock_verify, api_client, faker
     ):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google999"}
+        mock_verify.return_value = {"email": email, "sub": "google999", "email_verified": True}
         url = "/api/auth/google/"
         api_client.post(url, {"credential": "fake_token", "language": "en"})
         user = User.objects.get(email=email)
@@ -368,11 +387,11 @@ class TestGoogleOAuthPasswordHandling:
         assert "error" in response.data
         assert "password" in response.data["error"].lower()
         assert "set" in response.data["error"].lower()
-        
+
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
     def test_google_user_can_set_password(self, mock_verify, api_client, faker):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google111"}
+        mock_verify.return_value = {"email": email, "sub": "google111", "email_verified": True}
         url = "/api/auth/google/"
         api_client.post(url, {"credential": "fake_token", "language": "en"})
         user = User.objects.get(email=email)
@@ -394,7 +413,7 @@ class TestGoogleOAuthPasswordHandling:
         self, mock_verify, api_client, faker
     ):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google222"}
+        mock_verify.return_value = {"email": email, "sub": "google222", "email_verified": True}
         url = "/api/auth/google/"
         api_client.post(url, {"credential": "token", "language": "en"})
         user = User.objects.get(email=email)
@@ -431,7 +450,9 @@ class TestGoogleOAuthPasswordHandling:
         google_user = User.objects.create(email=faker.email(), language="en")
         google_user.set_unusable_password()
         google_user.save()
-        normal_user = User.objects.create_user(email=faker.email(), password="testpass123")
+        normal_user = User.objects.create_user(
+            email=faker.email(), password="testpass123"
+        )
         assert google_user.password.startswith("!")
         assert not normal_user.password.startswith("!")
         assert "$" in normal_user.password
@@ -452,7 +473,7 @@ class TestGoogleOAuthPasswordHandling:
         self, mock_verify, api_client, faker
     ):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google333"}
+        mock_verify.return_value = {"email": email, "sub": "google333", "email_verified": True}
         url = "/api/auth/google/"
         api_client.post(url, {"credential": "token1", "language": "en"})
         user = User.objects.get(email=email)
@@ -462,3 +483,315 @@ class TestGoogleOAuthPasswordHandling:
         user.refresh_from_db()
         assert user.has_usable_password() is False
         assert user.password.startswith("!")
+
+@pytest.mark.django_db
+class TestEmailVerificationTokens:
+    def test_verification_has_confirm_and_cancel_tokens(self, test_user, faker):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        assert verification.confirm_token is not None
+        assert verification.cancel_token is not None
+
+    def test_tokens_are_unique_per_verification(self, test_user, faker):
+        v1 = EmailVerification.objects.create(user=test_user, new_email=faker.email())
+        v2 = EmailVerification.objects.create(user=test_user, new_email=faker.email())
+        assert v1.confirm_token != v2.confirm_token
+        assert v1.cancel_token != v2.cancel_token
+
+    def test_confirm_and_cancel_tokens_differ_from_each_other(self, test_user, faker):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        assert verification.confirm_token != verification.cancel_token
+
+    def test_is_cancelled_default_is_false(self, test_user, faker):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        assert verification.is_cancelled is False
+
+    def test_is_valid_returns_false_when_cancelled(self, test_user, faker):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        assert verification.is_valid() is True
+        verification.is_cancelled = True
+        verification.save()
+        assert verification.is_valid() is False
+
+
+@pytest.mark.django_db
+class TestRequestEmailChangeSendsTwoEmails:
+    @patch("apps.users.views.send_mail")
+    def test_sends_two_emails(self, mock_send_mail, auth_client, faker):
+        url = "/api/users/request-email-change/"
+        response = auth_client.post(url, {"new_email": faker.email()})
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_mail.call_count == 2
+
+    @patch("apps.users.views.send_mail")
+    def test_first_email_goes_to_new_address(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        new_email = faker.email()
+        auth_client.post("/api/users/request-email-change/", {"new_email": new_email})
+        first_call_recipients = mock_send_mail.call_args_list[0][1]["recipient_list"]
+        assert new_email in first_call_recipients
+
+    @patch("apps.users.views.send_mail")
+    def test_second_email_goes_to_old_address(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        new_email = faker.email()
+        old_email = test_user.email
+        auth_client.post("/api/users/request-email-change/", {"new_email": new_email})
+        second_call_recipients = mock_send_mail.call_args_list[1][1]["recipient_list"]
+        assert old_email in second_call_recipients
+
+    @patch("apps.users.views.send_mail")
+    def test_cancel_url_is_in_old_email_body(self, mock_send_mail, auth_client, faker):
+        auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+        second_call_body = mock_send_mail.call_args_list[1][1]["message"]
+        assert "cancel-email-change" in second_call_body
+
+    @patch("apps.users.views.send_mail")
+    def test_confirm_url_is_in_new_email_body(self, mock_send_mail, auth_client, faker):
+        auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+        first_call_body = mock_send_mail.call_args_list[0][1]["message"]
+        assert "confirm-email-change" in first_call_body
+
+    @patch("apps.users.views.send_mail")
+    def test_verification_record_has_tokens_after_request(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        new_email = faker.email()
+        auth_client.post("/api/users/request-email-change/", {"new_email": new_email})
+        verification = EmailVerification.objects.filter(
+            user=test_user, new_email=new_email
+        ).first()
+        assert verification is not None
+        assert verification.confirm_token is not None
+        assert verification.cancel_token is not None
+
+
+@pytest.mark.django_db
+class TestCancelEmailChange:
+    def test_cancel_with_valid_token(self, test_user, faker, api_client):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        verification.refresh_from_db()
+        assert verification.is_cancelled is True
+
+    def test_cancel_marks_verification_as_cancelled(self, test_user, faker, api_client):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        assert verification.is_cancelled is False
+        api_client.get(
+            f"/api/users/cancel-email-change/?token={verification.cancel_token}"
+        )
+        verification.refresh_from_db()
+        assert verification.is_cancelled is True
+        assert verification.is_used is False
+
+    def test_cancel_does_not_require_authentication(self, test_user, faker):
+        from rest_framework.test import APIClient
+
+        unauthenticated_client = APIClient()
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_cancel_with_invalid_token(self, api_client):
+        import uuid
+
+        url = f"/api/users/cancel-email-change/?token={uuid.uuid4()}"
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_cancel_without_token(self, api_client):
+        url = "/api/users/cancel-email-change/"
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_cancel_already_cancelled_token(self, test_user, faker, api_client):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email(), is_cancelled=True
+        )
+        url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_cancel_already_used_token(self, test_user, faker, api_client):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email(), is_used=True
+        )
+        url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_cancel_expired_verification(self, test_user, faker, api_client):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        verification.expires_at = timezone.now() - timedelta(minutes=1)
+        verification.save()
+        url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_cancelled_verification_cannot_be_confirmed(
+        self, auth_client, test_user, faker
+    ):
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email(), is_cancelled=True
+        )
+        url = "/api/users/confirm-email-change/"
+        response = auth_client.post(url, {"code": verification.code})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        test_user.refresh_from_db()
+        assert test_user.email != verification.new_email
+
+
+@pytest.mark.django_db
+class TestPreviousVerificationsInvalidated:
+    @patch("apps.users.views.send_mail")
+    def test_previous_pending_request_is_cancelled(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        old_verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        assert old_verification.is_cancelled is False
+
+        auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+
+        old_verification.refresh_from_db()
+        assert old_verification.is_cancelled is True
+
+    @patch("apps.users.views.send_mail")
+    def test_old_code_cannot_confirm_after_new_request(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        old_verification = EmailVerification.objects.create(
+            user=test_user, new_email=faker.email()
+        )
+        old_code = old_verification.code
+
+        auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+
+        url = "/api/users/confirm-email-change/"
+        response = auth_client.post(url, {"code": old_code})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @patch("apps.users.views.send_mail")
+    def test_only_latest_verification_is_active(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+        auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+        final_email = faker.email()
+        auth_client.post("/api/users/request-email-change/", {"new_email": final_email})
+
+        active = EmailVerification.objects.filter(
+            user=test_user, is_cancelled=False, is_used=False
+        )
+        assert active.count() == 1
+        assert active.first().new_email == final_email
+
+
+@pytest.mark.django_db
+class TestConfirmEmailChangeSendsNotification:
+    @patch("apps.users.views.send_mail")
+    def test_sends_notification_to_old_email_after_confirm(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        old_email = test_user.email
+        new_email = faker.email()
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=new_email
+        )
+        auth_client.post(
+            "/api/users/confirm-email-change/", {"code": verification.code}
+        )
+
+        all_recipients = [
+            call[1]["recipient_list"] for call in mock_send_mail.call_args_list
+        ]
+        assert any(old_email in recipients for recipients in all_recipients)
+
+    @patch("apps.users.views.send_mail")
+    def test_email_is_actually_changed_after_confirm(
+        self, mock_send_mail, auth_client, test_user, faker
+    ):
+        new_email = faker.email()
+        verification = EmailVerification.objects.create(
+            user=test_user, new_email=new_email
+        )
+        response = auth_client.post(
+            "/api/users/confirm-email-change/", {"code": verification.code}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        test_user.refresh_from_db()
+        assert test_user.email == new_email
+
+
+@pytest.mark.django_db
+class TestGoogleUserEmailChange:
+    @patch("apps.users.views.send_mail")
+    def test_google_user_can_request_email_change(
+        self, mock_send_mail, api_client, faker
+    ):
+        user = User.objects.create(email=faker.email(), language="en")
+        user.set_unusable_password()
+        user.save()
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_mail.call_count == 2
+
+    @patch("apps.users.views.send_mail")
+    def test_google_user_can_confirm_email_change(
+        self, mock_send_mail, api_client, faker
+    ):
+        user = User.objects.create(email=faker.email(), language="en")
+        user.set_unusable_password()
+        user.save()
+        api_client.force_authenticate(user=user)
+
+        new_email = faker.email()
+        verification = EmailVerification.objects.create(user=user, new_email=new_email)
+
+        response = api_client.post(
+            "/api/users/confirm-email-change/", {"code": verification.code}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.email == new_email
+        assert user.has_usable_password() is False

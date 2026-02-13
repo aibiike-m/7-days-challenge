@@ -26,6 +26,7 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "anon": None,
     "user": None,
     "login": None,
+    "email_change": "100/hour",
 }
 
 # CORS

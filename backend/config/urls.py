@@ -8,6 +8,7 @@ from apps.users.views import (
     login_by_email,
 )
 from apps.users.social_views import exchange_token
+from apps.users.views import cancel_email_change
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 router = DefaultRouter()
@@ -23,6 +24,11 @@ urlpatterns = [
     path("api/auth/google/", exchange_token, name="google_login"),
     path("api/logout/", LogoutView.as_view(), name="logout"),
     path("api/auth/login-by-email/", login_by_email, name="login_by_email"),
+    path(
+        "api/users/cancel-email-change/",
+        cancel_email_change,
+        name="cancel_email_change",
+    ),
     # API
     path("api/", include("apps.challenges.urls")),
     path("api/", include(router.urls)),

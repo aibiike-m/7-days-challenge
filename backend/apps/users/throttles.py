@@ -1,9 +1,11 @@
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 
 class LoginRateThrottle(AnonRateThrottle):
-    """
-    Rate limiting for login endpoint.
-    """
 
     scope = "login"
+
+
+class EmailChangeRateThrottle(UserRateThrottle):
+
+    scope = "email_change"

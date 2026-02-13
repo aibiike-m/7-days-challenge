@@ -1,7 +1,11 @@
+from datetime import date, timedelta
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from unittest.mock import patch
+
+from apps.challenges.models import Challenge, Task
 
 User = get_user_model()
 
@@ -89,7 +93,7 @@ class TestGoogleOAuth:
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
     def test_google_login_new_user(self, mock_verify, api_client, faker):
         email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "12345"}
+        mock_verify.return_value = {"email": email, "sub": "12345", "email_verified": True}
 
         url = "/api/auth/google/"
         data = {"credential": "fake_token", "language": "en"}
@@ -101,7 +105,7 @@ class TestGoogleOAuth:
 
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
     def test_google_login_existing_user(self, mock_verify, api_client, test_user):
-        mock_verify.return_value = {"email": test_user.email, "sub": "67890"}
+        mock_verify.return_value = {"email": test_user.email, "sub": "67890", "email_verified": True}
 
         url = "/api/auth/google/"
         data = {"credential": "fake_token", "language": "ru"}
@@ -135,7 +139,7 @@ class TestGoogleOAuth:
 
     @patch("apps.users.social_views.id_token.verify_oauth2_token")
     def test_google_login_no_email_in_token(self, mock_verify, api_client):
-        mock_verify.return_value = {"sub": "12345"}
+        mock_verify.return_value = {"sub": "12345", "email_verified": True}
         url = "/api/auth/google/"
         data = {"credential": "fake_token"}
         response = api_client.post(url, data)
@@ -191,8 +195,7 @@ class TestUserViewSet:
 
     @pytest.mark.django_db(transaction=True)
     def test_weekly_stats_with_data(self, auth_client, test_user):
-        from apps.challenges.models import Challenge, Task
-        from datetime import date, timedelta
+
         today = date.today()
         weekday = today.weekday()
         start_of_week = today - timedelta(days=weekday)

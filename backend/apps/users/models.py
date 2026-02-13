@@ -1,10 +1,12 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.db import models
-from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
 import uuid
 import secrets
+from datetime import timedelta
+
+from django.db import models
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.conf import settings
+from django.utils import timezone
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -24,6 +26,7 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
         return self.create_user(email, password, **extra_fields)
+
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
@@ -45,14 +48,19 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
     def generate_username(self):
         return f"user_{uuid.uuid4().hex[:12]}"
+
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = self.generate_username()
         super().save(*args, **kwargs)
+
     def __str__(self):
         return self.email
+
+
 class EmailVerification(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -61,18 +69,29 @@ class EmailVerification(models.Model):
     )
     new_email = models.EmailField()
     code = models.CharField(max_length=6)
+    confirm_token = models.UUIDField(default=uuid.uuid4, unique=True)
+    cancel_token = models.UUIDField(default=uuid.uuid4, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
+    is_cancelled = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["-created_at"]
+
     def save(self, *args, **kwargs):
         if not self.code:
             self.code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
         if not self.expires_at:
             self.expires_at = timezone.now() + timedelta(minutes=15)
         super().save(*args, **kwargs)
+
     def is_valid(self):
-        return not self.is_used and timezone.now() < self.expires_at
+        return (
+            not self.is_used
+            and not self.is_cancelled
+            and timezone.now() < self.expires_at
+        )
+
     def __str__(self):
         return f"{self.user.email} -> {self.new_email}"

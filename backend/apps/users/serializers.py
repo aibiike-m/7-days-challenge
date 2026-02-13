@@ -32,8 +32,9 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match"})
-
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match"}
+            )
         validate_password(attrs["new_password"], self.context["request"].user)
         return attrs
 
@@ -58,10 +59,14 @@ class SetPasswordSerializer(serializers.Serializer):
         user = self.context["request"].user
 
         if user.has_usable_password():
-            raise serializers.ValidationError("You already have a password set. Use the password change function.")
+            raise serializers.ValidationError(
+                "You already have a password set. Use the password change function."
+            )
 
         if attrs["new_password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match"})
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match"}
+            )
 
         validate_password(attrs["new_password"], user)
         return attrs

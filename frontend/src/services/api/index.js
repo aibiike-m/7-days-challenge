@@ -32,7 +32,7 @@ api.interceptors.response.use(
 			} catch (refreshError) {
 				localStorage.removeItem('access_token')
 				localStorage.removeItem('refresh')
-				window.location.href = '/login' 
+				window.location.href = '/auth'
 			}
 		}
 		return Promise.reject(error)
