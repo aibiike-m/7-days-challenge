@@ -4,6 +4,7 @@ import CalendarView from '@/views/CalendarView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import AuthView from '@/views/AuthView.vue'
+import ConfirmAccountDeletionView from '@/views/ConfirmAccountDeletionView.vue'
 
 const routes = [
 	{
@@ -38,6 +39,11 @@ const routes = [
 		path: '/auth',
 		name: 'auth',
 		component: AuthView,
+	},
+	{
+		path: '/confirm-account-deletion',
+		name: 'confirm-account-deletion',
+		component: ConfirmAccountDeletionView,
 	},
 ]
 

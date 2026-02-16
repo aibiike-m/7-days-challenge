@@ -10,25 +10,20 @@
         <h1 class="settings-title">{{ $t('settings.title') }}</h1>
       </div>
 
-      <!-- Account Info -->
       <div class="settings-card">
         <h2 class="section-title">{{ $t('settings.account_info') }}</h2>
-        
         <div class="info-row">
           <span class="info-label">{{ $t('settings.email') }}:</span>
           <span class="info-value">{{ user?.email }}</span>
         </div>
-        
         <div class="info-row">
           <span class="info-label">{{ $t('settings.username') }}:</span>
           <span class="info-value">{{ user?.display_name || $t('profile.default_username') }}</span>
         </div>
       </div>
 
-      <!-- Change Display Name -->
       <div class="settings-card">
         <h2 class="section-title">{{ $t('settings.new_username') }}</h2>
-        
         <div class="form-group">
           <input
             v-model="newDisplayName"
@@ -47,10 +42,8 @@
         </div>
       </div>
 
-      <!-- Change Email -->
       <div class="settings-card">
         <h2 class="section-title">{{ $t('settings.change_email') }}</h2>
-        
         <div v-if="!emailChangeRequested" class="form-group">
           <input
             v-model="newEmail"
@@ -66,7 +59,6 @@
             {{ emailLoading ? $t('common.loading') : $t('settings.send_code') }}
           </button>
         </div>
-
         <div v-else class="form-group">
           <p class="info-text">{{ $t('settings.code_sent_to') }} {{ newEmail }}</p>
           <input
@@ -94,14 +86,11 @@
         </div>
       </div>
 
-      <!-- Password -->
       <div class="settings-card">
         <h2 class="section-title">
           {{ hasPassword ? $t('settings.change_password') : $t('settings.set_password') }}
         </h2>
-        
         <div v-if="hasPassword" class="form-group">
-          <!-- Change Password Form -->
           <div class="password-input">
             <input
               v-model="passwords.old"
@@ -124,7 +113,6 @@
               </svg>
             </button>
           </div>
-
           <div class="password-input">
             <input
               v-model="passwords.new"
@@ -147,7 +135,6 @@
               </svg>
             </button>
           </div>
-
           <div class="password-input">
             <input
               v-model="passwords.confirm"
@@ -170,7 +157,6 @@
               </svg>
             </button>
           </div>
-
           <button 
             @click="changePassword" 
             class="btn btn-primary btn-full"
@@ -179,11 +165,8 @@
             {{ passwordLoading ? $t('common.loading') : $t('settings.change_password') }}
           </button>
         </div>
-
         <div v-else class="form-group">
-          <!-- Set Password Form (for Google users) -->
           <p class="info-text">{{ $t('settings.no_password_set') }}</p>
-          
           <div class="password-input">
             <input
               v-model="passwords.new"
@@ -206,7 +189,6 @@
               </svg>
             </button>
           </div>
-
           <div class="password-input">
             <input
               v-model="passwords.confirm"
@@ -229,7 +211,6 @@
               </svg>
             </button>
           </div>
-
           <button 
             @click="setPassword" 
             class="btn btn-primary btn-full"
@@ -239,7 +220,59 @@
           </button>
         </div>
       </div>
+
+      <div class="settings-card settings-card--danger">
+        <h2 class="section-title section-title--danger">{{ $t('settings.delete_account') }}</h2>
+        <p class="info-text">{{ $t('settings.delete_account_description') }}</p>
+        <button
+          @click="openDeleteModal"
+          class="btn btn-danger btn-full"
+        >
+          {{ $t('settings.delete_account_btn') }}
+        </button>
+      </div>
     </div>
+
+    <ConfirmModal
+      :isOpen="showDeleteWarningModal"
+      :title="$t('settings.delete_warning_title')"
+      :message="$t('settings.delete_warning_message')"
+      :confirmText="$t('settings.delete_account')"
+      :dangerMode="true"
+      @close="showDeleteWarningModal = false"
+      @confirm="onWarningConfirmed"
+    />
+
+    <ConfirmModal
+      :isOpen="showDeletePasswordModal"
+      :title="$t('settings.delete_password_title')"
+      :message="$t('settings.delete_password_message')"
+      :confirmText="$t('settings.delete_confirm_btn')"
+      :processingText="$t('common.loading')"
+      :dangerMode="true"
+      @close="closeDeletePasswordModal"
+      @confirm="deleteAccountWithPassword"
+    >
+      <template #extra>
+        <input
+          v-model="deletePassword"
+          type="password"
+          :placeholder="$t('settings.current_password')"
+          class="input-field"
+          @keyup.enter="deleteAccountWithPassword"
+        />
+      </template>
+    </ConfirmModal>
+
+    <ConfirmModal
+      :isOpen="showDeleteEmailSentModal"
+      :title="$t('settings.delete_email_sent_title')"
+      :message="$t('settings.delete_email_sent_message')"
+      :confirmText="$t('common.confirm')"
+      :dangerMode="false"
+      @close="showDeleteEmailSentModal = false"
+      @confirm="showDeleteEmailSentModal = false"
+    />
   </div>
 </template>
 
@@ -249,6 +282,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { useNotification } from '@/composables/useNotification'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -270,6 +304,12 @@ const passwords = ref({
 
 const showPasswords = ref(false)
 const passwordLoading = ref(false)
+
+const showDeleteWarningModal = ref(false)
+const showDeletePasswordModal = ref(false)
+const showDeleteEmailSentModal = ref(false)
+const deletePassword = ref('')
+const deleteLoading = ref(false)
 
 const isPasswordFormValid = computed(() => {
   return passwords.value.old && 
@@ -381,7 +421,6 @@ const confirmEmailChange = async () => {
   }
 }
 
-
 const cancelEmailChange = () => {
   newEmail.value = ''
   emailCode.value = ''
@@ -449,6 +488,63 @@ const setPassword = async () => {
   }
 }
 
+const openDeleteModal = () => {
+  showDeleteWarningModal.value = true
+}
+
+const onWarningConfirmed = (done) => {
+  showDeleteWarningModal.value = false
+  if (hasPassword.value) {
+    showDeletePasswordModal.value = true
+  } else {
+    requestAccountDeletion()
+  }
+  if (typeof done === 'function') done()
+}
+
+const closeDeletePasswordModal = () => {
+  showDeletePasswordModal.value = false
+  deletePassword.value = ''
+}
+
+const requestAccountDeletion = async () => {
+  deleteLoading.value = true
+  try {
+    await api.post('/users/delete-account/', {})
+    showDeleteEmailSentModal.value = true
+  } catch (error) {
+    notify.error(t('errors.request_failed'))
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+const deleteAccountWithPassword = async (done) => {
+  if (!deletePassword.value) {
+    notify.error(t('errors.validation'))
+    if (typeof done === 'function') done()
+    return
+  }
+
+  deleteLoading.value = true
+  try {
+    await api.post('/users/delete-account/', { password: deletePassword.value })
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh')
+    notify.success(t('success.account_deleted'))
+    router.push('/auth')
+  } catch (error) {
+    const message = error.response?.data?.password?.[0] ||
+                   error.response?.data?.error ||
+                   t('errors.request_failed')
+    notify.error(message)
+  } finally {
+    deleteLoading.value = false
+    deletePassword.value = ''
+    if (typeof done === 'function') done()
+  }
+}
+
 onMounted(() => {
   loadUserData()
 })
@@ -513,6 +609,11 @@ onMounted(() => {
   padding: $spacing-lg;
   margin-bottom: $spacing-md;
   box-shadow: $shadow-sm;
+
+  &--danger {
+    border: 1px solid rgba($danger, 0.3);
+    background: $danger-light;
+  }
 }
 
 .section-title {
@@ -520,6 +621,10 @@ onMounted(() => {
   font-weight: 600;
   color: $text-primary;
   margin: 0 0 $spacing-md 0;
+
+  &--danger {
+    color: $danger-dark;
+  }
 }
 
 .info-row {
@@ -558,6 +663,7 @@ onMounted(() => {
   font-size: 1rem;
   transition: all 0.2s ease;
   width: 100%;
+  box-sizing: border-box;
 
   &:focus {
     outline: none;
@@ -646,6 +752,21 @@ onMounted(() => {
 
   &:hover:not(:disabled) {
     background: $border-hover;
+  }
+}
+
+.btn-danger {
+  background: $danger-dark;
+  color: $white;
+  margin-top: $spacing-sm;
+
+  &:hover:not(:disabled) {
+    background: $danger-dark;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
 }
 

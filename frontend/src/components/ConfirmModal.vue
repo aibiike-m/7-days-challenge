@@ -7,6 +7,10 @@
           
           <p v-if="message" class="modal-message">{{ message }}</p>
 
+          <div v-if="$slots.extra" class="modal-extra">
+            <slot name="extra" />
+          </div>
+
           <div class="modal-actions">
             <button 
               class="btn-cancel" 
@@ -20,7 +24,7 @@
               @click="handleConfirm"
               :disabled="isProcessing"
             >
-              {{ isProcessing ? (processingText || $t('common.processing')) : (confirmText || $t('common.confirm')) }}
+              {{ isProcessing ? (processingText || $t('common.loading')) : (confirmText || $t('common.confirm')) }}
             </button>
           </div>
         </div>
@@ -77,13 +81,10 @@ function handleOverlayClick() {
   closeModal()
 }
 
-async function handleConfirm() {
+function handleConfirm() {
   isProcessing.value = true
-  try {
-    await emit('confirm')
-  } finally {
-    isProcessing.value = false
-  }
+  const done = () => { isProcessing.value = false }
+  emit('confirm', done)
 }
 </script>
 
@@ -127,6 +128,26 @@ async function handleConfirm() {
   color: $text-secondary;
   line-height: 1.6;
   margin: 0 0 $spacing-md 0;
+}
+
+.modal-extra {
+  margin-bottom: $spacing-md;
+
+  input {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $danger;
+      box-shadow: 0 0 0 3px rgba($danger, 0.15);
+    }
+  }
 }
 
 .modal-actions {

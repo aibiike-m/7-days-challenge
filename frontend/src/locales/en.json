@@ -63,7 +63,26 @@
 		"new_password": "New password (minimum 8 characters)",
 		"confirm_password": "Confirm password",
 		"no_password_set": "You don't have a password set. Set one to login with email and password.",
-		"save": "Save"
+		"save": "Save",
+		"delete_account": "Delete Account",
+		"delete_account_description": "Permanently delete your account and all associated data. This action cannot be undone.",
+		"delete_account_btn": "Delete Account",
+		"delete_warning_title": "Are you sure?",
+		"delete_warning_message": "This will permanently delete your account and all your data including all challenges and tasks. This action cannot be undone.",
+		"delete_password_title": "Confirm deletion",
+		"delete_password_message": "Enter your current password to confirm account deletion.",
+		"delete_confirm_btn": "Delete my account",
+		"delete_email_sent_title": "Check your email",
+		"delete_email_sent_message": "We sent a confirmation link to your email address. Click it to permanently delete your account. The link expires in 1 hour."
+	},
+	"deletion": {
+		"loading": "Processing your request...",
+		"success_title": "Account deleted",
+		"success_message": "Your account has been permanently deleted. You will be redirected shortly.",
+		"error_title": "Something went wrong",
+		"error_no_token": "The deletion link is invalid or missing.",
+		"error_generic": "This link may have already been used or has expired.",
+		"go_home": "Go to login"
 	},
 	"auth": {
 		"login_title": "Login",
@@ -98,7 +117,8 @@
 		"code_sent": "Verification code sent to your email",
 		"email_changed": "Email changed successfully. Please log in again.",
 		"password_changed": "Password changed successfully",
-		"password_set": "Password set successfully"
+		"password_set": "Password set successfully",
+		"account_deleted": "Account deleted successfully"
 	},
 	"errors": {
 		"network": "Network error. Please check your connection",
