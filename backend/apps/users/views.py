@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -18,16 +18,16 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.challenges.models import Task
-from apps.users.models import EmailVerification
+from apps.users.models import EmailVerification, AccountDeletion
 from .serializers import (
     UserSerializer,
     ChangePasswordSerializer,
     SetPasswordSerializer,
     RequestEmailChangeSerializer,
     ConfirmEmailChangeSerializer,
+    DeleteAccountWithPasswordSerializer,
 )
 from .throttles import EmailChangeRateThrottle, LoginRateThrottle
-
 
 User = get_user_model()
 
@@ -64,8 +64,10 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
     queryset = User.objects.all()
+
     def get_queryset(self):
         return self.queryset.filter(id=self.request.user.id)
+
     @action(detail=False, methods=["get", "patch"], url_path="me")
     def me(self, request):
         user = request.user
@@ -76,11 +78,11 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         serializer = self.get_serializer(user)
         return Response(serializer.data)
+
     @action(detail=False, methods=["get"], url_path="stats/weekly")
     def weekly_stats(self, request):
         user = request.user
         today = timezone.localdate()
-
         start_of_week = today - timedelta(days=today.weekday())
         lang = request.query_params.get("language", user.language)
         weekdays = (
@@ -108,6 +110,7 @@ class UserViewSet(viewsets.ModelViewSet):
             percent = round((completed / total * 100)) if total > 0 else 0
             stats.append({"day": weekdays[i], "percent": percent})
         return Response(stats)
+
     @action(detail=False, methods=["post"], url_path="change-password")
     def change_password(self, request):
         user = request.user
@@ -126,6 +129,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(
             {"message": "Password changed successfully"}, status=status.HTTP_200_OK
         )
+
     @action(detail=False, methods=["post"], url_path="set-password")
     def set_password(self, request):
         user = request.user
@@ -147,6 +151,7 @@ class UserViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
     @action(
         detail=False,
         methods=["post"],
@@ -192,6 +197,7 @@ class UserViewSet(viewsets.ModelViewSet):
             {"message": "Verification code sent to your new email"},
             status=status.HTTP_200_OK,
         )
+
     @action(
         detail=False,
         methods=["post"],
@@ -241,9 +247,55 @@ class UserViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
     @action(detail=False, methods=["get"], url_path="has-password")
     def has_password(self, request):
         return Response({"has_password": request.user.has_usable_password()})
+
+    @action(detail=False, methods=["post"], url_path="delete-account")
+    def delete_account(self, request):
+        user = request.user
+        if user.has_usable_password():
+            serializer = DeleteAccountWithPasswordSerializer(
+                data=request.data, context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            email = user.email
+            user.delete()
+            send_mail(
+                subject="Your account has been deleted",
+                message=(
+                    "Your account has been permanently deleted.\n\n"
+                    "If you didn't do this, please contact support immediately."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+            )
+            return Response(
+                {"message": "Account deleted successfully."},
+                status=status.HTTP_200_OK,
+            )
+        AccountDeletion.objects.filter(user=user, is_used=False).update(is_used=True)
+        deletion = AccountDeletion.objects.create(user=user)
+        confirm_url = (
+            f"{settings.FRONTEND_URL}/confirm-account-deletion"
+            f"?token={deletion.token}"
+        )
+        send_mail(
+            subject="Confirm account deletion",
+            message=(
+                "You requested to permanently delete your account.\n\n"
+                f"Click this link to confirm:\n{confirm_url}\n\n"
+                "The link expires in 1 hour.\n\n"
+                "If you didn't request this, you can safely ignore this email."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+        )
+        return Response(
+            {"message": "A confirmation link has been sent to your email."},
+            status=status.HTTP_200_OK,
+        )
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -272,6 +324,44 @@ def cancel_email_change(request):
     verification.save(update_fields=["is_cancelled"])
     return Response(
         {"message": "Email change request has been cancelled successfully."},
+        status=status.HTTP_200_OK,
+    )
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def confirm_delete_account(request):
+    token = request.query_params.get("token")
+    if not token:
+        return Response(
+            {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
+        )
+    deletion = AccountDeletion.objects.filter(token=token, is_used=False).first()
+    if not deletion:
+        return Response(
+            {"error": "Invalid or already used deletion link"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not deletion.is_valid():
+        return Response(
+            {"error": "This deletion link has expired"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user = deletion.user
+    email = user.email
+    deletion.is_used = True
+    deletion.save(update_fields=["is_used"])
+    user.delete()
+    send_mail(
+        subject="Your account has been deleted",
+        message=(
+            "Your account has been permanently deleted.\n\n"
+            "If you didn't do this, please contact support immediately."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+    )
+    return Response(
+        {"message": "Your account has been permanently deleted."},
         status=status.HTTP_200_OK,
     )
 

@@ -23,5 +23,17 @@ DATABASES = {
 # Static files
 STATICFILES_DIRS = (BASE_DIR / "static",)
 
+# REST Framework
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": None,
+        "user": None,
+        "login": None,
+        "email_change": None,
+    },
+}
+
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

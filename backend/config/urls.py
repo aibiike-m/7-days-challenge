@@ -6,9 +6,10 @@ from apps.users.views import (
     UserViewSet,
     LogoutView,
     login_by_email,
+    cancel_email_change,
+    confirm_delete_account,
 )
 from apps.users.social_views import exchange_token
-from apps.users.views import cancel_email_change
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 router = DefaultRouter()
@@ -28,6 +29,11 @@ urlpatterns = [
         "api/users/cancel-email-change/",
         cancel_email_change,
         name="cancel_email_change",
+    ),
+    path(
+        "api/users/confirm-account-deletion/",
+        confirm_delete_account,
+        name="confirm_delete_account",
     ),
     # API
     path("api/", include("apps.challenges.urls")),

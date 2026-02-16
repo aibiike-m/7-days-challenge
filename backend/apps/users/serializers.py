@@ -113,3 +113,19 @@ class ConfirmEmailChangeSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         pass
+
+
+class DeleteAccountWithPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Incorrect password")
+        return value
+
+    def create(self, validated_data):
+        pass
+
+    def update(self, instance, validated_data):
+        pass

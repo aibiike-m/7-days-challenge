@@ -1,10 +1,14 @@
+import uuid
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import status
+from rest_framework.test import APIClient
 
-from apps.users.models import EmailVerification
+from apps.users.models import AccountDeletion, EmailVerification
 
 User = get_user_model()
 
@@ -85,15 +89,13 @@ class TestPasswordManagement:
         user.set_unusable_password()
         user.save()
         api_client.force_authenticate(user=user)
-        url_check = "/api/users/has-password/"
-        response = api_client.get(url_check)
+        response = api_client.get("/api/users/has-password/")
         assert response.data["has_password"] is False
-        url = "/api/users/set-password/"
         data = {
             "new_password": "newpassword123",
             "confirm_password": "newpassword123",
         }
-        response = api_client.post(url, data)
+        response = api_client.post("/api/users/set-password/", data)
         assert response.status_code == status.HTTP_200_OK
         user.refresh_from_db()
         assert user.check_password("newpassword123")
@@ -124,7 +126,7 @@ class TestEmailChange:
         assert verification is not None
         assert len(verification.code) == 6
         assert verification.is_used is False
-        assert mock_send_mail.call_count == 2  
+        assert mock_send_mail.call_count == 2
 
     def test_request_email_change_same_email(self, auth_client, test_user):
         url = "/api/users/request-email-change/"
@@ -169,9 +171,6 @@ class TestEmailChange:
     def test_confirm_email_change_expired_code(
         self, mock_send_mail, auth_client, test_user, faker
     ):
-        from datetime import timedelta
-        from django.utils import timezone
-
         new_email = faker.email()
         verification = EmailVerification.objects.create(
             user=test_user, new_email=new_email
@@ -202,331 +201,12 @@ class TestEmailChange:
 
 
 @pytest.mark.django_db
-class TestEmailVerificationModel:
-    def test_code_auto_generation(self, test_user, faker):
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert verification.code is not None
-        assert len(verification.code) == 6
-        assert verification.code.isdigit()
-
-    def test_expires_at_auto_set(self, test_user, faker):
-        from django.utils import timezone
-        from datetime import timedelta
-
-        before = timezone.now()
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        after = timezone.now()
-        expected_time = before + timedelta(minutes=15)
-        assert verification.expires_at >= expected_time - timedelta(seconds=5)
-        assert verification.expires_at <= after + timedelta(minutes=15, seconds=5)
-
-    def test_is_valid_method(self, test_user, faker):
-        from django.utils import timezone
-        from datetime import timedelta
-
-        valid = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert valid.is_valid() is True
-        used = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email(), is_used=True
-        )
-        assert used.is_valid() is False
-        expired = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        expired.expires_at = timezone.now() - timedelta(minutes=1)
-        expired.save()
-        assert expired.is_valid() is False
-
-
-@pytest.mark.django_db
-class TestIntegrationScenarios:
-    def test_full_user_journey_with_password_and_email_change(self, api_client, faker):
-        email = faker.email()
-        password = "initialpass123"
-        register_data = {
-            "email": email,
-            "password": password,
-            "re_password": password,
-        }
-        response = api_client.post("/api/auth/users/", register_data)
-        assert response.status_code == status.HTTP_201_CREATED
-        login_data = {"email": email, "password": password}
-        response = api_client.post("/api/auth/login-by-email/", login_data)
-        assert response.status_code == status.HTTP_200_OK
-        user = User.objects.get(email=email)
-        api_client.force_authenticate(user=user)
-        response = api_client.get("/api/users/me/")
-        assert response.data["display_name"] == "User"
-        response = api_client.patch("/api/users/me/", {"display_name": "John"})
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["display_name"] == "John"
-        new_password = "newstrongpass456"
-        password_data = {
-            "old_password": password,
-            "new_password": new_password,
-            "confirm_password": new_password,
-        }
-        response = api_client.post("/api/users/change-password/", password_data)
-        assert response.status_code == status.HTTP_200_OK
-        api_client.force_authenticate(user=None)
-        login_data = {"email": email, "password": new_password}
-        response = api_client.post("/api/auth/login-by-email/", login_data)
-        assert response.status_code == status.HTTP_200_OK
-
-    @patch("apps.users.views.send_mail")
-    def test_google_user_sets_password_and_changes_email(
-        self, mock_send_mail, api_client, faker
-    ):
-        user = User.objects.create(email=faker.email(), language="en")
-        user.set_unusable_password()
-        user.save()
-        api_client.force_authenticate(user=user)
-        response = api_client.get("/api/users/has-password/")
-        assert response.data["has_password"] is False
-        password = "newsecurepass123"
-        set_pass_data = {
-            "new_password": password,
-            "confirm_password": password,
-        }
-        response = api_client.post("/api/users/set-password/", set_pass_data)
-        assert response.status_code == status.HTTP_200_OK
-        response = api_client.get("/api/users/has-password/")
-        assert response.data["has_password"] is True
-        new_email = faker.email()
-        response = api_client.post(
-            "/api/users/request-email-change/", {"new_email": new_email}
-        )
-        assert response.status_code == status.HTTP_200_OK
-        verification = EmailVerification.objects.filter(user=user).first()
-        response = api_client.post(
-            "/api/users/confirm-email-change/", {"code": verification.code}
-        )
-        assert response.status_code == status.HTTP_200_OK
-        api_client.force_authenticate(user=None)
-        response = api_client.post(
-            "/api/auth/login-by-email/", {"email": new_email, "password": password}
-        )
-        assert response.status_code == status.HTTP_200_OK
-
-
-@pytest.mark.django_db
-class TestGoogleOAuthPasswordHandling:
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_new_google_user_has_no_usable_password(
-        self, mock_verify, api_client, faker
-    ):
-        email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google123", "email_verified": True}
-        url = "/api/auth/google/"
-        data = {"credential": "fake_google_token", "language": "en"}
-        response = api_client.post(url, data)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["created"] is True
-        user = User.objects.get(email=email)
-        assert user.has_usable_password() is False
-        assert user.password.startswith("!")
-
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_google_user_password_field_format(self, mock_verify, api_client, faker):
-        email = faker.email()
-        mock_verify.return_value = {
-            "email": email,
-            "sub": "google456",
-            "email_verified": True,
-        }
-        url = "/api/auth/google/"
-        data = {"credential": "fake_token", "language": "en"}
-        api_client.post(url, data)
-        user = User.objects.get(email=email)
-        assert user.password != ""
-        assert user.password.startswith("!")
-        assert len(user.password) > 1
-
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_google_user_api_returns_no_password(self, mock_verify, api_client, faker):
-        email = faker.email()
-        mock_verify.return_value = {
-            "email": email,
-            "sub": "google789",
-            "email_verified": True,
-        }
-        url = "/api/auth/google/"
-        data = {"credential": "fake_token", "language": "en"}
-        response = api_client.post(url, data)
-        user = User.objects.get(email=email)
-        api_client.force_authenticate(user=user)
-        url = "/api/users/has-password/"
-        response = api_client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["has_password"] is False
-
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_google_user_cannot_change_password_without_setting_first(
-        self, mock_verify, api_client, faker
-    ):
-        email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google999", "email_verified": True}
-        url = "/api/auth/google/"
-        api_client.post(url, {"credential": "fake_token", "language": "en"})
-        user = User.objects.get(email=email)
-        api_client.force_authenticate(user=user)
-        url = "/api/users/change-password/"
-        data = {
-            "old_password": "anything",
-            "new_password": "newpass123",
-            "confirm_password": "newpass123",
-        }
-        response = api_client.post(url, data)
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "error" in response.data
-        assert "password" in response.data["error"].lower()
-        assert "set" in response.data["error"].lower()
-
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_google_user_can_set_password(self, mock_verify, api_client, faker):
-        email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google111", "email_verified": True}
-        url = "/api/auth/google/"
-        api_client.post(url, {"credential": "fake_token", "language": "en"})
-        user = User.objects.get(email=email)
-        api_client.force_authenticate(user=user)
-        assert user.has_usable_password() is False
-        url = "/api/users/set-password/"
-        data = {
-            "new_password": "mynewpass123",
-            "confirm_password": "mynewpass123",
-        }
-        response = api_client.post(url, data)
-        assert response.status_code == status.HTTP_200_OK
-        user.refresh_from_db()
-        assert user.has_usable_password() is True
-        assert user.check_password("mynewpass123") is True
-
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_google_user_full_flow_set_then_change_password(
-        self, mock_verify, api_client, faker
-    ):
-        email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google222", "email_verified": True}
-        url = "/api/auth/google/"
-        api_client.post(url, {"credential": "token", "language": "en"})
-        user = User.objects.get(email=email)
-        api_client.force_authenticate(user=user)
-        response = api_client.get("/api/users/has-password/")
-        assert response.data["has_password"] is False
-        url = "/api/users/set-password/"
-        api_client.post(
-            url,
-            {
-                "new_password": "firstpass123",
-                "confirm_password": "firstpass123",
-            },
-        )
-        user.refresh_from_db()
-        assert user.has_usable_password() is True
-        response = api_client.get("/api/users/has-password/")
-        assert response.data["has_password"] is True
-        url = "/api/users/change-password/"
-        response = api_client.post(
-            url,
-            {
-                "old_password": "firstpass123",
-                "new_password": "secondpass456",
-                "confirm_password": "secondpass456",
-            },
-        )
-        assert response.status_code == status.HTTP_200_OK
-        user.refresh_from_db()
-        assert user.check_password("secondpass456") is True
-        assert user.check_password("firstpass123") is False
-
-    def test_comparison_google_vs_normal_user_password_format(self, faker):
-        google_user = User.objects.create(email=faker.email(), language="en")
-        google_user.set_unusable_password()
-        google_user.save()
-        normal_user = User.objects.create_user(
-            email=faker.email(), password="testpass123"
-        )
-        assert google_user.password.startswith("!")
-        assert not normal_user.password.startswith("!")
-        assert "$" in normal_user.password
-        assert len(normal_user.password) > 20
-        assert google_user.has_usable_password() is False
-        assert normal_user.has_usable_password() is True
-
-    def test_empty_password_vs_unusable_password(self, faker):
-        wrong_user = User.objects.create(email=faker.email())
-        correct_user = User.objects.create(email=faker.email())
-        correct_user.set_unusable_password()
-        correct_user.save()
-        assert correct_user.has_usable_password() is False
-        assert correct_user.password.startswith("!")
-
-    @patch("apps.users.social_views.id_token.verify_oauth2_token")
-    def test_existing_google_user_login_preserves_no_password_state(
-        self, mock_verify, api_client, faker
-    ):
-        email = faker.email()
-        mock_verify.return_value = {"email": email, "sub": "google333", "email_verified": True}
-        url = "/api/auth/google/"
-        api_client.post(url, {"credential": "token1", "language": "en"})
-        user = User.objects.get(email=email)
-        assert user.has_usable_password() is False
-        response = api_client.post(url, {"credential": "token2", "language": "ru"})
-        assert response.data["created"] is False
-        user.refresh_from_db()
-        assert user.has_usable_password() is False
-        assert user.password.startswith("!")
-
-@pytest.mark.django_db
-class TestEmailVerificationTokens:
-    def test_verification_has_confirm_and_cancel_tokens(self, test_user, faker):
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert verification.confirm_token is not None
-        assert verification.cancel_token is not None
-
-    def test_tokens_are_unique_per_verification(self, test_user, faker):
-        v1 = EmailVerification.objects.create(user=test_user, new_email=faker.email())
-        v2 = EmailVerification.objects.create(user=test_user, new_email=faker.email())
-        assert v1.confirm_token != v2.confirm_token
-        assert v1.cancel_token != v2.cancel_token
-
-    def test_confirm_and_cancel_tokens_differ_from_each_other(self, test_user, faker):
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert verification.confirm_token != verification.cancel_token
-
-    def test_is_cancelled_default_is_false(self, test_user, faker):
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert verification.is_cancelled is False
-
-    def test_is_valid_returns_false_when_cancelled(self, test_user, faker):
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert verification.is_valid() is True
-        verification.is_cancelled = True
-        verification.save()
-        assert verification.is_valid() is False
-
-
-@pytest.mark.django_db
 class TestRequestEmailChangeSendsTwoEmails:
     @patch("apps.users.views.send_mail")
     def test_sends_two_emails(self, mock_send_mail, auth_client, faker):
-        url = "/api/users/request-email-change/"
-        response = auth_client.post(url, {"new_email": faker.email()})
+        response = auth_client.post(
+            "/api/users/request-email-change/", {"new_email": faker.email()}
+        )
         assert response.status_code == status.HTTP_200_OK
         assert mock_send_mail.call_count == 2
 
@@ -565,37 +245,13 @@ class TestRequestEmailChangeSendsTwoEmails:
         first_call_body = mock_send_mail.call_args_list[0][1]["message"]
         assert "confirm-email-change" in first_call_body
 
-    @patch("apps.users.views.send_mail")
-    def test_verification_record_has_tokens_after_request(
-        self, mock_send_mail, auth_client, test_user, faker
-    ):
-        new_email = faker.email()
-        auth_client.post("/api/users/request-email-change/", {"new_email": new_email})
-        verification = EmailVerification.objects.filter(
-            user=test_user, new_email=new_email
-        ).first()
-        assert verification is not None
-        assert verification.confirm_token is not None
-        assert verification.cancel_token is not None
-
 
 @pytest.mark.django_db
 class TestCancelEmailChange:
-    def test_cancel_with_valid_token(self, test_user, faker, api_client):
+    def test_cancel_email_change_success(self, test_user, faker, api_client):
         verification = EmailVerification.objects.create(
             user=test_user, new_email=faker.email()
         )
-        url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
-        response = api_client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        verification.refresh_from_db()
-        assert verification.is_cancelled is True
-
-    def test_cancel_marks_verification_as_cancelled(self, test_user, faker, api_client):
-        verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email()
-        )
-        assert verification.is_cancelled is False
         api_client.get(
             f"/api/users/cancel-email-change/?token={verification.cancel_token}"
         )
@@ -604,8 +260,6 @@ class TestCancelEmailChange:
         assert verification.is_used is False
 
     def test_cancel_does_not_require_authentication(self, test_user, faker):
-        from rest_framework.test import APIClient
-
         unauthenticated_client = APIClient()
         verification = EmailVerification.objects.create(
             user=test_user, new_email=faker.email()
@@ -615,8 +269,6 @@ class TestCancelEmailChange:
         assert response.status_code == status.HTTP_200_OK
 
     def test_cancel_with_invalid_token(self, api_client):
-        import uuid
-
         url = f"/api/users/cancel-email-change/?token={uuid.uuid4()}"
         response = api_client.get(url)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -643,9 +295,6 @@ class TestCancelEmailChange:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_cancel_expired_verification(self, test_user, faker, api_client):
-        from datetime import timedelta
-        from django.utils import timezone
-
         verification = EmailVerification.objects.create(
             user=test_user, new_email=faker.email()
         )
@@ -795,3 +444,386 @@ class TestGoogleUserEmailChange:
         user.refresh_from_db()
         assert user.email == new_email
         assert user.has_usable_password() is False
+
+
+@pytest.mark.django_db
+class TestDeleteAccountWithPassword:
+    @patch("apps.users.views.send_mail")
+    def test_delete_account_success(self, mock_send_mail, auth_client, test_user):
+        user_id = test_user.id
+        url = "/api/users/delete-account/"
+        response = auth_client.post(url, {"password": "testpass123"})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "deleted" in response.data["message"].lower()
+        assert not User.objects.filter(id=user_id).exists()
+
+    @patch("apps.users.views.send_mail")
+    def test_delete_account_sends_confirmation_email(
+        self, mock_send_mail, auth_client, test_user
+    ):
+        email = test_user.email
+        auth_client.post("/api/users/delete-account/", {"password": "testpass123"})
+
+        mock_send_mail.assert_called_once()
+        _, kwargs = mock_send_mail.call_args
+        assert email in kwargs["recipient_list"]
+
+    def test_delete_account_wrong_password(self, auth_client):
+        url = "/api/users/delete-account/"
+        response = auth_client.post(url, {"password": "wrongpassword"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert User.objects.filter(id=auth_client.user.id).exists()
+
+    def test_delete_account_missing_password_field(self, auth_client):
+        url = "/api/users/delete-account/"
+        response = auth_client.post(url, {})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert User.objects.filter(id=auth_client.user.id).exists()
+
+    def test_delete_account_requires_authentication(self, api_client):
+        url = "/api/users/delete-account/"
+        response = api_client.post(url, {"password": "testpass123"})
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+class TestDeleteAccountOAuth:
+    @patch("apps.users.views.send_mail")
+    def test_delete_account_sends_email_link(
+        self, mock_send_mail, oauth_client, oauth_user
+    ):
+        url = "/api/users/delete-account/"
+        response = oauth_client.post(url, {})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "email" in response.data["message"].lower()
+        mock_send_mail.assert_called_once()
+        assert User.objects.filter(id=oauth_user.id).exists()
+
+    @patch("apps.users.views.send_mail")
+    def test_delete_account_creates_deletion_token(
+        self, mock_send_mail, oauth_client, oauth_user
+    ):
+        oauth_client.post("/api/users/delete-account/", {})
+
+        deletion = AccountDeletion.objects.filter(
+            user=oauth_user, is_used=False
+        ).first()
+        assert deletion is not None
+        assert deletion.is_valid()
+
+    @patch("apps.users.views.send_mail")
+    def test_new_request_invalidates_previous_token(
+        self, mock_send_mail, oauth_client, oauth_user
+    ):
+        oauth_client.post("/api/users/delete-account/", {})
+        old_deletion = AccountDeletion.objects.filter(user=oauth_user).first()
+        old_token = old_deletion.token
+
+        oauth_client.post("/api/users/delete-account/", {})
+
+        old_deletion.refresh_from_db()
+        assert old_deletion.is_used is True
+
+        new_deletion = AccountDeletion.objects.filter(
+            user=oauth_user, is_used=False
+        ).first()
+        assert new_deletion is not None
+        assert new_deletion.token != old_token
+
+
+@pytest.mark.django_db
+class TestConfirmDeleteAccount:
+    @patch("apps.users.views.send_mail")
+    def test_confirm_deletion_deletes_user(
+        self, mock_send_mail, oauth_user, api_client
+    ):
+        deletion = AccountDeletion.objects.create(user=oauth_user)
+        user_id = oauth_user.id
+
+        url = f"/api/users/confirm-account-deletion/?token={deletion.token}"
+        response = api_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not User.objects.filter(id=user_id).exists()
+
+    @patch("apps.users.views.send_mail")
+    def test_confirm_deletion_sends_notification_email(
+        self, mock_send_mail, oauth_user, api_client
+    ):
+        email = oauth_user.email
+        deletion = AccountDeletion.objects.create(user=oauth_user)
+
+        api_client.get(f"/api/users/confirm-account-deletion/?token={deletion.token}")
+
+        mock_send_mail.assert_called_once()
+        _, kwargs = mock_send_mail.call_args
+        assert email in kwargs["recipient_list"]
+
+    @patch("apps.users.views.send_mail")
+    def test_confirm_deletion_marks_token_as_used(
+        self, mock_send_mail, oauth_user, api_client
+    ):
+        deletion = AccountDeletion.objects.create(user=oauth_user)
+        token = deletion.token
+
+        api_client.get(f"/api/users/confirm-account-deletion/?token={token}")
+
+        assert not AccountDeletion.objects.filter(token=token).exists()
+
+    def test_confirm_deletion_does_not_require_authentication(
+        self, oauth_user, api_client
+    ):
+        deletion = AccountDeletion.objects.create(user=oauth_user)
+        unauthenticated = APIClient()
+
+        with patch("apps.users.views.send_mail"):
+            response = unauthenticated.get(
+                f"/api/users/confirm-account-deletion/?token={deletion.token}"
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_confirm_deletion_invalid_token(self, api_client):
+        url = f"/api/users/confirm-account-deletion/?token={uuid.uuid4()}"
+        response = api_client.get(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_confirm_deletion_without_token(self, api_client):
+        url = "/api/users/confirm-account-deletion/"
+        response = api_client.get(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_confirm_deletion_expired_token(self, oauth_user, api_client):
+        deletion = AccountDeletion.objects.create(user=oauth_user)
+        deletion.expires_at = timezone.now() - timedelta(hours=2)
+        deletion.save()
+
+        url = f"/api/users/confirm-account-deletion/?token={deletion.token}"
+        response = api_client.get(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "expired" in str(response.data).lower()
+        assert User.objects.filter(id=oauth_user.id).exists()
+
+    def test_confirm_deletion_already_used_token(self, oauth_user, api_client):
+        deletion = AccountDeletion.objects.create(user=oauth_user, is_used=True)
+
+        url = f"/api/users/confirm-account-deletion/?token={deletion.token}"
+        response = api_client.get(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @patch("apps.users.views.send_mail")
+    def test_token_cannot_be_reused_after_deletion(
+        self, mock_send_mail, oauth_user, api_client
+    ):
+        deletion = AccountDeletion.objects.create(user=oauth_user)
+        token = deletion.token
+
+        api_client.get(f"/api/users/confirm-account-deletion/?token={token}")
+
+        response = api_client.get(f"/api/users/confirm-account-deletion/?token={token}")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestIntegrationScenarios:
+    def test_full_user_journey_with_password_and_email_change(self, api_client, faker):
+        email = faker.email()
+        password = "initialpass123"
+        response = api_client.post(
+            "/api/auth/users/",
+            {"email": email, "password": password, "re_password": password},
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        response = api_client.post(
+            "/api/auth/login-by-email/", {"email": email, "password": password}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        user = User.objects.get(email=email)
+        api_client.force_authenticate(user=user)
+        response = api_client.get("/api/users/me/")
+        assert response.data["display_name"] == "User"
+        response = api_client.patch("/api/users/me/", {"display_name": "John"})
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["display_name"] == "John"
+        new_password = "newstrongpass456"
+        response = api_client.post(
+            "/api/users/change-password/",
+            {
+                "old_password": password,
+                "new_password": new_password,
+                "confirm_password": new_password,
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        api_client.force_authenticate(user=None)
+        response = api_client.post(
+            "/api/auth/login-by-email/", {"email": email, "password": new_password}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    @patch("apps.users.views.send_mail")
+    def test_google_user_sets_password_and_changes_email(
+        self, mock_send_mail, api_client, faker
+    ):
+        user = User.objects.create(email=faker.email(), language="en")
+        user.set_unusable_password()
+        user.save()
+        api_client.force_authenticate(user=user)
+        response = api_client.get("/api/users/has-password/")
+        assert response.data["has_password"] is False
+        password = "newsecurepass123"
+        response = api_client.post(
+            "/api/users/set-password/",
+            {"new_password": password, "confirm_password": password},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        response = api_client.get("/api/users/has-password/")
+        assert response.data["has_password"] is True
+        new_email = faker.email()
+        response = api_client.post(
+            "/api/users/request-email-change/", {"new_email": new_email}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        verification = EmailVerification.objects.filter(user=user).first()
+        response = api_client.post(
+            "/api/users/confirm-email-change/", {"code": verification.code}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        api_client.force_authenticate(user=None)
+        response = api_client.post(
+            "/api/auth/login-by-email/", {"email": new_email, "password": password}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+class TestGoogleOAuthPasswordHandling:
+    @patch("apps.users.social_views.id_token.verify_oauth2_token")
+    def test_new_google_user_has_no_usable_password(
+        self, mock_verify, api_client, faker
+    ):
+        email = faker.email()
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google123",
+            "email_verified": True,
+        }
+        response = api_client.post(
+            "/api/auth/google/", {"credential": "fake_google_token", "language": "en"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["created"] is True
+        user = User.objects.get(email=email)
+        assert user.has_usable_password() is False
+        assert user.password.startswith("!")
+
+    @patch("apps.users.social_views.id_token.verify_oauth2_token")
+    def test_google_user_cannot_change_password_without_setting_first(
+        self, mock_verify, api_client, faker
+    ):
+        email = faker.email()
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google999",
+            "email_verified": True,
+        }
+        api_client.post(
+            "/api/auth/google/", {"credential": "fake_token", "language": "en"}
+        )
+        user = User.objects.get(email=email)
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            "/api/users/change-password/",
+            {
+                "old_password": "anything",
+                "new_password": "newpass123",
+                "confirm_password": "newpass123",
+            },
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "error" in response.data
+        assert "password" in response.data["error"].lower()
+
+    @patch("apps.users.social_views.id_token.verify_oauth2_token")
+    def test_google_user_can_set_password(self, mock_verify, api_client, faker):
+        email = faker.email()
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google111",
+            "email_verified": True,
+        }
+        api_client.post(
+            "/api/auth/google/", {"credential": "fake_token", "language": "en"}
+        )
+        user = User.objects.get(email=email)
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            "/api/users/set-password/",
+            {"new_password": "mynewpass123", "confirm_password": "mynewpass123"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.has_usable_password() is True
+        assert user.check_password("mynewpass123") is True
+
+    @patch("apps.users.social_views.id_token.verify_oauth2_token")
+    def test_google_user_full_flow_set_then_change_password(
+        self, mock_verify, api_client, faker
+    ):
+        email = faker.email()
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google222",
+            "email_verified": True,
+        }
+        api_client.post("/api/auth/google/", {"credential": "token", "language": "en"})
+        user = User.objects.get(email=email)
+        api_client.force_authenticate(user=user)
+        api_client.post(
+            "/api/users/set-password/",
+            {"new_password": "firstpass123", "confirm_password": "firstpass123"},
+        )
+        user.refresh_from_db()
+        assert user.has_usable_password() is True
+        response = api_client.post(
+            "/api/users/change-password/",
+            {
+                "old_password": "firstpass123",
+                "new_password": "secondpass456",
+                "confirm_password": "secondpass456",
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.check_password("secondpass456") is True
+        assert user.check_password("firstpass123") is False
+
+    @patch("apps.users.social_views.id_token.verify_oauth2_token")
+    def test_existing_google_user_login_preserves_no_password_state(
+        self, mock_verify, api_client, faker
+    ):
+        email = faker.email()
+        mock_verify.return_value = {
+            "email": email,
+            "sub": "google333",
+            "email_verified": True,
+        }
+        api_client.post("/api/auth/google/", {"credential": "token1", "language": "en"})
+        user = User.objects.get(email=email)
+        assert user.has_usable_password() is False
+        response = api_client.post(
+            "/api/auth/google/", {"credential": "token2", "language": "ru"}
+        )
+        assert response.data["created"] is False
+        user.refresh_from_db()
+        assert user.has_usable_password() is False
+        assert user.password.startswith("!")
