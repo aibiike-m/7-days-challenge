@@ -98,7 +98,26 @@
 		"login_link": "Войти",
 		"register_link": "Зарегистрироваться",
 		"or": "или",
-		"password_confirm": "Подтвердите пароль"
+		"password_confirm": "Подтвердите пароль",
+		"forgot_password": "Забыли пароль?",
+		"forgot_password_title": "Забыли пароль",
+		"forgot_password_subtitle": "Введите ваш email, и мы отправим вам код",
+		"send_reset_code": "Отправить код",
+		"back_to_login": "Назад к входу",
+		"back": "Назад",
+		"enter_reset_code_title": "Введите код",
+		"enter_reset_code_subtitle": "Мы отправили 6-значный код на {email}",
+		"reset_code": "6-значный код",
+		"new_password": "Новый пароль",
+		"confirm_new_password": "Подтвердите новый пароль",
+		"reset_password_btn": "Установить новый пароль",
+		"reset_success_title": "Пароль изменен!",
+		"reset_success_subtitle": "Теперь вы можете войти с новым паролем",
+		"go_to_login": "Перейти к входу",
+		"verify_code_btn": "Подтвердить код",
+		"resend_code": "Отправить код повторно",
+		"new_password_title": "Установка нового пароля",
+		"new_password_subtitle": "Код подтвержден. Введите новый пароль."
 	},
 	"challenge": {
 		"back": "Назад",
@@ -140,7 +159,7 @@
 		"load_failed": "Ошибка загрузки данных",
 		"update_failed": "Ошибка обновления",
 		"request_failed": "Ошибка запроса",
-		"invalid_code": "Неверный код подтверждения",
+		"invalid_code": "Неверный или истекший код",
 		"password_mismatch": "Пароли не совпадают"
 	},
 	"common": {
