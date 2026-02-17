@@ -27,6 +27,7 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "user": None,
     "login": None,
     "email_change": "100/hour",
+    "password_reset": None,
 }
 
 # CORS

@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.challenges.models import Task
-from apps.users.models import EmailVerification, AccountDeletion
+from apps.users.models import EmailVerification, AccountDeletion, PasswordResetCode
 from .serializers import (
     UserSerializer,
     ChangePasswordSerializer,
@@ -26,8 +26,14 @@ from .serializers import (
     RequestEmailChangeSerializer,
     ConfirmEmailChangeSerializer,
     DeleteAccountWithPasswordSerializer,
+    RequestPasswordResetSerializer,
+    ConfirmPasswordResetSerializer,
 )
-from .throttles import EmailChangeRateThrottle, LoginRateThrottle
+from .throttles import (
+    EmailChangeRateThrottle,
+    LoginRateThrottle,
+    PasswordResetRateThrottle,
+)
 
 User = get_user_model()
 
@@ -378,3 +384,101 @@ class LogoutView(APIView):
         return Response(
             {"message": "Logged out successfully"}, status=status.HTTP_200_OK
         )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([PasswordResetRateThrottle])
+def request_password_reset(request):
+    serializer = RequestPasswordResetSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data["email"]
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {"message": "If this email is registered, you will receive a reset code."},
+            status=status.HTTP_200_OK,
+        )
+
+    if not user.has_usable_password():
+        return Response(
+            {"message": "If this email is registered, you will receive a reset code."},
+            status=status.HTTP_200_OK,
+        )
+
+    PasswordResetCode.objects.filter(user=user, is_used=False).update(is_used=True)
+
+    reset = PasswordResetCode.objects.create(user=user)
+
+    send_mail(
+        subject="Password reset code",
+        message=(
+            f"You requested a password reset.\n\n"
+            f"Your code: {reset.code}\n\n"
+            f"Enter this code on the site to set a new password.\n"
+            f"The code expires in 15 minutes.\n\n"
+            f"If you didn't request this, you can safely ignore this email."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+    )
+
+    return Response(
+        {"message": "If this email is registered, you will receive a reset code."},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([PasswordResetRateThrottle])
+def confirm_password_reset(request):
+    serializer = ConfirmPasswordResetSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    email = serializer.validated_data["email"]
+    code = serializer.validated_data["code"]
+    new_password = serializer.validated_data["new_password"]
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Invalid or expired code."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    reset = (
+        PasswordResetCode.objects.filter(user=user, code=code, is_used=False)
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not reset or not reset.is_valid():
+        return Response(
+            {"error": "Invalid or expired code."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user.set_password(new_password)
+    user.save()
+
+    reset.is_used = True
+    reset.save(update_fields=["is_used"])
+
+    send_mail(
+        subject="Your password has been changed",
+        message=(
+            "Your password was successfully reset.\n\n"
+            "If you didn't do this, please contact support immediately."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+    )
+
+    return Response(
+        {"message": "Password has been reset successfully. You can now log in."},
+        status=status.HTTP_200_OK,
+    )

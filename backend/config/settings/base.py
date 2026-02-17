@@ -126,6 +126,7 @@ REST_FRAMEWORK = {
         "user": "5/minute",
         "login": "5/minute",
         "email_change": "3/hour",
+        "password_reset": "5/hour",
     },
 }
 

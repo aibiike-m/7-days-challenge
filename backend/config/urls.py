@@ -8,6 +8,8 @@ from apps.users.views import (
     login_by_email,
     cancel_email_change,
     confirm_delete_account,
+    request_password_reset,
+    confirm_password_reset,
 )
 from apps.users.social_views import exchange_token
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -34,6 +36,16 @@ urlpatterns = [
         "api/users/confirm-account-deletion/",
         confirm_delete_account,
         name="confirm_delete_account",
+    ),
+    path(
+        "api/auth/request-password-reset/",
+        request_password_reset,
+        name="request_password_reset",
+    ),
+    path(
+        "api/auth/confirm-password-reset/",
+        confirm_password_reset,
+        name="confirm_password_reset",
     ),
     # API
     path("api/", include("apps.challenges.urls")),

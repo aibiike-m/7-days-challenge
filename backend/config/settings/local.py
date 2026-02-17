@@ -32,6 +32,7 @@ REST_FRAMEWORK = {
         "user": None,
         "login": None,
         "email_change": None,
+        "password_reset": None,
     },
 }
 
