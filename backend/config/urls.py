@@ -9,6 +9,7 @@ from apps.users.views import (
     cancel_email_change,
     confirm_delete_account,
     request_password_reset,
+    verify_password_reset_code,
     confirm_password_reset,
 )
 from apps.users.social_views import exchange_token
@@ -41,6 +42,11 @@ urlpatterns = [
         "api/auth/request-password-reset/",
         request_password_reset,
         name="request_password_reset",
+    ),
+    path(
+        "api/auth/verify-password-reset-code/",
+        verify_password_reset_code,
+        name="verify_password_reset_code",
     ),
     path(
         "api/auth/confirm-password-reset/",

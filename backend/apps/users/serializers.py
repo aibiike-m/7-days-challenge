@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from djoser.serializers import UserCreateSerializer
 from django.contrib.auth.password_validation import validate_password
@@ -35,7 +36,10 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"confirm_password": "Passwords do not match"}
             )
-        validate_password(attrs["new_password"], self.context["request"].user)
+        try:
+            validate_password(attrs["new_password"], self.context["request"].user)
+        except ValidationError as e:
+            raise serializers.ValidationError({"new_password": e.messages})
         return attrs
 
     def save(self, **kwargs):
@@ -68,7 +72,10 @@ class SetPasswordSerializer(serializers.Serializer):
                 {"confirm_password": "Passwords do not match"}
             )
 
-        validate_password(attrs["new_password"], user)
+        try:
+            validate_password(attrs["new_password"], user)
+        except ValidationError as e:
+            raise serializers.ValidationError({"new_password": e.messages})
         return attrs
 
     def save(self, **kwargs):
@@ -158,6 +165,8 @@ class ConfirmPasswordResetSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=attrs["email"].lower())
             validate_password(attrs["new_password"], user)
+        except ValidationError as e:
+            raise serializers.ValidationError({"new_password": e.messages})
         except User.DoesNotExist:
             pass
         return attrs

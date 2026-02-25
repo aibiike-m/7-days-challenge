@@ -434,6 +434,45 @@ def request_password_reset(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 @throttle_classes([PasswordResetRateThrottle])
+def verify_password_reset_code(request):
+    email = request.data.get("email", "").lower()
+    code = request.data.get("code", "")
+    
+    if not email or not code:
+        return Response(
+            {"error": "Email and code are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Invalid or expired code."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    reset = (
+        PasswordResetCode.objects.filter(user=user, code=code, is_used=False)
+        .order_by("-created_at")
+        .first()
+    )
+    
+    if not reset or not reset.is_valid():
+        return Response(
+            {"error": "Invalid or expired code."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    return Response(
+        {"message": "Code is valid."},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([PasswordResetRateThrottle])
 def confirm_password_reset(request):
     serializer = ConfirmPasswordResetSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
