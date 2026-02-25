@@ -57,7 +57,7 @@
           {{ hasPassword ? $t('settings.change_password') : $t('settings.set_password') }}
         </h2>
 
-        <div v-if="hasPassword && !showInlinePasswordReset" class="form-group">
+        <div v-if="hasPassword" class="form-group">
           <div class="password-input">
             <input v-model="passwords.old" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.current_password')" class="input-field" />
             <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
@@ -83,13 +83,13 @@
             {{ passwordLoading ? $t('common.loading') : $t('settings.change_password') }}
           </button>
           <div class="forgot-link-row">
-            <button type="button" @click="openInlinePasswordReset" class="link-btn">
+            <button type="button" @click="openPasswordReset" class="link-btn">
               {{ $t('auth.forgot_password') }}
             </button>
           </div>
         </div>
 
-        <div v-else-if="!hasPassword" class="form-group">
+        <div v-else class="form-group">
           <p class="info-text">{{ $t('settings.no_password_set') }}</p>
           <div class="password-input">
             <input v-model="passwords.new" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.new_password')" class="input-field" />
@@ -108,53 +108,6 @@
           <button @click="setPassword" class="btn btn-primary btn-full" :disabled="!isSetPasswordFormValid || passwordLoading">
             {{ passwordLoading ? $t('common.loading') : $t('settings.set_password') }}
           </button>
-        </div>
-
-        <div v-if="showInlinePasswordReset" class="inline-reset">
-
-          <template v-if="inlineResetStep === 'email'">
-            <p class="info-text">{{ $t('auth.forgot_password_subtitle') }}</p>
-            <div class="form-group">
-              <input v-model="inlineResetEmail" type="email" :placeholder="$t('auth.email')" class="input-field" readonly />
-              <button @click="inlineRequestReset" class="btn btn-primary btn-full" :disabled="inlineResetLoading">
-                {{ inlineResetLoading ? $t('common.loading') : $t('auth.send_reset_code') }}
-              </button>
-              <button type="button" @click="closeInlinePasswordReset" class="link-btn">{{ $t('common.cancel') }}</button>
-            </div>
-          </template>
-
-          <template v-else-if="inlineResetStep === 'code'">
-            <p class="info-text">{{ $t('auth.enter_reset_code_subtitle', { email: inlineResetEmail }) }}</p>
-            <div class="form-group">
-              <input v-model="inlineResetCode" type="text" :placeholder="$t('auth.reset_code')" maxlength="6" inputmode="numeric" class="input-field" />
-              <button @click="inlineVerifyCode" class="btn btn-primary btn-full" :disabled="inlineResetLoading || inlineResetCode.length !== 6">
-                {{ inlineResetLoading ? $t('common.loading') : $t('auth.verify_code_btn') }}
-              </button>
-              <div class="inline-reset-footer">
-                <button type="button" @click="inlineResetStep = 'email'" class="link-btn">← {{ $t('auth.back') }}</button>
-                <button type="button" @click="inlineRequestReset" class="link-btn" :disabled="inlineResetLoading">{{ $t('auth.resend_code') }}</button>
-              </div>
-            </div>
-          </template>
-
-          <template v-else-if="inlineResetStep === 'new-password'">
-            <div class="form-group">
-              <div class="password-input">
-                <input v-model="inlineNewPassword" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('auth.new_password')" class="input-field" />
-                <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
-                  <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                </button>
-              </div>
-              <div class="password-input">
-                <input v-model="inlineConfirmPassword" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.confirm_password')" class="input-field" />
-              </div>
-              <button @click="inlineConfirmReset" class="btn btn-primary btn-full" :disabled="inlineResetLoading || !isInlineResetFormValid">
-                {{ inlineResetLoading ? $t('common.loading') : $t('auth.reset_password_btn') }}
-              </button>
-            </div>
-          </template>
-
         </div>
       </div>
 
@@ -180,7 +133,6 @@
     <ConfirmModal
       :isOpen="showDeletePasswordModal"
       :title="$t('settings.delete_password_title')"
-      :message="$t('settings.delete_password_message')"
       :confirmText="$t('settings.delete_confirm_btn')"
       :processingText="$t('common.loading')"
       :dangerMode="true"
@@ -242,13 +194,6 @@ const showDeletePasswordModal = ref(false)
 const showDeleteEmailSentModal = ref(false)
 const deletePassword = ref('')
 const deleteLoading = ref(false)
-const showInlinePasswordReset = ref(false)
-const inlineResetStep = ref('email')
-const inlineResetEmail = ref('')
-const inlineResetCode = ref('')
-const inlineNewPassword = ref('')
-const inlineConfirmPassword = ref('')
-const inlineResetLoading = ref(false)
 
 const isPasswordFormValid = computed(() =>
   passwords.value.old && passwords.value.new && passwords.value.confirm && passwords.value.new.length >= 8
@@ -256,11 +201,6 @@ const isPasswordFormValid = computed(() =>
 
 const isSetPasswordFormValid = computed(() =>
   passwords.value.new && passwords.value.confirm && passwords.value.new.length >= 8
-)
-
-const isInlineResetFormValid = computed(() =>
-  inlineNewPassword.value.length >= 8 &&
-  inlineNewPassword.value === inlineConfirmPassword.value
 )
 
 const goBack = () => router.push('/profile')
@@ -396,92 +336,23 @@ const setPassword = async () => {
   }
 }
 
-const openInlinePasswordReset = () => {
-  inlineResetEmail.value = user.value?.email || ''
-  inlineResetStep.value = 'email'
-  inlineResetCode.value = ''
-  inlineNewPassword.value = ''
-  inlineConfirmPassword.value = ''
-  showPasswords.value = false
-  passwords.value = { old: '', new: '', confirm: '' }
-  showInlinePasswordReset.value = true
-}
-
-const closeInlinePasswordReset = () => {
-  showInlinePasswordReset.value = false
-  inlineResetStep.value = 'email'
-  inlineResetCode.value = ''
-  inlineNewPassword.value = ''
-  inlineConfirmPassword.value = ''
+const openPasswordReset = () => {
+  router.push({ 
+    name: 'ResetPassword',
+    query: { 
+      email: user.value?.email,
+      from: 'settings'
+    }
+  })
 }
 
 const openForgotFromDeleteModal = () => {
   showDeletePasswordModal.value = false
   deletePassword.value = ''
-  openInlinePasswordReset()
-  setTimeout(() => {
-    document.querySelector('.settings-card:nth-child(4)')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, 100)
-}
-
-const inlineRequestReset = async () => {
-  inlineResetLoading.value = true
-  try {
-    await api.post('/auth/request-password-reset/', { email: inlineResetEmail.value })
-    inlineResetCode.value = ''
-    inlineResetStep.value = 'code'
-  } catch (error) {
-    notify.error(!error.response ? t('errors.network') : t('errors.server'))
-  } finally {
-    inlineResetLoading.value = false
-  }
-}
-
-const inlineVerifyCode = () => {
-  if (inlineResetCode.value.length !== 6) return
-  inlineResetStep.value = 'new-password'
-  showPasswords.value = false
-}
-
-const inlineConfirmReset = async () => {
-  if (!isInlineResetFormValid.value) return
-  inlineResetLoading.value = true
-  try {
-    await api.post('/auth/confirm-password-reset/', {
-      email: inlineResetEmail.value,
-      code: inlineResetCode.value,
-      new_password: inlineNewPassword.value,
-      confirm_password: inlineConfirmPassword.value,
-    })
-    notify.success(t('success.password_changed'))
-    closeInlinePasswordReset()
-    hasPassword.value = true
-    setTimeout(async () => {
-      try {
-        const refreshToken = localStorage.getItem('refresh')
-        if (refreshToken) await api.post('logout/', { refresh: refreshToken })
-      } catch {
-      } finally {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh')
-        router.push('/auth')
-      }
-    }, 1800)
-  } catch (error) {
-    if (error.response?.status === 400) {
-      const err = error.response?.data
-      if (err?.confirm_password) {
-        notify.error(t('errors.passwords_dont_match'))
-      } else {
-        notify.error(t('errors.invalid_code'))
-        inlineResetStep.value = 'code'
-      }
-    } else {
-      notify.error(t('errors.server'))
-    }
-  } finally {
-    inlineResetLoading.value = false
-  }
+  router.push({ 
+    name: 'ResetPassword',
+    query: { email: user.value?.email, from: 'delete' }
+  })
 }
 
 const openDeleteModal = () => { showDeleteWarningModal.value = true }
@@ -658,13 +529,11 @@ onMounted(() => { loadUserData() })
 
 .button-group { display: flex; gap: $spacing-sm; }
 
-// Ссылка "Забыли пароль?" под формой смены пароля
 .forgot-link-row {
   text-align: center;
   margin-top: -$spacing-sm;
 }
 
-// Ссылка "Забыли пароль?" внутри модалки
 .modal-forgot-link {
   text-align: center;
   margin-top: $spacing-sm;
@@ -673,29 +542,37 @@ onMounted(() => { loadUserData() })
 .link-btn {
   background: none;
   border: none;
-  color: $primary;
-  font-size: $font-size-sm;
-  cursor: pointer;
   padding: 0;
-  text-decoration: underline;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $primary;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.16s ease, opacity 0.16s ease;
 
-  &:hover { color: $primary-light; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:hover,
+  &:focus-visible {
+    color: $primary-light;
+  }
 
-  &--danger { color: $danger-dark; &:hover { color: $danger; } }
-}
+  &:active {
+    color: $primary-light;
+  }
 
-// Инлайн-флоу сброса пароля
-.inline-reset {
-  margin-top: $spacing-lg;
-  padding-top: $spacing-lg;
-  border-top: 1px solid $border;
-}
+  &:disabled {
+    color: $text-muted;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
 
-.inline-reset-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  &--danger {
+    color: $danger-dark;
+    
+    &:hover,
+    &:focus-visible {
+      color: $danger;
+    }
+  }
 }
 
 .btn {
