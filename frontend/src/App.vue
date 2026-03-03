@@ -1,12 +1,12 @@
 <template>
   <div class="app">
-    <AppHeader v-if="!isAuthPage" />
-    <main class="main-content">
+    <AppHeader v-if="showNavigation" />
+    <main class="main-content" :class="{ 'no-nav': !showNavigation }">
       <router-view @open-modal="isCreateModalOpen = true" />
     </main>
-    <BottomNav v-if="!isAuthPage" />
+    <BottomNav v-if="showNavigation" />
 
-    <FAB v-if="!isAuthPage" @open-modal="isCreateModalOpen = true" />
+    <FAB v-if="showNavigation" @open-modal="isCreateModalOpen = true" />
 
     <CreateChallengeModal
       :is-open="isCreateModalOpen"
@@ -18,18 +18,18 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useNotification } from '@/composables/useNotification'
+import { useRoute } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import FAB from '@/components/FAB.vue'
 import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
 
 const route = useRoute()
-const router = useRouter()
-const notify = useNotification()
 
-const isAuthPage = computed(() => route.path === '/auth')
+const showNavigation = computed(() => {
+  return route.meta.requiresAuth === true
+})
+
 const isCreateModalOpen = ref(false)
 
 const onChallengeCreated = () => {
@@ -37,18 +37,20 @@ const onChallengeCreated = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .app {
   min-height: 100vh;
 }
 
 .main-content {
-  padding-bottom: 100px; 
-}
+  padding-bottom: 100px;
 
-@media (min-width: 768px) {
-  .main-content {
+  @include md {
     padding-bottom: 60px;
+  }
+
+  &.no-nav {
+    padding-bottom: 0;
   }
 }
 </style>

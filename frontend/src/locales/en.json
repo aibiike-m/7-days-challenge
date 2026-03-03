@@ -13,6 +13,11 @@
 		"mark_uncompleted": "Mark as incomplete",
 		"new_challenge": "Create challenge"
 	},
+	"task": {
+    "toggle_complete": "Mark task '{title}' as complete/incomplete",
+    "show_description": "Show description",
+    "hide_description": "Hide description"
+  },
 	"modal": {
 		"goal_label": "What goal do you want to achieve in 7 days?",
 		"goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
@@ -37,7 +42,6 @@
 	"profile": {
 		"default_username": "User",
 		"title": "Profile",
-		"language": "Language",
 		"logout": "Logout",
 		"statistics": "Weekly Statistics",
 		"save": "Save",
@@ -49,6 +53,7 @@
 		"account_info": "Account Information",
 		"email": "Email",
 		"username": "Username",
+		"language": "Language",
 		"change_username": "Change Username",
 		"new_username": "New username",
 		"change_email": "Change Email",
@@ -72,7 +77,10 @@
 		"delete_password_title": "Enter your current password to confirm account deletion",
 		"delete_confirm_btn": "Delete my account",
 		"delete_email_sent_title": "Check your email",
-		"delete_email_sent_message": "We sent a confirmation link to your email address. Click it to permanently delete your account. The link expires in 1 hour."
+		"delete_email_sent_message": "We sent a confirmation link to your email address. Click it to permanently delete your account. The link expires in 1 hour.",
+		"min_8_chars": "At least 8 characters",
+		"not_only_numbers": "Not just numbers",
+		"password_hint_create_strong": "Come up with a strong password of at least 8 characters (letters, numbers, symbols allowed)"
 	},
 	"deletion": {
 		"loading": "Processing your request...",
