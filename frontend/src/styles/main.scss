@@ -5,7 +5,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: clamp(14px, 1.2vw, 16px);
 }
 
 body {
@@ -34,7 +34,7 @@ h2 { font-size: $font-size-xl; }
 h3 { font-size: $font-size-lg; }
 
 p {
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-responsive-md; 
   color: $text-secondary;
 }
 
