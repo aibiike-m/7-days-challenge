@@ -59,13 +59,19 @@ const todayTasks = computed(() => {
 const activeTasks = computed(() => todayTasks.value.filter(t => !t.is_completed))
 const completedTasks = computed(() => todayTasks.value.filter(t => t.is_completed))
 
-function onTaskToggled(task) {
-  task.is_completed = !task.is_completed
-}
-
-function getChallengeForTask(task) {
-  return allChallenges.value.find(c => c.id === task.challenge_id)
-}
+onMounted(async () => {
+  loading.value = true
+  try {
+    await loadChallenges()
+    if (allChallenges.value.length > 0) {
+      await loadTasks()
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') console.error('Error loading data:', error)
+  } finally {
+    loading.value = false
+  }
+})
 
 async function loadChallenges() {
   try {
@@ -73,18 +79,8 @@ async function loadChallenges() {
       params: { language: locale.value }
     })
     allChallenges.value = response.data.results || response.data || []
-    
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.server')
-    }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error loading challenges:', error)
-    }
-    
+    handleError(error, 'Error loading challenges:')
     allChallenges.value = []
   }
 }
@@ -96,7 +92,6 @@ async function loadTasks() {
   }
 
   const challengeIds = allChallenges.value.map(c => c.id)
-  
   try {
     const response = await api.get('tasks/', {
       params: {
@@ -104,55 +99,43 @@ async function loadTasks() {
         language: locale.value
       }
     })
-    const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
-    allTasks.value = tasks
-    
+    allTasks.value = Array.isArray(response.data) ? response.data : response.data.results || []
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.server')
-    }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error loading tasks:', error)
-    }
-    
+    handleError(error, 'Error loading tasks:')
     allTasks.value = []
   }
 }
 
-onMounted(async () => {
-  loading.value = true
-  
-  try {
-    await loadChallenges()
-    if (allChallenges.value.length > 0) {
-      await loadTasks()
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error loading data:', error)
-    }
-  } finally {
-    loading.value = false
-  }
-})
+function onTaskToggled(task) {
+  task.is_completed = !task.is_completed
+}
+
+function getChallengeForTask(task) {
+  return allChallenges.value.find(c => c.id === task.challenge_id)
+}
+
+function handleError(error, logLabel) {
+  if (!error.response) notify.error('errors.network')
+  else notify.error('errors.server')
+  if (process.env.NODE_ENV === 'development') console.error(logLabel, error)
+}
 </script>
 
 <style scoped lang="scss">
 .today-view {
   max-width: 700px;
   margin: 0 auto;
-  padding: $spacing-lg;
-  padding-bottom: 120px;
+  padding: $spacing-responsive-md;
+  padding-bottom: 100px;
 
-  @media (min-width: 768px) {
-    padding-left: $spacing-xl;
-    padding-right: $spacing-xl;
+  @include md {
+    padding: $spacing-responsive-lg;
+    padding-left: $spacing-responsive-xl;
+    padding-right: $spacing-responsive-xl;
+    padding-bottom: 120px;
   }
 
-  @media (min-width: 1440px) {
+  @include xl {
     max-width: 800px;
   }
 }
@@ -160,33 +143,54 @@ onMounted(async () => {
 .loading,
 .empty-state {
   text-align: center;
-  padding: $spacing-xl;
   color: $text-muted;
+  padding: $spacing-responsive-lg;
+  
+  @include md {
+    padding: $spacing-responsive-xl;
+  }
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: 48px;
+  margin-bottom: $spacing-responsive-md;
   display: block;
-  margin-bottom: $spacing-lg;
+  
+  @include md {
+    font-size: 64px;
+    margin-bottom: $spacing-responsive-lg;
+  }
 }
 
 .tasks-container {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xl;
+  gap: $spacing-responsive-lg;
+  
+  @include md {
+    gap: $spacing-responsive-xl;
+  }
 }
 
 .tasks-section {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
+  
+  @include md {
+    gap: $spacing-responsive-md;
+  }
 }
 
 .section-title {
-  font-size: $font-size-base;
-  font-weight: 600;
+  font-size: $font-size-responsive-sm;
+  font-weight: $font-weight-semibold;
   color: $text-secondary;
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-responsive-sm;
+  
+  @include md {
+    font-size: $font-size-responsive-base;
+  }
 }
 
 .completed-title {

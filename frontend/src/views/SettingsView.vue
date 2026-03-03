@@ -58,6 +58,9 @@
         </h2>
 
         <div v-if="hasPassword" class="form-group">
+          <p class="password-hint-text">
+            {{ $t('settings.password_hint_create_strong') }}
+          </p>
           <div class="password-input">
             <input v-model="passwords.old" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.current_password')" class="input-field" />
             <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
@@ -79,18 +82,23 @@
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
             </button>
           </div>
-          <button @click="changePassword" class="btn btn-primary btn-full" :disabled="!isPasswordFormValid || passwordLoading">
-            {{ passwordLoading ? $t('common.loading') : $t('settings.change_password') }}
-          </button>
           <div class="forgot-link-row">
-            <button type="button" @click="openPasswordReset" class="link-btn">
-              {{ $t('auth.forgot_password') }}
+            <button @click="changePassword" class="btn btn-primary btn-full" :disabled="!isPasswordFormValid || passwords.new !== passwords.confirm || passwordLoading">
+              {{ passwordLoading ? $t('common.loading') : $t('settings.change_password') }}
             </button>
+            <div class="forgot-link-row">
+              <button type="button" @click="openPasswordReset" class="link-btn">
+                {{ $t('auth.forgot_password') }}
+              </button>
+            </div>
           </div>
         </div>
 
         <div v-else class="form-group">
           <p class="info-text">{{ $t('settings.no_password_set') }}</p>
+          <p class="password-hint-text">
+            {{ $t('settings.password_hint_create_strong') }}
+          </p>
           <div class="password-input">
             <input v-model="passwords.new" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.new_password')" class="input-field" />
             <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
@@ -105,9 +113,29 @@
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
             </button>
           </div>
-          <button @click="setPassword" class="btn btn-primary btn-full" :disabled="!isSetPasswordFormValid || passwordLoading">
+          <button @click="setPassword" class="btn btn-primary btn-full" :disabled="!isSetPasswordFormValid || passwords.new !== passwords.confirm || passwordLoading">
             {{ passwordLoading ? $t('common.loading') : $t('settings.set_password') }}
           </button>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h2 class="section-title">{{ $t('settings.language') }}</h2>
+
+        <div class="language-section">
+          <div class="custom-select">             
+            <div class="select-trigger" 
+              @click.stop="isOpen = !isOpen" 
+              :class="{ 'is-open': isOpen }"
+            >
+              <span>{{ locale === 'ru' ? 'Русский' : 'English' }}</span>
+              <span class="arrow"></span>
+            </div>
+            <div v-if="isOpen" class="select-dropdown">
+              <div class="select-option" @click="changeLanguage('ru')">Русский</div>
+              <div class="select-option" @click="changeLanguage('en')">English</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -176,7 +204,8 @@ import { useNotification } from '@/composables/useNotification'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const router = useRouter()
-const { t } = useI18n()
+const i18n = useI18n()
+const { t } = i18n
 const notify = useNotification() 
 const user = ref(null)
 const hasPassword = ref(false)
@@ -194,14 +223,27 @@ const showDeletePasswordModal = ref(false)
 const showDeleteEmailSentModal = ref(false)
 const deletePassword = ref('')
 const deleteLoading = ref(false)
+const isOpen = ref(false)
 
-const isPasswordFormValid = computed(() =>
-  passwords.value.old && passwords.value.new && passwords.value.confirm && passwords.value.new.length >= 8
-)
+const locale = computed(() => i18n.locale.value)
 
-const isSetPasswordFormValid = computed(() =>
-  passwords.value.new && passwords.value.confirm && passwords.value.new.length >= 8
-)
+const passwordValidation = computed(() => {
+  const pwd = passwords.value.new || ''
+  return {
+    minLength: pwd.length >= 8,
+    notOnlyNumbers: /[a-zA-Zа-яА-Я!@#$%^&*]/.test(pwd), 
+  }
+})
+
+const isPasswordFormValid = computed(() => {
+  const val = passwordValidation.value
+  return !!(passwords.value.old && val.minLength && val.notOnlyNumbers)
+})
+
+const isSetPasswordFormValid = computed(() => {
+  const val = passwordValidation.value
+  return !!(val.minLength && val.notOnlyNumbers)
+})
 
 const goBack = () => router.push('/profile')
 
@@ -211,10 +253,21 @@ const loadUserData = async () => {
       api.get('/users/me/'),
       api.get('/users/has-password/')
     ])
+
     user.value = userRes.data
     hasPassword.value = passwordRes.data.has_password
-  } catch {
+
+    const serverLang = user.value.language
+    
+    if (serverLang && serverLang !== i18n.locale.value) {
+      i18n.locale.value = serverLang
+      localStorage.setItem('language', serverLang)
+    }
+  } catch (err) {
     notify.error(t('errors.load_failed'))
+    if (import.meta.env.DEV) {
+      console.error('Error loading user data:', err)
+    }
   }
 }
 
@@ -336,9 +389,41 @@ const setPassword = async () => {
   }
 }
 
+async function changeLanguage(lang) {
+  if (locale.value === lang) {
+    isOpen.value = false
+    return
+  }
+
+  try {
+    await api.patch('users/me/', { language: lang })
+    
+    i18n.locale.value = lang
+    localStorage.setItem('language', lang)
+    isOpen.value = false
+
+    notify.success('success.profile_saved')
+    
+  } catch (error) {
+    if (!error.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.server')
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error saving language:', error)
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', () => isOpen.value = false)
+  loadUserData()
+})
 const openPasswordReset = () => {
   router.push({ 
-    name: 'ResetPassword',
+    name: 'reset-password',
     query: { 
       email: user.value?.email,
       from: 'settings'
@@ -350,7 +435,7 @@ const openForgotFromDeleteModal = () => {
   showDeletePasswordModal.value = false
   deletePassword.value = ''
   router.push({ 
-    name: 'ResetPassword',
+    name: 'reset-password',
     query: { email: user.value?.email, from: 'delete' }
   })
 }
@@ -410,94 +495,167 @@ const deleteAccountWithPassword = async (done) => {
   }
 }
 
-onMounted(() => { loadUserData() })
 </script>
 
 <style scoped lang="scss">
 .settings-view {
   min-height: 100vh;
   background: $bg-primary;
-  padding: $spacing-md;
-
-  @media (min-width: 768px) { padding: $spacing-lg; }
+  padding: $spacing-responsive-md;
+  
+  @include md {
+    padding: $spacing-responsive-lg;
+  }
 }
 
-.settings-container { max-width: 600px; margin: 0 auto; }
+.settings-container { 
+  max-width: 600px; 
+  margin: 0 auto; 
+}
 
 .settings-header {
   display: flex;
   align-items: center;
-  gap: $spacing-md;
-  margin-bottom: $spacing-lg;
+  gap: $spacing-responsive-md;
+  margin-bottom: $spacing-responsive-lg;
 }
 
 .btn-back {
   background: $white;
   border: 1px solid $border;
   border-radius: $radius-md;
-  padding: $spacing-sm;
+  padding: $spacing-responsive-sm;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   color: $text-secondary;
+  flex-shrink: 0;
 
-  &:hover { background: $bg-secondary; border-color: $primary; color: $primary; }
+  &:hover { 
+    background: $bg-secondary; 
+    border-color: $primary; 
+    color: $primary; 
+  }
+  
   svg { display: block; }
 }
 
-.settings-title { font-size: 24px; font-weight: 700; color: $text-primary; margin: 0; }
+.settings-title { 
+  font-size: $font-size-responsive-lg;
+  font-weight: $font-weight-bold;
+ 
+  color: $text-primary; 
+  margin: 0;
+  
+  @include md {
+    font-size: $font-size-responsive-xl;
+  }
+}
 
 .settings-card {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  margin-bottom: $spacing-md;
+  border-radius: $radius-md;
+  padding: $spacing-responsive-md;
+  margin-bottom: $spacing-responsive-md;
   box-shadow: $shadow-sm;
 
-  &--danger { border: 1px solid rgba($danger, 0.3); background: $danger-light; }
+  @include md {
+    padding: $spacing-responsive-lg;
+    border-radius: $radius-lg;
+  }
+
+  &--danger { 
+    border: 1px solid rgba($danger, 0.3); 
+    background: $danger-light; 
+  }
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: $font-size-responsive-base;
+  font-weight: $font-weight-semibold;
   color: $text-primary;
-  margin: 0 0 $spacing-md 0;
+  margin: 0 0 $spacing-responsive-md 0;
+
+  @include md {
+    font-size: $font-size-responsive-lg;
+  }
 
   &--danger { color: $danger-dark; }
 }
 
 .info-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: $spacing-sm 0;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: $spacing-responsive-sm 0;
   border-bottom: 1px solid $border;
+  gap: $spacing-responsive-xs;
 
   &:last-child { border-bottom: none; }
+  
+  @include md {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-responsive-sm;
+  }
 }
 
-.info-label { font-weight: 600; color: $text-secondary; font-size: $font-size-sm; }
-.info-value { color: $text-primary; font-size: $font-size-sm; }
+.info-label { 
+  font-weight: $font-weight-semibold;
+ 
+  color: $text-secondary; 
+  font-size: $font-size-responsive-sm;
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: $text-primary;
+  font-size: $font-size-responsive-sm;
+  text-align: left;
+  word-break: break-word;
+  
+  @include md {
+    text-align: right;
+  }
+}
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
+  
+  @include md {
+    gap: $spacing-responsive-md;
+  }
 }
 
 .input-field {
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-responsive-sm $spacing-responsive-md;
   border: 1px solid $border;
   border-radius: $radius-md;
-  font-size: 1rem;
+  font-size: $font-size-responsive-sm;
   transition: all 0.2s ease;
   width: 100%;
   box-sizing: border-box;
 
-  &:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 3px rgba($primary, 0.1); }
-  &[readonly] { background: $bg-secondary; color: $text-secondary; cursor: default; }
+  @include md {
+    font-size: $font-size-responsive-base;
+  }
+
+  &:focus { 
+    outline: none; 
+    border-color: $primary; 
+    box-shadow: 0 0 0 3px rgba($primary, 0.1); 
+  }
+  
+  &[readonly] { 
+    background: $bg-secondary; 
+    color: $text-secondary; 
+    cursor: default; 
+  }
 }
 
 .password-input {
@@ -505,16 +663,19 @@ onMounted(() => { loadUserData() })
   display: flex;
   align-items: center;
 
-  input { width: 100%; padding-right: 2.8rem; }
+  input { 
+    width: 100%; 
+    padding-right: 2.8rem; 
+  }
 
   .password-toggle {
     position: absolute;
-    right: $spacing-md;
+    right: $spacing-responsive-md;
     background: none;
     border: none;
     cursor: pointer;
     color: $text-muted;
-    padding: 0.25rem;
+    padding: $spacing-sm;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -525,30 +686,50 @@ onMounted(() => { loadUserData() })
   }
 }
 
-.info-text { color: $text-secondary; font-size: $font-size-sm; margin: 0; line-height: 1.5; }
-
-.button-group { display: flex; gap: $spacing-sm; }
-
-.forgot-link-row {
-  text-align: center;
-  margin-top: -$spacing-sm;
+.info-text { 
+  color: $text-secondary; 
+  font-size: $font-size-responsive-sm; 
+  margin: 0; 
+  line-height: 1.5; 
 }
 
-.modal-forgot-link {
+.button-group { 
+  display: flex; 
+  flex-direction: column;
+  gap: $spacing-responsive-sm;
+  
+  @include md {
+    flex-direction: row;
+    
+    .btn {
+      width: auto;
+    }
+  }
+
+  .btn {
+    width: 100%;
+    @include md {
+      width: auto;
+    }
+  }
+}
+
+.forgot-link-row, .modal-forgot-link {
   text-align: center;
-  margin-top: $spacing-sm;
+  margin-top: $spacing-responsive-sm;
+  margin-bottom: $spacing-responsive-sm;
 }
 
 .link-btn {
   background: none;
   border: none;
   padding: 0;
-  font-size: $font-size-sm;
+  font-size: $font-size-responsive-base;
   font-weight: $font-weight-semibold;
   color: $primary;
   cursor: pointer;
   text-decoration: none;
-  transition: color 0.16s ease, opacity 0.16s ease;
+  transition: color 0.2s ease;
 
   &:hover,
   &:focus-visible {
@@ -576,13 +757,17 @@ onMounted(() => { loadUserData() })
 }
 
 .btn {
-  padding: $spacing-sm $spacing-lg;
+  padding: $spacing-responsive-sm $spacing-responsive-md;
   border: none;
   border-radius: $radius-md;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: $font-size-responsive-sm;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
   transition: all 0.2s ease;
+
+  @include md {
+    padding: $spacing-responsive-sm $spacing-responsive-lg;
+  }
 
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
@@ -591,8 +776,14 @@ onMounted(() => { loadUserData() })
   background: $primary;
   color: white;
 
-  &:hover:not(:disabled) { background: $primary-hover; transform: translateY(-1px); }
-  &:active:not(:disabled) { transform: translateY(0); }
+  &:hover:not(:disabled) { 
+    background: $primary-hover; 
+    transform: translateY(-1px); 
+  }
+  
+  &:active:not(:disabled) { 
+    transform: translateY(0); 
+  }
 }
 
 .btn-secondary {
@@ -600,17 +791,127 @@ onMounted(() => { loadUserData() })
   color: $text-primary;
   flex: 1;
 
-  &:hover:not(:disabled) { background: $border-hover; }
+  &:hover:not(:disabled) { 
+    background: $border-hover; 
+  }
 }
 
 .btn-danger {
   background: $danger-dark;
   color: $white;
-  margin-top: $spacing-sm;
+  margin-top: $spacing-responsive-sm;
 
-  &:hover:not(:disabled) { background: $danger-dark; transform: translateY(-1px); }
-  &:active:not(:disabled) { transform: translateY(0); }
+  &:hover:not(:disabled) { 
+    background: $danger-dark; 
+    transform: translateY(-1px); 
+  }
+  
+  &:active:not(:disabled) { 
+    transform: translateY(0); 
+  }
 }
 
 .btn-full { width: 100%; }
+
+
+.language-section {
+  margin-top: $spacing-responsive-sm;
+}
+
+.custom-select {
+  position: relative;
+  width: 100%;
+  min-width: 160px;
+  user-select: none;
+}
+
+.select-trigger {
+  padding: $spacing-responsive-sm $spacing-responsive-md;
+  background: $bg-primary;
+  border: 1px solid $border;      
+  border-radius: $radius-md;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: $font-size-responsive-base;
+  transition: all 0.2s;
+
+  &.is-open {
+    border-color: $primary;
+    background: $white;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.arrow {
+  border: solid $text-secondary; 
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 3px;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.is-open .arrow {
+  transform: rotate(-135deg);
+}
+
+.select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid $primary;
+  border-top: none;
+  border-bottom-left-radius: $radius-md;
+  border-bottom-right-radius: $radius-md;
+  z-index: 100;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+}
+
+.select-option {
+  padding: $spacing-responsive-sm $spacing-responsive-md;
+  cursor: pointer;
+  font-size: $font-size-responsive-base;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba($primary, 0.05);
+    color: $primary;
+  }
+}
+
+.requirement-item {
+  font-size: $font-size-xs;
+  transition: color 0.2s ease;
+  
+  &.valid {
+    color: $success-dark;
+  }
+  
+  &.invalid {
+    color: $text-muted;
+  }
+}
+
+.text-danger {
+  color: $danger;
+  margin-top: $spacing-responsive-xs;
+
+}
+.password-hint-text {
+  font-size: $font-size-xs;
+  color: $text-secondary;
+  margin: 0 0 $spacing-responsive-sm 0;
+  line-height: 1.4;
+  font-weight: $font-weight-normal;
+
+  @include md {
+    font-size: $font-size-sm;
+  }
+}
 </style>

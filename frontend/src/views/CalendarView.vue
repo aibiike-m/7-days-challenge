@@ -165,7 +165,11 @@
         </div>
       </div>
     </ConfirmModal>
-
+    <CreateChallengeModal 
+      :is-open="isModalOpen" 
+      @close="isModalOpen = false"
+      @created="fetchData" 
+    />
   </div>
 </template>
 
@@ -177,7 +181,7 @@ import { useNotification } from '@/composables/useNotification'
 import TaskCard from '@/components/TaskCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue' 
 import api from '@/services/api/index.js'
-import { getTasksForDate, isSameDay } from '@/utils/taskHelpers'
+import { isSameDay } from '@/utils/taskHelpers'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -189,7 +193,6 @@ const selectedDate = ref(null)
 const allChallenges = ref([])
 const allTasks = ref([])
 
-// Selection Mode State
 const isSelectionMode = ref(false)
 const selectedChallengeIds = ref([])
 const showDeleteModal = ref(false)
@@ -269,12 +272,16 @@ const calendarDates = computed(() => {
   const dates = []
 
   const prevMonthLastDay = new Date(year, month, 0).getDate()
+  const prevMonth = month === 0 ? 11 : month - 1
+  const prevYear = month === 0 ? year - 1 : year
+  
   for (let i = startDay - 1; i >= 0; i--) {
+    const day = prevMonthLastDay - i
     dates.push({
-      day: prevMonthLastDay - i,
-      date: new Date(year, month - 1, prevMonthLastDay - i),
+      day,
+      date: new Date(prevYear, prevMonth, day),
       isOtherMonth: true,
-      key: `prev-${i}`
+      key: `${prevYear}-${prevMonth}-${day}`
     })
   }
 
@@ -287,27 +294,28 @@ const calendarDates = computed(() => {
       isToday: isSameDay(date, new Date()),
       isSelected: selectedDate.value ? isSameDay(date, selectedDate.value) : isSameDay(date, new Date()),
       hasTasks: hasTasksOnDate(date),
-      key: `current-${i}`
+      key: `${year}-${month}-${i}`
     })
   }
 
   const totalDaysSoFar = dates.length
   const targetTotal = totalDaysSoFar <= 35 ? 35 : 42
   const remainingDays = targetTotal - totalDaysSoFar
+  const nextMonth = month === 11 ? 0 : month + 1
+  const nextYear = month === 11 ? year + 1 : year
 
   for (let i = 1; i <= remainingDays; i++) {
     dates.push({
       day: i,
-      date: new Date(year, month + 1, i),
+      date: new Date(nextYear, nextMonth, i),
       isOtherMonth: true,
-      key: `next-${i}`
+      key: `${nextYear}-${nextMonth}-${i}`
     })
   }
 
   return dates
 })
 
-// Selection Mode Functions
 function toggleSelectionMode() {
   isSelectionMode.value = !isSelectionMode.value
   if (!isSelectionMode.value) {
@@ -354,6 +362,14 @@ function openDeleteModal() {
 function closeDeleteModal() {
   showDeleteModal.value = false
 }
+
+// async function handleChallengeCreated(newChallenge) {
+//   await loadChallenges()
+  
+//   if (allChallenges.value.length > 0) {
+//     await loadAllTasks()
+//   }
+// }
 
 async function confirmDelete() {
   try {
@@ -500,16 +516,16 @@ onMounted(async () => {
 <style scoped lang="scss">
 .calendar-view {
   width: 100%;
-  padding: $spacing-sm;
+  padding: $spacing-responsive-sm;
   padding-bottom: 100px;
   position: relative;
 
-  @media (min-width: 640px) {
-    padding: $spacing-md;
+  @include sm {
+    padding: $spacing-responsive-md;
   }
 
-  @media (min-width: 1024px) {
-    padding: $spacing-lg;
+  @include lg {
+    padding: $spacing-responsive-lg;
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -518,40 +534,48 @@ onMounted(async () => {
 .card {
   background: $white;
   border-radius: $radius-md;
-  padding: $spacing-md;
+  padding: $spacing-responsive-md;
   box-shadow: $shadow-sm;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-responsive-md;
 
-  @media (min-width: 768px) {
+  @include md {
     border-radius: $radius-lg;
-    padding: $spacing-lg;
-    margin-bottom: $spacing-lg;
+    padding: $spacing-responsive-lg;
+    margin-bottom: $spacing-responsive-lg;
   }
 }
 
 // ===== Calendar =====
 .calendar-card {
-  margin-bottom: $spacing-lg;
+  background: $white;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  box-shadow: $shadow-sm;
+  
+  @include md {
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+  }
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-responsive-md;
 
-  @media (min-width: 768px) {
-    margin-bottom: $spacing-lg;
+  @include md {
+    margin-bottom: $spacing-responsive-lg;
   }
 }
 
 .month-title {
-  font-size: $font-size-base;
+  font-size: $font-size-responsive-base;
   font-weight: $font-weight-semibold;
   text-transform: capitalize;
 
-  @media (min-width: 768px) {
-    font-size: $font-size-lg;
+  @include md {
+    font-size: $font-size-responsive-lg;
   }
 }
 
@@ -561,17 +585,17 @@ onMounted(async () => {
   border-radius: $radius-full;
   border: none;
   background: $bg-secondary;
-  font-size: 18px;
+  font-size: $font-size-responsive-lg;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   
-  @media (min-width: 768px) {
+  @include md {
     width: 40px;
     height: 40px;
-    font-size: 20px;
+    font-size: $font-size-responsive-base;
   }
   
   &:hover {
@@ -588,12 +612,10 @@ onMounted(async () => {
 .calendar-fade-leave-active {
   transition: all 0.3s ease;
 }
-
 .calendar-fade-enter-from {
   opacity: 0;
   transform: translateX(10px); 
 }
-
 .calendar-fade-leave-to {
   opacity: 0;
   transform: translateX(-10px); 
@@ -602,11 +624,7 @@ onMounted(async () => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-
-  @media (min-width: 768px) {
-    gap: 4px;
-  }
+  gap: $spacing-responsive-xs;
 }
 
 .weekday {
@@ -614,7 +632,7 @@ onMounted(async () => {
   font-size: $font-size-xs;
   font-weight: $font-weight-semibold;
   color: $text-muted;
-  padding: $spacing-sm 0;
+  padding: $spacing-responsive-sm 0;
 }
 
 .calendar-day {
@@ -624,14 +642,15 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   border-radius: $radius-sm;
+  padding: $spacing-responsive-xs;
   font-size: $font-size-xs;
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
-  
-  @media (min-width: 768px) {
+
+  @include md {
     border-radius: $radius-md;
-    font-size: $font-size-sm;
+    font-size: $font-size-responsive-sm;
   }
   
   &:hover {
@@ -641,10 +660,7 @@ onMounted(async () => {
   &.other-month {
     color: $border-hover; 
     cursor: pointer;      
-    
-    &:hover {
-      background: $bg-secondary; 
-    }
+    &:hover { background: $bg-secondary; }
   }
   
   &.today {
@@ -680,16 +696,13 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-.loading {
+.loading, .empty-tasks {
   text-align: center;
-  padding: $spacing-lg;
+  padding: $spacing-responsive-lg;
   color: $text-muted;
 }
 
 .empty-tasks {
-  text-align: center;
-  padding: $spacing-lg;
-  color: $text-muted;
   background: $bg-primary;
   border-radius: $radius-md;
 }
@@ -697,38 +710,43 @@ onMounted(async () => {
 .tasks-list {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-responsive-md;
 
-  @media (min-width: 768px) {
-    gap: $spacing-sm;
+  @include md {
+    gap: $spacing-responsive-sm;
   }
 }
 
 // ===== Challenges =====
 .challenges-section {
-  margin-top: $spacing-lg;
+  margin-top: $spacing-responsive-lg;
 }
 
 .selection-controls {
   display: flex;
-  gap: $spacing-sm;
-  margin-bottom: $spacing-md;
+  gap: $spacing-responsive-sm;
+  margin-bottom: $spacing-responsive-md;
   flex-wrap: wrap;
 
-  @media (min-width: 768px) {
+  @include md {
     flex-wrap: nowrap;
   }
 }
 
 .control-btn {
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-responsive-xs $spacing-responsive-sm;
+  font-size: $font-size-xs;
   border-radius: $radius-md;
   border: none;
-  font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+
+  @include md {
+    padding: $spacing-responsive-sm $spacing-responsive-md;
+    font-size: $font-size-responsive-sm;
+  }
 
   &:disabled {
     opacity: 0.5;
@@ -738,40 +756,25 @@ onMounted(async () => {
   &.btn-manage {
     background: $primary;
     color: $white;
-
     &:hover:not(:disabled) {
       background: $primary-hover;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
       box-shadow: $shadow-sm;
     }
   }
 
-  &.btn-select-all {
+  &.btn-select-all, &.btn-cancel {
     background: $bg-secondary;
     color: $text-primary;
-
-    &:hover:not(:disabled) {
-      background: $border-hover;
-    }
+    &:hover:not(:disabled) { background: $border-hover; }
   }
 
   &.btn-delete {
     background: $danger;
     color: $white;
-
     &:hover:not(:disabled) {
       background: $danger-dark;
-      transform: translateY(-1px);
-      box-shadow: $shadow-sm;
-    }
-  }
-
-  &.btn-cancel {
-    background: $bg-secondary;
-    color: $text-primary;
-
-    &:hover:not(:disabled) {
-      background: $border-hover;
+      transform: translateY(-2px);
     }
   }
 }
@@ -779,10 +782,10 @@ onMounted(async () => {
 .challenges-list {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-responsive-md;
 
-  @media (min-width: 768px) {
-    gap: $spacing-lg;
+  @include md {
+    gap: $spacing-responsive-lg;
   }
 }
 
@@ -791,16 +794,18 @@ onMounted(async () => {
   transition: all 0.25s ease;
   border-left: 4px solid transparent;
   display: flex;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
+  padding: $spacing-responsive-sm;
   align-items: flex-start;
   
+  @include md {
+    gap: $spacing-responsive-md;
+    padding: $spacing-responsive-lg;
+  }
+
   &:hover {
     box-shadow: $shadow-md;
     transform: translateY(-2px);
-  }
-
-  &.selection-mode {
-    cursor: pointer;
   }
 
   &.selected {
@@ -811,14 +816,12 @@ onMounted(async () => {
 .challenge-checkbox {
   flex-shrink: 0;
   padding-top: 2px;
-  cursor: pointer;
 }
 
 .hidden-checkbox {
   position: absolute;
   opacity: 0;
   width: 0;
-  height: 0;
 }
 
 .checkbox-box {
@@ -836,10 +839,6 @@ onMounted(async () => {
     background: $primary;
     border-color: $primary;
   }
-
-  &:hover {
-    border-color: $primary;
-  }
 }
 
 .check-icon {
@@ -853,12 +852,12 @@ onMounted(async () => {
   min-width: 0;
 
   h4 {
-    font-size: $font-size-sm;
+    font-size: $font-size-responsive-sm;
     font-weight: $font-weight-semibold;
-    margin-bottom: $spacing-sm;
+    margin-bottom: $spacing-responsive-sm;
     word-break: break-word;
 
-    @media (min-width: 768px) {
+    @include md {
       font-size: $font-size-base;
     }
   }
@@ -868,21 +867,16 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-responsive-sm;
   font-size: $font-size-xs;
 
-  @media (min-width: 768px) {
-    font-size: $font-size-sm;
+  @include md {
+    font-size: $font-size-responsive-sm;
   }
 }
 
-.challenge-duration {
-  color: $text-secondary;
-}
-
-.challenge-progress {
-  font-weight: $font-weight-semibold;
-}
+.challenge-duration { color: $text-secondary; }
+.challenge-progress { font-weight: $font-weight-semibold; }
 
 .progress-bar {
   height: 4px;
@@ -890,7 +884,7 @@ onMounted(async () => {
   border-radius: $radius-full;
   overflow: hidden;
 
-  @media (min-width: 768px) {
+  @include md {
     height: 6px;
   }
 }
@@ -905,25 +899,19 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
 
-  @media (min-width: 768px) {
+  @include md {
     flex-direction: row;
-    gap: $spacing-lg;
+    gap: $spacing-responsive-lg;
 
-    .left-column {
-      flex: 1;
-    }
-
-    .right-column {
-      flex: 1.2;
-    }
+    .left-column { flex: 1; }
+    .right-column { flex: 1.2; }
   }
 }
 
-// ===== FAB Desktop Button =====
 .fab-desktop {
   display: none;
   width: fit-content;
-  padding: $spacing-md $spacing-lg;
+  padding: $spacing-responsive-md $spacing-responsive-lg;
   background: $primary;
   color: $white;
   border: none;
@@ -933,41 +921,34 @@ onMounted(async () => {
   transition: all 0.2s ease;
   font-size: $font-size-base;
   box-shadow: $shadow-md;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-responsive-lg;
 
-  @media (min-width: 768px) {
+  @include md {
     display: block;
   }
 
   &:hover {
     background: $primary-hover;
     transform: translateY(-2px);
-    box-shadow: $shadow-md;
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 }
 
-// ===== Delete challenges =====
 .challenges-to-delete {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  gap: $spacing-responsive-sm;
   max-height: 240px;
   overflow-y: auto;
-  margin-top: $spacing-sm;
+  margin-top: $spacing-responsive-sm;
 }
 
 .challenge-item-delete {
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-responsive-sm $spacing-responsive-md;
   background: $bg-secondary;
   border-radius: $radius-md;
   border-left: 4px solid;
-  font-size: $font-size-sm;
+  font-size: $font-size-responsive-sm;
   color: $text-primary;
   word-break: break-word;
 }
-
 </style>

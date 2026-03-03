@@ -91,81 +91,73 @@ function handleConfirm() {
 <style scoped lang="scss">
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: $spacing-md;
+  padding: $spacing-responsive-md;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
   background: $white;
   border-radius: $radius-lg;
   padding: $spacing-lg;
-  max-width: 500px;
+  max-width: 440px;
   width: 100%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: $shadow-md;
+  
+  @include md {
+    padding: $spacing-xl;
+  }
 }
 
 .modal-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: $font-size-responsive-lg;
+  font-weight: $font-weight-semibold;
   color: $text-primary;
-  margin: 0 0 $spacing-lg 0;
+  margin: 0 0 $spacing-md 0;
 
-  @media (min-width: 768px) {
-    font-size: 20px;
+  @include md {
+    font-size: $font-size-responsive-xl;
   }
 }
 
 .modal-message {
-  font-size: 14px;
+  font-size: $font-size-responsive-sm;
   color: $text-secondary;
   line-height: 1.6;
-  margin: 0 0 $spacing-md 0;
-}
-
-.modal-extra {
-  margin-bottom: $spacing-md;
-
-  input {
-    padding: $spacing-sm $spacing-md;
-    border: 1px solid $border;
-    border-radius: $radius-md;
-    font-size: 1rem;
-    width: 100%;
-    box-sizing: border-box;
-    transition: all 0.2s ease;
-
-    &:focus {
-      outline: none;
-      border-color: $danger;
-      box-shadow: 0 0 0 3px rgba($danger, 0.15);
-    }
-  }
+  margin-bottom: $spacing-lg;
 }
 
 .modal-actions {
   display: flex;
   gap: $spacing-sm;
-  justify-content: flex-end;
-  margin-top: $spacing-lg;
+  flex-direction: column-reverse;
+
+  @include sm {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
 
 .btn-cancel,
 .btn-confirm {
   padding: $spacing-sm $spacing-lg;
   border-radius: $radius-md;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
+  font-size: $font-size-responsive-sm;
   border: none;
+  transition: all 0.2s ease;
+  width: 100%;
+
+  @include sm {
+    width: auto;
+    min-width: 100px;
+  }
 
   &:disabled {
     opacity: 0.6;
@@ -176,48 +168,33 @@ function handleConfirm() {
 .btn-cancel {
   background: $bg-secondary;
   color: $text-secondary;
-
-  &:hover:not(:disabled) {
-    background: $border-hover;
-  }
+  &:hover:not(:disabled) { background: $border-hover; }
 }
 
 .btn-confirm {
   background: $primary;
   color: $white;
+  
+  &.danger {
+    background: $danger;
+    &:hover:not(:disabled) { background: $danger-dark; }
+  }
 
   &:hover:not(:disabled) {
     background: $primary-hover;
-  }
-
-  &.danger {
-    background: $danger;
-
-    &:hover:not(:disabled) {
-      background: $danger-dark;
-    }
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: translateY(-1px);
   }
 }
 
 .modal-fade-enter-active,
 .modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-  
-  .modal-content {
-    transition: transform 0.2s ease;
-  }
+  transition: opacity 0.3s ease;
+  .modal-content { transition: transform 0.3s ease; }
 }
 
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-  
-  .modal-content {
-    transform: scale(0.95);
-  }
+  .modal-content { transform: scale(0.9) translateY(20px); }
 }
 </style>

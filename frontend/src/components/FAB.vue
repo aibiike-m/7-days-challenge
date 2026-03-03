@@ -37,30 +37,23 @@ defineEmits(['open-modal'])
   align-items: center;
   justify-content: center;
   transition: all 0.25s ease;
-  @media (min-width: 768px) {
-    display: none;  
+
+  .icon {
+    font-size: 28px;
+    line-height: 1;
   }
-}
 
-.fab .icon {
-  font-size: 28px;
-  font-weight: 400;
-  line-height: 1;
-}
+  @include md {
+    display: none;
+  }
 
-.fab:hover {
-  background: $primary-hover;
-  transform: scale(1.05);
-  box-shadow: 0 8px 32px rgba(91, 159, 216, 0.3);
-}
+  &:hover {
+    background: $primary-hover;
+    transform: scale(1.05);
+  }
 
-.fab:active {
-  transform: scale(0.95);
-}
-
-@media (min-width: 1024px) {
-  .fab {
-    right: calc((100vw - 480px) / 2 + $spacing-lg);
+  @include lg {
+    right: calc((100vw - 1400px) / 2 + $spacing-lg);
   }
 }
 </style>

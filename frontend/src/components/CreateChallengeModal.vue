@@ -3,16 +3,16 @@
     <div v-if="isOpen" class="modal-overlay" @click="close">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h2>{{ t('today.new_challenge') }}</h2>
+          <h2>{{ t('modal.goal_label') }}</h2>
           <button class="close-btn" @click="close">×</button>
         </div>
         
         <form @submit.prevent="submit">
           <div class="form-group">
-            <label for="goal">{{ t('modal.goal_label') }}</label>
             <textarea 
               id="goal"
               v-model="goal" 
+              autofocus
               :placeholder="t('modal.goal_placeholder')"
               :maxlength="MAX_GOAL_LENGTH"
               rows="4"
@@ -103,10 +103,6 @@ const submit = async () => {
     emit('close')
     goal.value = ''
     
-    setTimeout(() => {
-      router.go(0) 
-    }, 2000)
-    
   } catch (err) {
     if (err.response?.status === 401) {
       notify.error('errors.unauthorized')
@@ -127,49 +123,32 @@ const submit = async () => {
 </script>
 
 <style scoped lang="scss">
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: $spacing-md;
-  backdrop-filter: blur(4px);
+  padding: $spacing-responsive-sm;
+  
+  @include md {
+    padding: $spacing-responsive-md;
+  }
 }
 
 .modal-content {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-xl;
+  border-radius: $radius-md;
+  padding: $spacing-responsive-md;
+  max-width: 500px;
   width: 100%;
-  max-width: 550px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease;
-}
+  box-shadow: $shadow-md;
 
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+  @include md {
+    padding: $spacing-responsive-xl;
+    border-radius: $radius-lg;
   }
 }
 
@@ -177,133 +156,136 @@ const submit = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-xl;
-  
+  margin-bottom: $spacing-responsive-sm;
+
+  @include md {
+    margin-bottom: $spacing-responsive-lg;
+  }
+
   h2 {
+    font-size: $font-size-responsive-lg;
     margin: 0;
-    font-size: $font-size-xl;
     color: $text-primary;
+    
+    @include md {
+      font-size: $font-size-responsive-xl;
+    }
   }
 }
 
 .close-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: $radius-full;
+  background: none;
   border: none;
-  background: $bg-secondary;
-  color: $text-secondary;
-  font-size: 28px;
-  line-height: 1;
+  font-size: $font-size-2xl;
+  color: $text-muted;
   cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 1;
+  padding: $spacing-responsive-xs;
   
-  &:hover {
-    background: $border-hover;
-    color: $text-primary;
+  @include md {
+    font-size: 28px;
   }
+  
+  &:hover { color: $text-primary; }
 }
 
 .form-group {
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-responsive-sm;
   
+  @include md {
+    margin-bottom: $spacing-responsive-lg;
+  }
+
   label {
     display: block;
+    font-size: $font-size-xs;
     font-weight: $font-weight-semibold;
-    color: $text-primary;
-    margin-bottom: $spacing-sm;
-    font-size: $font-size-base;
+    margin-bottom: $spacing-responsive-xs;
+    color: $text-secondary;
+    
+    @include md {
+      font-size: $font-size-sm;
+      margin-bottom: $spacing-responsive-sm;
+    }
   }
-  
+
   textarea {
     width: 100%;
-    padding: $spacing-md;
-    border: 2px solid $border;
+    padding: $spacing-responsive-sm;
+    border: 1px solid $border;
     border-radius: $radius-md;
-    font-family: $font-family;
-    font-size: $font-size-base;
-    resize: vertical;
-    transition: all 0.15s ease;
+    font-family: inherit;
+    font-size: $font-size-responsive-sm;
+    resize: none;
+    overflow-y: auto;
+    transition: all 0.2s;
     
+    @include md {
+      padding: $spacing-responsive-md;
+      font-size: $font-size-responsive-base;
+    }
+
     &:focus {
       outline: none;
       border-color: $primary;
       box-shadow: 0 0 0 3px rgba($primary, 0.1);
     }
-    
-    &::placeholder {
-      color: $text-muted;
-    }
-    
-    &:disabled {
-      background: $bg-secondary;
-      cursor: not-allowed;
-    }
   }
 }
 
 .char-counter {
-  margin-top: 6px;
+  margin-top: $spacing-responsive-xs;
   text-align: right;
-  font-size: $font-size-sm;       
-  font-weight: 500;
-  transition: color 0.25s ease;  
-  color: $text-secondary;      
+  font-size: $font-size-xs;
+  color: $text-muted;
   
-  &.valid {
-    color: $primary-hover;     
+  @include md {
+    margin-top: $spacing-responsive-sm;
   }
+  
+  &.valid { color: $success; }
 }
 
 .modal-actions {
   display: flex;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
   justify-content: flex-end;
+  
+  @include md {
+    gap: $spacing-responsive-md;
+  }
 }
 
 .btn {
-  padding: $spacing-sm $spacing-lg;
-  border: none;
+  width: 100%;
+  padding: $spacing-responsive-sm $spacing-responsive-md;
   border-radius: $radius-md;
-  font-family: $font-family;
-  font-size: $font-size-base;
   font-weight: $font-weight-semibold;
+  font-size: $font-size-responsive-sm;
   cursor: pointer;
-  transition: all 0.25s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-sm;
+  border: none;
+  transition: all 0.2s;
   
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  @include md {
+    width: auto;
+    padding: $spacing-responsive-sm $spacing-responsive-lg;
   }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .btn-primary {
   background: $primary;
   color: $white;
-  
-  &:hover:not(:disabled) {
-    background: $primary-hover;
-    transform: translateY(-1px);
-    box-shadow: $shadow-md;
-  }
+  &:hover:not(:disabled) { background: $primary-hover; }
 }
 
-.loading-spinner {
-  animation: spin 1s linear infinite;
+.modal-fade-enter-active, .modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+  .modal-content { transition: transform 0.3s ease; }
 }
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.modal-fade-enter-from, .modal-fade-leave-to {
+  opacity: 0;
+  .modal-content { transform: translateY(-20px); }
 }
 </style>

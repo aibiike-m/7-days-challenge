@@ -75,6 +75,7 @@ import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { APP_NAME } from '@/constants/index'
+import { handleApiError } from '@/utils/errorHandler'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -89,7 +90,7 @@ const isLoading = ref(false)
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 const goToResetPassword = () => {
-  router.push({ name: 'ResetPassword', query: { from: 'auth' } })
+  router.push({ name: 'reset-password', query: { from: 'auth' } })
 }
 
 const toggleAuthMode = () => {
@@ -167,17 +168,12 @@ async function handleSubmit() {
       saveAuthAndRedirect(loginResponse.data, 'success.registration')
     }
   } catch (error) {
-    if (!error.response) notify.error('errors.network')
-    else if (error.response?.status === 401) notify.error('errors.invalid_credentials')
-    else if (error.response?.status === 400) {
-      const serverError = error.response?.data
-      if (import.meta.env.DEV) console.log('Server error details:', serverError)
-      if (serverError?.email) notify.error('errors.email_taken')
-      else if (serverError?.password) notify.error('errors.password_weak')
-      else notify.error('errors.validation')
-    } else {
-      notify.error('errors.server')
-    }
+    handleApiError(error, notify, {
+      400: (data) => {
+        if (data?.email) notify.error('errors.email_taken')
+        else notify.error('errors.validation')
+      }
+    })
     if (import.meta.env.DEV) console.error('Auth error:', error)
   } finally {
     isLoading.value = false
@@ -192,73 +188,117 @@ async function handleSubmit() {
   justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, $primary, $primary-light);
-  padding: $spacing-lg;
+  padding: $spacing-responsive-md;
+
+  @include md {
+    padding: $spacing-responsive-lg;
+  }
 }
 
 .auth-container {
   width: 100%;
-  max-width: 400px;                   
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-responsive-md;
+
+  @include md {
+    max-width: 400px;
+    gap: $spacing-responsive-lg;
+  }
 }
 
 .app-name {
   text-align: center;
-  font-size: $font-size-2xl;         
+  font-size: $font-size-responsive-xl;
   font-weight: $font-weight-bold;
   color: $white;
-  text-shadow: $shadow-md;           
+  text-shadow: $shadow-md;
+
+  @include md {
+    font-size: $font-size-responsive-2xl;
+  }
 }
 
 .language-switcher {
   display: flex;
-  gap: $spacing-sm;                   
+  gap: $spacing-responsive-sm;
   justify-content: center;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-responsive-md;
 }
 
 .lang-btn {
-  padding: $spacing-sm $spacing-md;   
+  padding: $spacing-responsive-xs $spacing-responsive-sm;
+  font-size: $font-size-xs;
   background: rgba($white, 0.2);
   color: $white;
   border: 2px solid rgba($white, 0.3);
   border-radius: $radius-md;
   font-weight: $font-weight-semibold;
-  font-size: $font-size-sm; 
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { background: rgba($white, 0.3); transform: translateY(-2px); }
-  &.active { background: $white; color: $primary; border-color: $white; }
+  @include md {
+    padding: $spacing-responsive-sm $spacing-responsive-md;
+    font-size: $font-size-responsive-sm;
+  }
+
+  &:hover {
+    background: rgba($white, 0.3);
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background: $white;
+    color: $primary;
+    border-color: $white;
+  }
 }
 
 .auth-card {
   background: $bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-xl;
+  border-radius: $radius-md;
+  padding: $spacing-responsive-lg;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+
+  @media (max-width: 374px) {
+    padding: $spacing-responsive-md;
+  }
+
+  @include md {
+    padding: $spacing-responsive-xl;
+    border-radius: $radius-lg;
+  }
 }
 
 .auth-title {
   text-align: center;
-  font-size: 1.75rem;
-  margin-bottom: $spacing-md;
+  font-size: $font-size-responsive-lg;
+  margin-bottom: $spacing-responsive-sm;
   color: $text-primary;
+
+  @include md {
+    font-size: $font-size-responsive-xl;
+    margin-bottom: $spacing-responsive-md;
+  }
 }
 
 .auth-subtitle {
   text-align: center;
-  font-size: $font-size-sm;
+  font-size: $font-size-responsive-sm;
   color: $text-muted;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-responsive-lg;
   line-height: 1.5;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
+
+  @include md {
+    gap: $spacing-responsive-md;
+  }
 }
 
 .form-group {
@@ -266,14 +306,27 @@ async function handleSubmit() {
   flex-direction: column;
 
   input {
-    padding: $spacing-sm $spacing-md;
+    padding: $spacing-responsive-xs $spacing-responsive-sm;
+    font-size: $font-size-responsive-sm;
     border: 1px solid $border;
     border-radius: $radius-md;
-    font-size: 1rem;
     transition: all 0.2s ease;
 
-    &:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 3px rgba($primary, 0.1); }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
+    @include md {
+      padding: $spacing-responsive-sm $spacing-responsive-md;
+      font-size: $font-size-responsive-base;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -282,20 +335,27 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
 
-  input { width: 100%; padding-right: 2.8rem; }
+  input {
+    width: 100%;
+    padding-right: 2.8rem;
+  }
 
   .password-toggle {
     position: absolute;
-    right: $spacing-md;
+    right: $spacing-responsive-sm;
     background: none;
     border: none;
     cursor: pointer;
     color: $text-muted;
-    padding: 0.25rem; 
+    padding: 0.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: color 0.2s ease;
+
+    @include md {
+      right: $spacing-responsive-md;
+    }
 
     &:hover { color: $primary; }
     svg { display: block; }
@@ -304,28 +364,37 @@ async function handleSubmit() {
 
 .btn-full {
   width: 100%;
-  padding: $spacing-md;
-  font-size: 1rem;
+  padding: $spacing-responsive-sm;
+  font-size: $font-size-responsive-sm;
   font-weight: $font-weight-semibold;
+
+  @include md {
+    padding: $spacing-responsive-md;
+    font-size: $font-size-responsive-base;
+  }
 
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .forgot-password-link {
   text-align: center;
-  margin-top: $spacing-md;
+  margin-top: $spacing-responsive-sm;
+
+  @include md {
+    margin-top: $spacing-responsive-md;
+  }
 }
 
 .resend-row {
   text-align: center;
-  margin-top: $spacing-sm;
+  margin-top: $spacing-responsive-sm;
 }
 
 .link-btn {
   background: none;
   border: none;
   padding: 0;
-  font-size: $font-size-sm;
+  font-size: $font-size-responsive-sm;
   font-weight: $font-weight-semibold;
   color: $primary;
   cursor: pointer;
@@ -351,19 +420,37 @@ async function handleSubmit() {
 .divider {
   display: flex;
   align-items: center;
-  gap: $spacing-md;
-  margin: $spacing-lg 0;
+  gap: $spacing-responsive-sm;
+  margin: $spacing-responsive-md 0;
   color: $text-muted;
 
-  &::before, &::after { content: ''; flex: 1; height: 1px; background: $border; }
-  span { font-size: $font-size-sm; }
+  @include md {
+    margin: $spacing-responsive-lg 0;
+    gap: $spacing-responsive-md;
+  }
+
+  &::before, &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: $border;
+  }
+
+  span {
+    font-size: $font-size-responsive-sm;
+  }
 }
 
 .auth-toggle {
   text-align: center;
-  font-size: $font-size-sm;
+  font-size: $font-size-xs;
   color: $text-muted;
-  margin-top: $spacing-lg;
+  margin-top: $spacing-responsive-md;
+
+  @include md {
+    margin-top: $spacing-responsive-lg;
+    font-size: $font-size-responsive-sm;
+  }
 
   .toggle-btn {
     background: none;
@@ -381,7 +468,11 @@ async function handleSubmit() {
 .google-button-container {
   display: flex;
   justify-content: center;
-  margin: $spacing-md 0;
+  margin: $spacing-responsive-sm 0;
+
+  @include md {
+    margin: $spacing-responsive-md 0;
+  }
 }
 
 #g_id_signin {
@@ -398,30 +489,46 @@ async function handleSubmit() {
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover:not(:disabled) { background: $primary-light; transform: translateY(-2px); }
-  &:active:not(:disabled) { transform: translateY(0); }
+  &:hover:not(:disabled) {
+    background: $primary-light;
+    transform: translateY(-2px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
 }
 
-.btn-primary { background: $primary; color: $white; }
+.btn-primary {
+  background: $primary;
+  color: $white;
+}
 
 .reset-success {
   text-align: center;
-  padding: $spacing-md 0;
+  padding: $spacing-responsive-md 0;
 
   .success-icon {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+    margin: 0 auto $spacing-responsive-md;
     border-radius: 50%;
     background: rgba($primary, 0.1);
     color: $primary;
-    font-size: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto $spacing-lg;
+
+    @include md {
+      width: 64px;
+      height: 64px;
+      font-size: 2rem;
+      margin-bottom: $spacing-responsive-lg;
+    }
   }
 
-  .auth-title { margin-bottom: $spacing-sm; }
-  .auth-subtitle { margin-bottom: $spacing-xl; }
+  .auth-title { margin-bottom: $spacing-responsive-sm; }
+  .auth-subtitle { margin-bottom: $spacing-responsive-xl; }
 }
 </style>

@@ -73,7 +73,7 @@
 
 .task-title {
   font-size: 1.3rem;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   margin-bottom: 0.5rem;
 }
 
@@ -86,5 +86,5 @@
 .completed-at {
   font-size: 0.85rem;
   color: $success;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
 }

@@ -81,7 +81,9 @@
 
         <template v-else-if="resetStep === 'new-password'">
           <h1 class="reset-title">{{ $t('auth.new_password_title') }}</h1>
-          <p class="reset-subtitle">{{ $t('auth.new_password_subtitle') }}</p>
+          <p class="password-hint-text">
+            {{ $t('settings.password_hint_create_strong') }}
+          </p>
           
           <form @submit.prevent="confirmPasswordReset" class="reset-form">
             <div class="form-group">
@@ -121,8 +123,8 @@
                   required 
                 />
               </div>
+
             </div>
-            
             <button 
               type="submit" 
               class="btn btn-primary btn-full" 
@@ -170,10 +172,22 @@ const showPasswords = ref(false)
 const isLoading = ref(false)
 const comeFrom = ref(route.query.from || 'auth')
 
-const isResetPasswordFormValid = computed(() =>
-  resetNewPassword.value.length >= 8 &&
-  resetNewPassword.value === resetConfirmPassword.value
-)
+const passwordValidation = computed(() => {
+  const pwd = resetNewPassword.value || ''
+  return {
+    minLength: pwd.length >= 8,
+    notOnlyNumbers: /[a-zA-Zа-яА-Я!@#$%^&*]/.test(pwd),
+  }
+})
+
+const isResetPasswordFormValid = computed(() => {
+  const val = passwordValidation.value
+  return (
+    val.minLength && 
+    val.notOnlyNumbers && 
+    resetNewPassword.value === resetConfirmPassword.value
+  )
+})
 
 const requestPasswordReset = async () => {
   if (isLoading.value) return
@@ -314,51 +328,97 @@ onMounted(() => {
   justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, $primary, $primary-light);
-  padding: $spacing-lg;
+  padding: $spacing-responsive-md;
+  
+  @include md {
+    padding: $spacing-responsive-lg;
+  }
 }
 
 .reset-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-responsive-md;
+  
+  @include md {
+    max-width: 400px;
+    gap: $spacing-responsive-lg;
+  }
 }
 
 .app-name {
   text-align: center;
-  font-size: $font-size-2xl;
+  font-size: $font-size-responsive-xl;
   font-weight: $font-weight-bold;
   color: $white;
   text-shadow: $shadow-md;
+  
+  @include md {
+    font-size: $font-size-responsive-2xl;
+  }
 }
 
 .reset-card {
   background: $bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-xl;
+  border-radius: $radius-md;
+  padding: $spacing-responsive-lg;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  
+  @media (max-width: 374px) {
+    padding: $spacing-responsive-md;
+  }
+
+  @include md {
+    padding: $spacing-responsive-xl;
+    border-radius: $radius-lg;
+  }
 }
 
 .reset-title {
   text-align: center;
-  font-size: 1.75rem;
-  margin-bottom: $spacing-md;
+  font-size: $font-size-responsive-lg;
+  margin-bottom: $spacing-responsive-sm;
   color: $text-primary;
+  
+  @include md {
+    font-size: $font-size-responsive-xl;
+    margin-bottom: $spacing-responsive-md;
+  }
 }
 
 .reset-subtitle {
   text-align: center;
-  font-size: $font-size-sm;
+  font-size: $font-size-responsive-sm;
   color: $text-muted;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-responsive-md;
   line-height: 1.5;
+  
+  @include md {
+    margin-bottom: $spacing-responsive-lg;
+  }
+}
+.password-hint-text {
+  text-align: center;
+  font-size: $font-size-responsive-sm;
+  color: $text-muted;
+  margin-bottom: $spacing-responsive-md;
+  line-height: 1.5;
+  
+  @include md {
+    margin-bottom: $spacing-responsive-lg;
+  }
 }
 
 .reset-form {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
+  
+  @include md {
+    gap: $spacing-responsive-md;
+  }
 }
 
 .form-group {
@@ -366,11 +426,16 @@ onMounted(() => {
   flex-direction: column;
 
   input {
-    padding: $spacing-sm $spacing-md;
+    padding: $spacing-responsive-xs $spacing-responsive-sm;
+    font-size: $font-size-responsive-sm;
     border: 1px solid $border;
     border-radius: $radius-md;
-    font-size: 1rem;
     transition: all 0.2s ease;
+
+    @include md {
+      padding: $spacing-responsive-sm $spacing-responsive-md;
+      font-size: $font-size-responsive-base;
+    }
 
     &:focus {
       outline: none;
@@ -397,7 +462,7 @@ onMounted(() => {
 
   .password-toggle {
     position: absolute;
-    right: $spacing-md;
+    right: $spacing-responsive-sm;
     background: none;
     border: none;
     cursor: pointer;
@@ -407,6 +472,10 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     transition: color 0.2s ease;
+
+    @include md {
+      right: $spacing-responsive-md;
+    }
 
     &:hover {
       color: $primary;
@@ -418,21 +487,15 @@ onMounted(() => {
   }
 }
 
-.btn {
-  background: $primary;
-  color: $white;
-  border: none;
-  border-radius: $radius-md;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.btn-full {
+  width: 100%;
+  padding: $spacing-responsive-sm;
+  font-size: $font-size-responsive-sm;
+  font-weight: $font-weight-semibold;
 
-  &:hover:not(:disabled) {
-    background: $primary-light;
-    transform: translateY(-2px);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
+  @include md {
+    padding: $spacing-responsive-md;
+    font-size: $font-size-responsive-base;
   }
 
   &:disabled {
@@ -441,33 +504,21 @@ onMounted(() => {
   }
 }
 
-.btn-full {
-  width: 100%;
-  padding: $spacing-md;
-  font-size: 1rem;
-  font-weight: $font-weight-semibold;
-}
-
-.btn-primary {
-  background: $primary;
-  color: $white;
-}
-
-.back-link {
-  text-align: center;
-  margin-top: $spacing-md;
-}
-
+.back-link,
 .resend-row {
   text-align: center;
-  margin-top: $spacing-sm;
+  margin-top: $spacing-responsive-sm;
+  
+  @include md {
+    margin-top: $spacing-responsive-md;
+  }
 }
 
 .link-btn {
   background: none;
   border: none;
   padding: 0;
-  font-size: $font-size-sm;
+  font-size: $font-size-responsive-sm;
   font-weight: $font-weight-semibold;
   color: $primary;
   cursor: pointer;
@@ -490,29 +541,63 @@ onMounted(() => {
   }
 }
 
+.btn {
+  background: $primary;
+  color: $white;
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: $primary-light;
+    transform: translateY(-2px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+.btn-primary {
+  background: $primary;
+  color: $white;
+}
+
 .reset-success {
   text-align: center;
-  padding: $spacing-md 0;
+  padding: $spacing-responsive-md 0;
 
   .success-icon {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+    margin: 0 auto $spacing-responsive-md;
     border-radius: 50%;
     background: rgba($primary, 0.1);
     color: $primary;
-    font-size: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto $spacing-lg;
+
+    @include md {
+      width: 64px;
+      height: 64px;
+      font-size: 2rem;
+      margin-bottom: $spacing-responsive-lg;
+    }
   }
 
   .reset-title {
-    margin-bottom: $spacing-sm;
+    margin-bottom: $spacing-responsive-sm;
   }
 
   .reset-subtitle {
-    margin-bottom: $spacing-xl;
+    margin-bottom: $spacing-responsive-lg;
+    
+    @include md {
+      margin-bottom: $spacing-responsive-xl;
+    }
   }
 }
 </style>

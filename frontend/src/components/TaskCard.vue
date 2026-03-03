@@ -5,11 +5,16 @@
         <input
           type="checkbox"
           :checked="task.is_completed"
-          :disabled="isTaskLocked"
+          :disabled="isTaskLocked || isLoading"
           class="hidden-checkbox"
+          :aria-label="$t('task.toggle_complete', { title: task.title })"
         />
-        <div class="checkbox-box">
-          <svg v-if="task.is_completed" class="check-icon" viewBox="0 0 24 24">
+        <div class="checkbox-box" :class="{ loading: isLoading }">
+          <svg v-if="isLoading" class="spinner-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/>
+            <path d="M12 2 A10 10 0 0 1 22 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <svg v-else-if="task.is_completed" class="check-icon" viewBox="0 0 24 24">
             <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
           </svg>
         </div>
@@ -23,6 +28,7 @@
         viewBox="0 0 24 24"
         width="20"
         height="20"
+        :aria-label="showDescription ? $t('task.hide_description') : $t('task.show_description')"
       >
         <path fill="currentColor" d="M7 10l5 5 5-5z"/>
       </svg>
@@ -55,6 +61,7 @@ const emit = defineEmits(['toggle'])
 const { locale } = useI18n()
 const notify = useNotification()
 const showDescription = ref(false)
+const isLoading = ref(false)
 
 const toggleDescription = () => {
   showDescription.value = !showDescription.value
@@ -76,20 +83,28 @@ const isTaskLocked = computed(() => {
 })
 
 async function handleCheckboxClick() {
-  if (isTaskLocked.value) {
-    notify.warning('errors.future_task')
+  if (isTaskLocked.value || isLoading.value) {
+    if (isTaskLocked.value) {
+      notify.warning('errors.future_task')
+    }
     return
   }
 
+  isLoading.value = true
+  const previousState = props.task.is_completed
+  
+  emit('toggle', props.task)
+
   try {
-    const endpoint = props.task.is_completed ? 'uncomplete' : 'complete'
+    const endpoint = previousState ? 'uncomplete' : 'complete'
     await api.post(`tasks/${props.task.id}/${endpoint}/`, {}, {
       params: { language: locale.value }
     })
     
-    emit('toggle', props.task)
     
   } catch (err) {
+    emit('toggle', props.task)
+    
     if (!err.response) {
       notify.error('errors.network')
     } else if (err.response?.status === 403) {
@@ -101,6 +116,8 @@ async function handleCheckboxClick() {
     if (process.env.NODE_ENV === 'development') {
       console.error('Task toggle error:', err)
     }
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
@@ -114,15 +131,15 @@ async function handleCheckboxClick() {
   overflow: hidden;
   transition: all 0.25s ease;
 
-  &:hover {
-    border-color: $primary-light;
-    border-left-color: v-bind('props.challenge.color');
-    box-shadow: $shadow-sm;
+  @include md {
+    &:hover {
+      border-color: $primary-light;
+      box-shadow: $shadow-sm;
+    }
   }
 
   &.completed {
     opacity: 0.7;
-
     .task-title {
       text-decoration: line-through;
       color: $text-muted;
@@ -130,18 +147,8 @@ async function handleCheckboxClick() {
   }
 
   &.locked {
-    &:hover {
-      border-color: $border;
-      box-shadow: none;
-    }
-
-    .checkbox-box:hover {
-      border-color: $border; 
-    }
-
-    .custom-checkbox {
-      cursor: pointer;
-    }
+    .checkbox-box:hover { border-color: $border; }
+    .custom-checkbox { cursor: pointer; }
   }
 }
 
@@ -149,11 +156,12 @@ async function handleCheckboxClick() {
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  padding: $spacing-lg;
+  padding: $spacing-sm;
   cursor: pointer;
   user-select: none;
-  @media (max-width: 768px) {
-    padding: $spacing-sm $spacing-sm;
+
+  @include md {
+    padding: $spacing-lg;
   }
 }
 
@@ -173,8 +181,10 @@ async function handleCheckboxClick() {
     border-color: v-bind('props.challenge.color');
   }
 
-  &:hover {
-    border-color: v-bind('props.challenge.color');
+  @include md {
+    &:hover {
+      border-color: v-bind('props.challenge.color');
+    }
   }
 }
 
@@ -185,11 +195,6 @@ async function handleCheckboxClick() {
   height: 0;
 }
 
-.custom-checkbox {
-  flex-shrink: 0;
-  position: relative;
-}
-
 .check-icon {
   width: 16px;
   height: 16px;
@@ -198,7 +203,7 @@ async function handleCheckboxClick() {
 
 .task-title {
   flex: 1;
-  font-size: $font-size-base;
+  font-size: $font-size-responsive-base;
   font-weight: $font-weight-semibold;
   margin: 0;
   color: $text-primary;
@@ -209,24 +214,18 @@ async function handleCheckboxClick() {
   flex-shrink: 0;
   color: $text-muted;
   transition: transform 0.25s ease;
-
-  &.open {
-    transform: rotate(180deg);
-  }
+  &.open { transform: rotate(180deg); }
 }
 
 .description-wrapper {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &.open {
-    max-height: 300px; 
-  }
+  &.open { max-height: 300px; }
 }
 
 .description-content {
-  padding: 0 $spacing-lg $spacing-lg $spacing-lg;
+  padding: 0 $spacing-lg $spacing-lg;
   border-top: 1px solid $border;
   padding-top: $spacing-md;
 }
@@ -239,15 +238,49 @@ async function handleCheckboxClick() {
   font-size: $font-size-sm;
 }
 
-.task-meta {
-  margin-top: $spacing-sm;
-}
-
 .task-day {
   font-size: $font-size-xs;
   color: white;
   background: v-bind('props.challenge.color');
   padding: 4px $spacing-sm;
   border-radius: $radius-sm;
+}
+.spinner-icon {
+  width: 16px;
+  height: 16px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.checkbox-box {
+  width: 24px;
+  height: 24px;
+  border: 2px solid $border;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: $white;
+  
+  &.loading {
+    border-color: $primary;
+    cursor: wait;
+  }
+
+  .hidden-checkbox:checked + & {
+    background: v-bind('props.challenge.color');
+    border-color: v-bind('props.challenge.color');
+  }
+
+  @include md {
+    &:hover:not(.loading) {
+      border-color: v-bind('props.challenge.color');
+    }
+  }
 }
 </style>

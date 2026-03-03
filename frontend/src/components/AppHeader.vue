@@ -24,24 +24,29 @@ import { APP_NAME } from '@/constants/index'
   border-bottom: 1px solid $border;
   z-index: 100;
   box-shadow: $shadow-sm;
+  display: none;
   
-  @media (max-width: 767px) {
-    display: none;
+  @include md {
+    display: block;
   }
 }
 
 .header-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: $spacing-lg;
+  padding: $spacing-responsive-md;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: $spacing-xl;
+  gap: $spacing-responsive-lg;
+  
+  @include md {
+    padding: $spacing-responsive-lg;
+  }
 }
 
 .logo {
-  font-size: $font-size-xl;
+  font-size: $font-size-responsive-xl;
   font-weight: $font-weight-bold;
   color: $primary;
   margin: 0;
@@ -49,51 +54,28 @@ import { APP_NAME } from '@/constants/index'
 }
 
 .desktop-nav {
-  display: none; 
-  gap: $spacing-sm;
-  
-  @media (min-width: 768px) {
-    display: flex; 
-  }
+  display: flex;
+  gap: $spacing-responsive-sm;
 }
 
 .nav-link {
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-responsive-sm $spacing-responsive-md;
   color: $text-secondary;
   text-decoration: none;
   font-weight: $font-weight-medium;
-  font-size: $font-size-base; 
+  font-size: $font-size-responsive-base;
   border-radius: $radius-md;
   transition: all 0.15s ease;
   
   &:hover {
     color: $primary;
-    background: rgba(91, 159, 216, 0.1);
+    background: rgba($primary, 0.1);
   }
   
   &.router-link-active {
     color: $primary;
-    background: rgba(91, 159, 216, 0.1);
+    background: rgba($primary, 0.1);
     font-weight: $font-weight-semibold;
   }
-}
-
-.btn-icon {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: $radius-full;
-  border: none;
-  font-size: 20px;
-  background: $bg-secondary;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-icon:hover {
-  background: $border-hover;
 }
 </style>

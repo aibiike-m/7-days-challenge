@@ -27,11 +27,11 @@
   border-top: 1px solid $border;
   display: flex;
   justify-content: space-around;
-  padding: $spacing-sm 0;
+  padding: $spacing-responsive-sm 0;
   z-index: 100;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05); 
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   
-  @media (min-width: 768px) {
+  @include md {
     display: none;
   }
 }
@@ -41,47 +41,55 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-responsive-sm $spacing-responsive-md;
   color: $text-muted;
   text-decoration: none;
   transition: all 0.15s ease;
   border-radius: $radius-md;
-  min-width: 80px;
-}
-
-.nav-item .icon {
-  font-size: 24px;
-  filter: grayscale(100%);
-  opacity: 0.6;
-  transition: all 0.15s ease;
-}
-
-.nav-item .label {
-  font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
-}
-
-.nav-item:hover {
-  color: $primary;
-  background: rgba(91, 159, 216, 0.05);
-}
-
-.nav-item:hover .icon {
-  filter: grayscale(0%);
-  opacity: 1;
-}
-
-.nav-item.router-link-active {
-  color: $primary;
-}
-
-.nav-item.router-link-active .icon {
-  filter: grayscale(0%);
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.nav-item.router-link-active .label {
-  font-weight: $font-weight-semibold;
+  min-width: 70px;
+  
+  @include sm {
+    min-width: 80px;
+  }
+  
+  .icon {
+    font-size: 22px;
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition: all 0.15s ease;
+    
+    @include sm {
+      font-size: $font-size-2xl;
+    }
+  }
+  
+  .label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+  }
+  
+  &:hover {
+    color: $primary;
+    background: rgba($primary, 0.05);
+    
+    .icon {
+      filter: grayscale(0%);
+      opacity: 1;
+    }
+  }
+  
+  &.router-link-active {
+    color: $primary;
+    
+    .icon {
+      filter: grayscale(0%);
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    
+    .label {
+      font-weight: $font-weight-semibold;
+    }
+  }
 }
 </style>

@@ -84,33 +84,66 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $spacing-md;
+  padding: $spacing-responsive-sm;
+  
+  @include md {
+    padding: $spacing-responsive-md;
+  }
 }
 
 .deletion-card {
   background: $white;
-  border-radius: $radius-lg;
-  padding: $spacing-xl;
-  max-width: 440px;
+  border-radius: $radius-md;
+  padding: $spacing-responsive-lg;
   width: 100%;
+  max-width: 100%;
   box-shadow: $shadow-md;
   text-align: center;
+  
+  @media (max-width: 374px) {
+    padding: $spacing-responsive-md;
+  }
+
+  @include md {
+    padding: $spacing-responsive-xl;
+    border-radius: $radius-lg;
+    max-width: 440px;
+  }
 }
 
 .state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $spacing-md;
+  gap: $spacing-responsive-sm;
+  
+  @include md {
+    gap: $spacing-responsive-md;
+  }
 }
 
 .icon {
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  @include md {
+    width: 72px;
+    height: 72px;
+    
+    svg {
+      width: auto;
+      height: auto;
+    }
+  }
 
   &--success {
     background: $success-light;
@@ -124,26 +157,40 @@ onMounted(async () => {
 }
 
 .state-title {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: $font-size-responsive-lg;
+  font-weight: $font-weight-bold;
   color: $text-primary;
   margin: 0;
+  
+  @include md {
+    font-size: $font-size-responsive-xl;
+  }
 }
 
 .state-text {
-  font-size: $font-size-sm;
+  font-size: $font-size-xs;
   color: $text-secondary;
   line-height: 1.6;
   margin: 0;
+  
+  @include md {
+    font-size: $font-size-responsive-sm;
+  }
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid $border;
+  width: 40px;
+  height: 40px;
+  border: 3px solid $border;
   border-top-color: $primary;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  
+  @include md {
+    width: 48px;
+    height: 48px;
+    border-width: 4px;
+  }
 }
 
 @keyframes spin {
@@ -151,20 +198,30 @@ onMounted(async () => {
 }
 
 .btn-home {
-  margin-top: $spacing-sm;
-  padding: $spacing-sm $spacing-lg;
+  margin-top: $spacing-responsive-sm;
+  width: 100%;
+  padding: $spacing-responsive-xs $spacing-responsive-md;
   background: $primary;
   color: $white;
   border: none;
   border-radius: $radius-md;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: $font-size-responsive-sm;
+  font-weight: $font-weight-semibold;
   cursor: pointer;
   transition: all 0.2s ease;
+
+  @include md {
+    width: auto;
+    padding: $spacing-responsive-sm $spacing-responsive-lg;
+  }
 
   &:hover {
     background: $primary-hover;
     transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 }
 </style>
