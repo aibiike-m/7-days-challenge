@@ -365,9 +365,7 @@ async function handleChallengeCreated(newChallenge) {
 
 async function confirmDelete() {
   try {
-    await Promise.all(
-      selectedChallengeIds.value.map(id => api.deleteChallenge(id))
-    );
+    await api.bulkDeleteChallenges(selectedChallengeIds.value);
 
     allChallenges.value = allChallenges.value.filter(
       challenge => !selectedChallengeIds.value.includes(challenge.id)
@@ -381,6 +379,7 @@ async function confirmDelete() {
     
     closeDeleteModal();
     cancelSelection();
+
   } catch (error) {
     if (!error.response) {
       notify.error('errors.network');

@@ -44,7 +44,8 @@ api.getChallenges = () => api.get('challenges/')
 api.getAllTasks = () => api.get('tasks/')
 api.getTasks = challengeId => api.get(`challenges/${challengeId}/tasks/`)
 api.updateTaskStatus = (taskId, isCompleted) => api.patch(`tasks/${taskId}/`, { is_completed: isCompleted })
-api.deleteChallenge = id => api.delete(`challenges/${id}/`)
+api.bulkDeleteChallenges = ids =>
+	api.delete('challenges/bulk-delete/', { data: { ids } })
 api.getTasksByChallenge = challengeId =>
 	api.get(`challenges/${challengeId}/tasks/`)
 

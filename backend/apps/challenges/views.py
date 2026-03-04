@@ -61,7 +61,6 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def list(self, request, *args, **kwargs):
-        """List of challenges"""
         queryset = self.get_queryset()
         serializer = self.get_serializer(
             queryset, many=True, context=self.get_serializer_context()
@@ -88,6 +87,22 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             challenge, context=self.get_serializer_context()
         )
         return Response(serializer.data)
+
+    @action(detail=False, methods=["delete"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        """Массовое удаление челленджей"""
+        ids = request.data.get("ids", [])
+        if not ids:
+            return Response(
+                {"detail": "No IDs provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        deleted_count, _ = self.get_queryset().filter(id__in=ids).delete()
+
+        return Response(
+            {"detail": f"Successfully deleted {deleted_count} challenges"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
 
 class TaskViewSet(viewsets.ModelViewSet):
