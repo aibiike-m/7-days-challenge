@@ -214,7 +214,22 @@ const currentMonthName = computed(() => {
 const selectedDayTasks = computed(() => {
   if (!selectedDate.value) return []
 
-  return getTasksForDate(allTasks.value, allChallenges.value, selectedDate.value)
+  const tasks = getTasksForDate(allTasks.value, allChallenges.value, selectedDate.value)
+
+  const challengeOrder = {};
+  allChallenges.value.forEach((ch, index) => {
+    challengeOrder[ch.id] = index;
+  });
+
+  return [...tasks].sort((a, b) => {
+    const orderA = challengeOrder[a.challenge_id] ?? 999;
+    const orderB = challengeOrder[b.challenge_id] ?? 999;
+
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    return a.id - b.id;
+  });
 })
 
 const challengesForSelectedDate = computed(() => {
@@ -307,6 +322,27 @@ const calendarDates = computed(() => {
 
   return dates
 })
+
+
+
+
+// const tasksForSelectedDate = computed(() => {
+//   if (!selectedDate.value) return [];
+
+//   return allTasks.value
+//     .filter(task => {
+//       const taskDate = calculateTaskDate(task);
+//       return taskDate === selectedDate.value;
+//     })
+//     .sort((a, b) => {
+//       // 1. Сначала группируем по челленджу
+//       if (a.challenge_id !== b.challenge_id) {
+//         return a.challenge_id - b.challenge_id;
+//       }
+//       // 2. Внутри челленджа сортируем по ID задачи
+//       return a.id - b.id;
+//     });
+// });
 
 function toggleSelectionMode() {
   isSelectionMode.value = !isSelectionMode.value
