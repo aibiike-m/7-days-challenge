@@ -56,7 +56,7 @@ onMounted(async () => {
 
   if (!token) {
     status.value = 'error'
-    errorMessage.value = t('deletion.error_no_token')
+    errorMessage.value = ('deletion.error_no_token')
     return
   }
 
@@ -72,7 +72,7 @@ onMounted(async () => {
   } catch (error) {
     status.value = 'error'
     errorMessage.value =
-      error.response?.data?.error || t('deletion.error_generic')
+      error.response?.data?.error || ('deletion.error_generic')
   }
 })
 </script>

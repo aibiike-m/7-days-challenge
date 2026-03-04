@@ -264,7 +264,7 @@ const loadUserData = async () => {
       localStorage.setItem('language', serverLang)
     }
   } catch (err) {
-    notify.error(t('errors.load_failed'))
+    notify.error('errors.load_failed')
     if (import.meta.env.DEV) {
       console.error('Error loading user data:', err)
     }
@@ -277,10 +277,10 @@ const changeDisplayName = async () => {
   try {
     const response = await api.patch('/users/me/', { display_name: newDisplayName.value.trim() })
     user.value.display_name = response.data.display_name
-    notify.success(t('success.profile_saved'))
+    notify.success('success.profile_saved')
     newDisplayName.value = ''
   } catch (error) {
-    notify.error(error.response?.data?.username?.[0] || error.response?.data?.error || t('errors.update_failed'))
+    notify.error(error.response?.data?.username?.[0] || error.response?.data?.error || ('errors.update_failed'))
   } finally {
     displayNameLoading.value = false
   }
@@ -292,9 +292,9 @@ const requestEmailChange = async () => {
   try {
     await api.post('/users/request-email-change/', { new_email: newEmail.value })
     emailChangeRequested.value = true
-    notify.success(t('success.code_sent'))
+    notify.success('success.code_sent')
   } catch (error) {
-    notify.error(error.response?.data?.new_email?.[0] || error.response?.data?.error || t('errors.request_failed'))
+    notify.error(error.response?.data?.new_email?.[0] || error.response?.data?.error || ('errors.request_failed'))
   } finally {
     emailLoading.value = false
   }
@@ -306,7 +306,7 @@ const confirmEmailChange = async () => {
   try {
     const res = await api.post('/users/confirm-email-change/', { code: emailCode.value })
     user.value = { ...user.value, email: res.data.new_email }
-    notify.success(t('success.email_changed'))
+    notify.success('success.email_changed')
     newEmail.value = ''
     emailCode.value = ''
     emailChangeRequested.value = false
@@ -322,7 +322,7 @@ const confirmEmailChange = async () => {
       }
     }, 1800)
   } catch (error) {
-    notify.error(error.response?.data?.error || t('errors.invalid_code'))
+    notify.error(error.response?.data?.error || ('errors.invalid_code'))
   } finally {
     emailLoading.value = false
   }
@@ -337,7 +337,7 @@ const cancelEmailChange = () => {
 const changePassword = async () => {
   if (!isPasswordFormValid.value) return
   if (passwords.value.new !== passwords.value.confirm) {
-    notify.error(t('errors.password_mismatch'))
+    notify.error('errors.password_mismatch')
     return
   }
   passwordLoading.value = true
@@ -347,7 +347,7 @@ const changePassword = async () => {
       new_password: passwords.value.new,
       confirm_password: passwords.value.confirm
     })
-    notify.success(t('success.password_changed'))
+    notify.success('success.password_changed')  
     passwords.value = { old: '', new: '', confirm: '' }
     showPasswords.value = false
   } catch (error) {
@@ -355,7 +355,7 @@ const changePassword = async () => {
       error.response?.data?.old_password?.[0] ||
       error.response?.data?.new_password?.[0] ||
       error.response?.data?.error ||
-      t('errors.update_failed')
+      ('errors.update_failed')
     )
   } finally {
     passwordLoading.value = false
@@ -365,7 +365,7 @@ const changePassword = async () => {
 const setPassword = async () => {
   if (!isSetPasswordFormValid.value) return
   if (passwords.value.new !== passwords.value.confirm) {
-    notify.error(t('errors.password_mismatch'))
+    notify.error('errors.password_mismatch')
     return
   }
   passwordLoading.value = true
@@ -375,14 +375,14 @@ const setPassword = async () => {
       confirm_password: passwords.value.confirm
     })
     hasPassword.value = true
-    notify.success(t('success.password_set'))
+    notify.success('success.password_set')
     passwords.value = { old: '', new: '', confirm: '' }
     showPasswords.value = false
   } catch (error) {
     notify.error(
       error.response?.data?.new_password?.[0] ||
       error.response?.data?.error ||
-      t('errors.update_failed')
+      ('errors.update_failed')
     )
   } finally {
     passwordLoading.value = false
@@ -463,7 +463,7 @@ const requestAccountDeletion = async () => {
     await api.post('/users/delete-account/', {})
     showDeleteEmailSentModal.value = true
   } catch {
-    notify.error(t('errors.request_failed'))
+    notify.error('errors.request_failed')
   } finally {
     deleteLoading.value = false
   }
@@ -471,7 +471,7 @@ const requestAccountDeletion = async () => {
 
 const deleteAccountWithPassword = async (done) => {
   if (!deletePassword.value) {
-    notify.error(t('errors.validation'))
+    notify.error('errors.validation')
     if (typeof done === 'function') done()
     return
   }
@@ -480,13 +480,13 @@ const deleteAccountWithPassword = async (done) => {
     await api.post('/users/delete-account/', { password: deletePassword.value })
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh')
-    notify.success(t('success.account_deleted'))
+    notify.success('success.account_deleted')
     router.push('/auth')
   } catch (error) {
     notify.error(
       error.response?.data?.password?.[0] ||
       error.response?.data?.error ||
-      t('errors.request_failed')
+      ('errors.request_failed')
     )
   } finally {
     deleteLoading.value = false

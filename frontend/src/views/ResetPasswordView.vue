@@ -197,7 +197,7 @@ const requestPasswordReset = async () => {
     resetCode.value = ''
     resetStep.value = 'code'
   } catch (error) {
-    notify.error(!error.response ? t('errors.network') : t('errors.server'))
+    notify.error(!error.response ? ('errors.network') : ('errors.server'))
     if (import.meta.env.DEV) console.error('Password reset request error:', error)
   } finally {
     isLoading.value = false
@@ -218,12 +218,12 @@ const proceedToNewPassword = async () => {
     showPasswords.value = false
   } catch (error) {
     if (!error.response) {
-      notify.error(t('errors.network'))
+      notify.error('errors.network')
     } else if (error.response?.status === 400) {
-      notify.error(t('errors.invalid_code'))
+      notify.error('errors.invalid_code')
       resetCode.value = ''
     } else {
-      notify.error(t('errors.server'))
+      notify.error('errors.server')
     }
     if (import.meta.env.DEV) console.error('Code verification error:', error)
   } finally {
@@ -246,7 +246,7 @@ const confirmPasswordReset = async () => {
     resetStep.value = 'success'
   } catch (error) {
     if (!error.response) {
-      notify.error(t('errors.network'))
+      notify.error('errors.network')
       return
     }
 
@@ -265,7 +265,7 @@ const confirmPasswordReset = async () => {
         notify.error(err.non_field_errors[0])
       } 
       else if (err?.error && err.error.toLowerCase().includes('code')) {
-        notify.error(t('errors.invalid_code'))
+        notify.error('errors.invalid_code')
         resetStep.value = 'code'
         resetCode.value = ''
       } 
@@ -273,10 +273,10 @@ const confirmPasswordReset = async () => {
         notify.error(err.detail || err.error || err.message)
       }
       else {
-        notify.error(t('errors.server'))
+        notify.error('errors.server')
       }
     } else {
-      notify.error(t('errors.server'))
+      notify.error('errors.server')
     }
     
     if (import.meta.env.DEV) console.error('Password reset confirm error:', error)
