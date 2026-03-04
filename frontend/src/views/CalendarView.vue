@@ -98,14 +98,14 @@
                 <div class="challenge-meta">
                   <span class="challenge-duration">{{ challenge.duration_days }} {{ $t('calendar.day') }}</span>
                   <span class="challenge-progress" :style="{ color: challenge.color }">
-                    {{ challenge.progress_percentage }}%
+                    {{ calculateChallengeProgress(challenge.id) }}%
                   </span>
                 </div>
                 <div class="progress-bar">
                   <div 
                     class="progress-fill" 
                     :style="{ 
-                      width: challenge.progress_percentage + '%',
+                      width: calculateChallengeProgress(challenge.id) + '%',
                       background: challenge.color 
                     }"
                   ></div>
@@ -119,7 +119,7 @@
       <div v-if="selectedDate" class="tasks-section right-column">
         <button 
           class="fab-desktop"
-          @click="$emit('open-modal')"
+          @click="isModalOpen = true"
           title="Create challenge"
         >
           {{ $t('today.new_challenge') }}
@@ -154,7 +154,7 @@
       @close="closeDeleteModal"
       @confirm="confirmDelete"
     >
-    <div v-if="selectedChallenges.length > 0" class="challenges-to-delete">
+      <div v-if="selectedChallenges.length > 0" class="challenges-to-delete">
         <div 
           v-for="challenge in selectedChallenges" 
           :key="challenge.id"
@@ -168,7 +168,7 @@
     <CreateChallengeModal 
       :is-open="isModalOpen" 
       @close="isModalOpen = false"
-      @created="fetchData" 
+      @created="handleChallengeCreated" 
     />
   </div>
 </template>
@@ -180,11 +180,12 @@ import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
 import TaskCard from '@/components/TaskCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue' 
+import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
 import api from '@/services/api/index.js'
-import { isSameDay } from '@/utils/taskHelpers'
+import { getTasksForDate, isSameDay } from '@/utils/taskHelpers.js'
 
 const router = useRouter()
-const i18n = useI18n()
+const { t, locale } = useI18n()
 const notify = useNotification()
 
 const loading = ref(true)
@@ -196,33 +197,24 @@ const allTasks = ref([])
 const isSelectionMode = ref(false)
 const selectedChallengeIds = ref([])
 const showDeleteModal = ref(false)
-
-defineEmits(['open-modal'])
+const isModalOpen = ref(false)
 
 const weekdaysRu = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const weekdaysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const weekdays = computed(() => 
-  i18n.locale.value === 'ru' ? weekdaysRu : weekdaysEn
+  locale.value === 'ru' ? weekdaysRu : weekdaysEn
 )
 
 const currentMonthName = computed(() => {
-  const locale = i18n.locale.value === 'ru' ? 'ru-RU' : 'en-US'
-  return currentDate.value.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
+  const loc = locale.value === 'ru' ? 'ru-RU' : 'en-US'
+  return currentDate.value.toLocaleDateString(loc, { month: 'long', year: 'numeric' })
 })
 
 const selectedDayTasks = computed(() => {
   if (!selectedDate.value) return []
 
-  return allTasks.value.filter(task => {
-    const challenge = allChallenges.value.find(c => c.id === task.challenge_id)
-    if (!challenge) return false
-
-    const taskDate = new Date(challenge.start_date)
-    taskDate.setDate(taskDate.getDate() + (task.day_number - 1))
-
-    return isSameDay(taskDate, selectedDate.value)
-  })
+  return getTasksForDate(allTasks.value, allChallenges.value, selectedDate.value)
 })
 
 const challengesForSelectedDate = computed(() => {
@@ -363,46 +355,39 @@ function closeDeleteModal() {
   showDeleteModal.value = false
 }
 
-// async function handleChallengeCreated(newChallenge) {
-//   await loadChallenges()
+async function handleChallengeCreated(newChallenge) {
+  await loadChallenges()
   
-//   if (allChallenges.value.length > 0) {
-//     await loadAllTasks()
-//   }
-// }
+  if (allChallenges.value.length > 0) {
+    await loadAllTasks()
+  }
+}
 
 async function confirmDelete() {
   try {
     await Promise.all(
-      selectedChallengeIds.value.map(id => 
-        api.delete(`challenges/${id}/`, {
-          params: { language: i18n.locale.value }
-        })
-      )
-    )
+      selectedChallengeIds.value.map(id => api.deleteChallenge(id))
+    );
 
-    notify.success('success.challenges_deleted')
+    allChallenges.value = allChallenges.value.filter(
+      challenge => !selectedChallengeIds.value.includes(challenge.id)
+    );
+
+    allTasks.value = allTasks.value.filter(
+      task => !selectedChallengeIds.value.includes(task.challenge_id)
+    );
+
+    notify.success('success.challenges_deleted');
     
-    await loadChallenges()
-    if (allChallenges.value.length > 0) {
-      await loadAllTasks()
-    } else {
-      allTasks.value = []
-    }
-
-    closeDeleteModal()
-    cancelSelection()
-
+    closeDeleteModal();
+    cancelSelection();
   } catch (error) {
     if (!error.response) {
-      notify.error('errors.network')
+      notify.error('errors.network');
     } else {
-      notify.error('errors.challenge_delete')
+      notify.error('errors.challenge_delete');
     }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error deleting challenges:', error)
-    }
+    console.error('Error deleting challenges:', error);
   }
 }
 
@@ -431,15 +416,31 @@ function getChallengeForTask(task) {
   return allChallenges.value.find(c => c.id === task.challenge_id)
 }
 
-function onTaskToggled(task) {
-  task.is_completed = !task.is_completed
+function calculateChallengeProgress(challengeId) {
+  const challengeTasks = allTasks.value.filter(t => t.challenge_id === challengeId)
+  if (challengeTasks.length === 0) return 0
+  
+  const completed = challengeTasks.filter(t => t.is_completed).length
+  return Math.round((completed / challengeTasks.length) * 100)
 }
 
+async function onTaskToggled(task) {
+  const originalStatus = task.is_completed;
+  try {
+    task.is_completed = !task.is_completed;
+    await api.updateTaskStatus(task.id, task.is_completed);
+  } catch (error) {
+    task.is_completed = originalStatus;
+    if (!error.response) {
+      notify.error('errors.network')
+    } else {
+      notify.error('errors.task_update')
+    }
+  }
+}
 async function loadChallenges() {
   try {
-    const response = await api.get('challenges/', {
-      params: { language: i18n.locale.value }
-    })
+    const response = await api.getChallenges()
     allChallenges.value = response.data.results || response.data || []
     
   } catch (error) {
@@ -466,12 +467,7 @@ async function loadAllTasks() {
   const challengeIds = allChallenges.value.map(c => c.id)
   
   try {
-    const response = await api.get('tasks/', {
-      params: {
-        challenge_ids: challengeIds.join(','),
-        language: i18n.locale.value
-      }
-    })
+    const response = await api.getAllTasks()
     const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
     allTasks.value = tasks
     

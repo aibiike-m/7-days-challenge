@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-	baseURL: 'http://localhost:8000/api/', 
+	baseURL: 'http://localhost:8000/api/',
 	timeout: 60000,
 })
 
@@ -38,5 +38,14 @@ api.interceptors.response.use(
 		return Promise.reject(error)
 	}
 )
+
+
+api.getChallenges = () => api.get('challenges/')
+api.getAllTasks = () => api.get('tasks/')
+api.getTasks = challengeId => api.get(`challenges/${challengeId}/tasks/`)
+api.updateTaskStatus = (taskId, isCompleted) => api.patch(`tasks/${taskId}/`, { is_completed: isCompleted })
+api.deleteChallenge = id => api.delete(`challenges/${id}/`)
+api.getTasksByChallenge = challengeId =>
+	api.get(`challenges/${challengeId}/tasks/`)
 
 export default api

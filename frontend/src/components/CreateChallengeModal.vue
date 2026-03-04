@@ -46,13 +46,11 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { MIN_GOAL_LENGTH, MAX_GOAL_LENGTH } from '@/constants/index'
 
 const { t, locale } = useI18n()
-const router = useRouter()
 const notify = useNotification()
 const emit = defineEmits(['close', 'created'])
 
@@ -97,9 +95,20 @@ const submit = async () => {
       language: locale.value
     })
     
+    const challengeData = response.data?.challenge || response.data
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📦 Challenge created:', challengeData)
+    }
+    
+    if (!challengeData.id || !challengeData.start_date) {
+      console.error('⚠️ Invalid challenge data structure:', challengeData)
+      throw new Error('Invalid challenge data from server')
+    }
+    
     notify.success('success.challenge_created')
     
-    emit('created', response.data)
+    emit('created', challengeData)
     emit('close')
     goal.value = ''
     
