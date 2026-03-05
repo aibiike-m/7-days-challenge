@@ -1,5 +1,5 @@
 <template>
-  <div class="deletion-view">
+  <div class="deletion-view page-container">
     <div class="deletion-card">
 
       <div v-if="status === 'loading'" class="state">
@@ -15,6 +15,7 @@
         </div>
         <h1 class="state-title">{{ $t('deletion.success_title') }}</h1>
         <p class="state-text">{{ $t('deletion.success_message') }}</p>
+        <button class="btn-home" @click="goHome">{{ $t('deletion.go_home') }}</button>
       </div>
 
       <div v-else-if="status === 'error'" class="state">
@@ -68,7 +69,6 @@ onMounted(async () => {
 
     status.value = 'success'
 
-    setTimeout(() => router.push('/auth'), 3000)
   } catch (error) {
     status.value = 'error'
     errorMessage.value =
@@ -84,10 +84,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $spacing-responsive-sm;
+  
+  padding-top: $spacing-responsive-md;
+  padding-bottom: $spacing-responsive-md;
   
   @include md {
-    padding: $spacing-responsive-md;
+    padding-top: $spacing-responsive-lg;
+    padding-bottom: $spacing-responsive-lg;
   }
 }
 
@@ -96,18 +99,13 @@ onMounted(async () => {
   border-radius: $radius-md;
   padding: $spacing-responsive-lg;
   width: 100%;
-  max-width: 100%;
+  max-width: 600px;
   box-shadow: $shadow-md;
   text-align: center;
   
-  @media (max-width: 374px) {
-    padding: $spacing-responsive-md;
-  }
-
   @include md {
     padding: $spacing-responsive-xl;
     border-radius: $radius-lg;
-    max-width: 440px;
   }
 }
 
@@ -199,7 +197,8 @@ onMounted(async () => {
 
 .btn-home {
   margin-top: $spacing-responsive-sm;
-  width: 100%;
+  width: max-content;
+  min-width: 160px;
   padding: $spacing-responsive-xs $spacing-responsive-md;
   background: $primary;
   color: $white;
@@ -211,8 +210,7 @@ onMounted(async () => {
   transition: all 0.2s ease;
 
   @include md {
-    width: auto;
-    padding: $spacing-responsive-sm $spacing-responsive-lg;
+    min-width: 200px;
   }
 
   &:hover {

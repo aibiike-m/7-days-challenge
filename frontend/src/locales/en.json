@@ -85,7 +85,7 @@
 	"deletion": {
 		"loading": "Processing your request...",
 		"success_title": "Account deleted",
-		"success_message": "Your account has been permanently deleted. You will be redirected shortly.",
+		"success_message": "Your account has been permanently deleted.",
 		"error_title": "Something went wrong",
 		"error_no_token": "The deletion link is invalid or missing.",
 		"error_generic": "This link may have already been used or has expired.",
