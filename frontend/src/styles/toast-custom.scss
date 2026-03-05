@@ -1,6 +1,3 @@
-@use "@/styles/variables" as *;
-@use "@/styles/mixins" as *;
-
 .Vue-Toastification__toast {
   font-family: $font-family;
   border-radius: $radius-lg;
@@ -27,6 +24,12 @@
 .Vue-Toastification__toast--warning {
   .Vue-Toastification__icon {
     color: $white;
+  }
+}
+
+@include md {
+  .Vue-Toastification__container {
+    top: 80px !important;
   }
 }
 
