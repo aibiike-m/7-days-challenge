@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-view">
+  <div class="auth-view page-container">
     <div class="auth-container">
       <div class="app-name">{{ APP_NAME }}</div>
 
@@ -188,22 +188,18 @@ async function handleSubmit() {
   justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, $primary, $primary-light);
-  padding: $spacing-responsive-md;
-
-  @include md {
-    padding: $spacing-responsive-lg;
-  }
+  padding-top: $spacing-responsive-md;
+  padding-bottom: $spacing-responsive-md;
 }
 
 .auth-container {
   width: 100%;
-  max-width: 100%;
+  max-width: 400px; 
   display: flex;
   flex-direction: column;
   gap: $spacing-responsive-md;
 
   @include md {
-    max-width: 400px;
     gap: $spacing-responsive-lg;
   }
 }

@@ -63,3 +63,9 @@ $font-size-responsive-base: clamp(0.9rem, 3vw, 1rem);       // 14.4-16px
 $font-size-responsive-lg: clamp(1rem, 3.5vw, 1.125rem);     // 16-18px
 $font-size-responsive-xl: clamp(1.125rem, 4vw, 1.25rem);    // 18-20px
 $font-size-responsive-2xl: clamp(1.625rem, 7vw, 2.25rem);
+
+
+// ===== ADAPTIVE CONTAINER
+$container-padding-adaptive: clamp(1.5rem, 8vw, 5rem);
+$container-padding-mobile: 1rem;
+$container-padding-desktop: 5rem;

@@ -1,5 +1,5 @@
 <template>
-  <div class="today-view">
+  <div class="today-view page-container">
     <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
 
     <div v-else-if="todayTasks.length === 0" class="empty-state">
@@ -122,16 +122,13 @@ function handleError(error, logLabel) {
 </script>
 
 <style scoped lang="scss">
-.today-view {
+.today-view {  
   max-width: 700px;
-  margin: 0 auto;
-  padding: $spacing-responsive-md;
+  padding-top: $spacing-responsive-md;
   padding-bottom: 100px;
 
   @include md {
-    padding: $spacing-responsive-lg;
-    padding-left: $spacing-responsive-xl;
-    padding-right: $spacing-responsive-xl;
+    padding-top: $spacing-responsive-lg;
     padding-bottom: 120px;
   }
 

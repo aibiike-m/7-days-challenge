@@ -1,40 +1,38 @@
 <template>
-  <div class="profile-view">
-    <div class="container">
-      <h1 class="page-title">{{ APP_NAME }}</h1>
+  <div class="profile-view page-container">
+    <h1 class="page-title">{{ APP_NAME }}</h1>
 
-      <div class="profile-layout">
-        <div class="profile-header">
-          <h2 class="username">{{ displayName }}</h2>
-        </div>
+    <div class="profile-layout">
+      <div class="profile-header">
+        <h2 class="username">{{ displayName }}</h2>
+      </div>
 
-        <div class="card chart-card">
-          <h3 class="chart-title">{{ $t('profile.statistics') }}</h3>
-          <div class="chart-wrapper">
-            <canvas ref="chartCanvas"></canvas>
-          </div>
-        </div>
-
-        <div class="profile-actions">
-          <button class="btn-settings" @click="goToSettings">
-            {{ $t('profile.settings') }}
-          </button>
-          <button class="btn-logout" @click="showLogoutModal = true">
-            {{ $t('profile.logout') }}
-          </button>
+      <div class="card chart-card">
+        <h3 class="chart-title">{{ $t('profile.statistics') }}</h3>
+        <div class="chart-wrapper">
+          <canvas ref="chartCanvas"></canvas>
         </div>
       </div>
 
+      <div class="profile-actions">
+        <button class="btn-settings" @click="goToSettings">
+          {{ $t('profile.settings') }}
+        </button>
+        <button class="btn-logout" @click="showLogoutModal = true">
+          {{ $t('profile.logout') }}
+        </button>
+      </div>
     </div>
-    <ConfirmModal
-      :is-open="showLogoutModal"
-      :title="$t('profile.logout_confirm_title')"
-      :confirm-text="$t('profile.logout')"
-      :danger-mode="true"
-      @close="showLogoutModal = false"
-      @confirm="confirmLogout"
-    />
+
   </div>
+  <ConfirmModal
+    :is-open="showLogoutModal"
+    :title="$t('profile.logout_confirm_title')"
+    :confirm-text="$t('profile.logout')"
+    :danger-mode="true"
+    @close="showLogoutModal = false"
+    @confirm="confirmLogout"
+  />
 </template>
 
 <script setup>
@@ -150,20 +148,15 @@ async function confirmLogout() {
 
 <style scoped lang="scss">
 .profile-view {
-  padding: $spacing-responsive-md 0;
+  max-width: 800px;
+  padding-top: $spacing-responsive-md;
+  padding-bottom: 100px;
   min-height: 100vh;
   background: $bg-primary;
-  @include md { padding: $spacing-responsive-lg 0; }
-}
 
-.container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 $spacing-responsive-sm;
-  display: flex;
-  flex-direction: column;
-  @include md { padding: 0 $spacing-responsive-md; }
-  @include lg { padding: 0 $spacing-responsive-lg; }
+  @include md { 
+    padding-top: $spacing-responsive-lg; 
+  }
 }
 
 .page-title {

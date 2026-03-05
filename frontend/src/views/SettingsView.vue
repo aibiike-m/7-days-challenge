@@ -1,152 +1,151 @@
 <template>
-  <div class="settings-view">
-    <div class="settings-container">
-      <div class="settings-header">
-        <button @click="goBack" class="btn-back">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 class="settings-title">{{ $t('settings.title') }}</h1>
+  <div class="settings-view page-container">
+    <div class="settings-header">
+      <button @click="goBack" class="btn-back">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <h1 class="settings-title">{{ $t('settings.title') }}</h1>
+    </div>
+
+    <div class="settings-card">
+      <h2 class="section-title">{{ $t('settings.account_info') }}</h2>
+      <div class="info-row">
+        <span class="info-label">{{ $t('settings.email') }}:</span>
+        <span class="info-value">{{ user?.email }}</span>
       </div>
-
-      <div class="settings-card">
-        <h2 class="section-title">{{ $t('settings.account_info') }}</h2>
-        <div class="info-row">
-          <span class="info-label">{{ $t('settings.email') }}:</span>
-          <span class="info-value">{{ user?.email }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">{{ $t('settings.username') }}:</span>
-          <span class="info-value">{{ user?.display_name || $t('profile.default_username') }}</span>
-        </div>
+      <div class="info-row">
+        <span class="info-label">{{ $t('settings.username') }}:</span>
+        <span class="info-value">{{ user?.display_name || $t('profile.default_username') }}</span>
       </div>
+    </div>
 
-      <div class="settings-card">
-        <h2 class="section-title">{{ $t('settings.new_username') }}</h2>
-        <div class="form-group">
-          <input v-model="newDisplayName" type="text" :placeholder="$t('settings.new_username')" class="input-field" maxlength="150" />
-          <button @click="changeDisplayName" class="btn btn-primary" :disabled="!newDisplayName.trim() || displayNameLoading">
-            {{ displayNameLoading ? $t('common.loading') : $t('settings.save') }}
-          </button>
-        </div>
-      </div>
-
-      <div class="settings-card">
-        <h2 class="section-title">{{ $t('settings.change_email') }}</h2>
-        <div v-if="!emailChangeRequested" class="form-group">
-          <input v-model="newEmail" type="email" :placeholder="$t('settings.new_email')" class="input-field" />
-          <button @click="requestEmailChange" class="btn btn-primary" :disabled="!newEmail || emailLoading">
-            {{ emailLoading ? $t('common.loading') : $t('settings.send_code') }}
-          </button>
-        </div>
-        <div v-else class="form-group">
-          <p class="info-text">{{ $t('settings.code_sent_to') }} {{ newEmail }}</p>
-          <input v-model="emailCode" type="text" :placeholder="$t('settings.enter_code')" maxlength="6" class="input-field" />
-          <div class="button-group">
-            <button @click="confirmEmailChange" class="btn btn-primary" :disabled="!emailCode || emailCode.length !== 6 || emailLoading">
-              {{ emailLoading ? $t('common.loading') : $t('settings.confirm') }}
-            </button>
-            <button @click="cancelEmailChange" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-card">
-        <h2 class="section-title">
-          {{ hasPassword ? $t('settings.change_password') : $t('settings.set_password') }}
-        </h2>
-
-        <div v-if="hasPassword" class="form-group">
-          <p class="password-hint-text">
-            {{ $t('settings.password_hint_create_strong') }}
-          </p>
-          <div class="password-input">
-            <input v-model="passwords.old" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.current_password')" class="input-field" />
-            <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
-              <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-            </button>
-          </div>
-          <div class="password-input">
-            <input v-model="passwords.new" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.new_password')" class="input-field" />
-            <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
-              <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-            </button>
-          </div>
-          <div class="password-input">
-            <input v-model="passwords.confirm" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.confirm_password')" class="input-field" />
-            <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
-              <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-            </button>
-          </div>
-          <div class="forgot-link-row">
-            <button @click="changePassword" class="btn btn-primary btn-full" :disabled="!isPasswordFormValid || passwords.new !== passwords.confirm || passwordLoading">
-              {{ passwordLoading ? $t('common.loading') : $t('settings.change_password') }}
-            </button>
-            <div class="forgot-link-row">
-              <button type="button" @click="openPasswordReset" class="link-btn">
-                {{ $t('auth.forgot_password') }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="form-group">
-          <p class="info-text">{{ $t('settings.no_password_set') }}</p>
-          <p class="password-hint-text">
-            {{ $t('settings.password_hint_create_strong') }}
-          </p>
-          <div class="password-input">
-            <input v-model="passwords.new" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.new_password')" class="input-field" />
-            <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
-              <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-            </button>
-          </div>
-          <div class="password-input">
-            <input v-model="passwords.confirm" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.confirm_password')" class="input-field" />
-            <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
-              <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-            </button>
-          </div>
-          <button @click="setPassword" class="btn btn-primary btn-full" :disabled="!isSetPasswordFormValid || passwords.new !== passwords.confirm || passwordLoading">
-            {{ passwordLoading ? $t('common.loading') : $t('settings.set_password') }}
-          </button>
-        </div>
-      </div>
-
-      <div class="settings-card">
-        <h2 class="section-title">{{ $t('settings.language') }}</h2>
-
-        <div class="language-section">
-          <div class="custom-select">             
-            <div class="select-trigger" 
-              @click.stop="isOpen = !isOpen" 
-              :class="{ 'is-open': isOpen }"
-            >
-              <span>{{ locale === 'ru' ? 'Русский' : 'English' }}</span>
-              <span class="arrow"></span>
-            </div>
-            <div v-if="isOpen" class="select-dropdown">
-              <div class="select-option" @click="changeLanguage('ru')">Русский</div>
-              <div class="select-option" @click="changeLanguage('en')">English</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-card settings-card--danger">
-        <h2 class="section-title section-title--danger">{{ $t('settings.delete_account') }}</h2>
-        <p class="info-text">{{ $t('settings.delete_account_description') }}</p>
-        <button @click="openDeleteModal" class="btn btn-danger btn-full">
-          {{ $t('settings.delete_account_btn') }}
+    <div class="settings-card">
+      <h2 class="section-title">{{ $t('settings.new_username') }}</h2>
+      <div class="form-group">
+        <input v-model="newDisplayName" type="text" :placeholder="$t('settings.new_username')" class="input-field" maxlength="150" />
+        <button @click="changeDisplayName" class="btn btn-primary" :disabled="!newDisplayName.trim() || displayNameLoading">
+          {{ displayNameLoading ? $t('common.loading') : $t('settings.save') }}
         </button>
       </div>
     </div>
+
+    <div class="settings-card">
+      <h2 class="section-title">{{ $t('settings.change_email') }}</h2>
+      <div v-if="!emailChangeRequested" class="form-group">
+        <input v-model="newEmail" type="email" :placeholder="$t('settings.new_email')" class="input-field" />
+        <button @click="requestEmailChange" class="btn btn-primary" :disabled="!newEmail || emailLoading">
+          {{ emailLoading ? $t('common.loading') : $t('settings.send_code') }}
+        </button>
+      </div>
+      <div v-else class="form-group">
+        <p class="info-text">{{ $t('settings.code_sent_to') }} {{ newEmail }}</p>
+        <input v-model="emailCode" type="text" :placeholder="$t('settings.enter_code')" maxlength="6" class="input-field" />
+        <div class="button-group">
+          <button @click="confirmEmailChange" class="btn btn-primary" :disabled="!emailCode || emailCode.length !== 6 || emailLoading">
+            {{ emailLoading ? $t('common.loading') : $t('settings.confirm') }}
+          </button>
+          <button @click="cancelEmailChange" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h2 class="section-title">
+        {{ hasPassword ? $t('settings.change_password') : $t('settings.set_password') }}
+      </h2>
+
+      <div v-if="hasPassword" class="form-group">
+        <p class="password-hint-text">
+          {{ $t('settings.password_hint_create_strong') }}
+        </p>
+        <div class="password-input">
+          <input v-model="passwords.old" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.current_password')" class="input-field" />
+          <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
+            <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
+        </div>
+        <div class="password-input">
+          <input v-model="passwords.new" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.new_password')" class="input-field" />
+          <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
+            <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
+        </div>
+        <div class="password-input">
+          <input v-model="passwords.confirm" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.confirm_password')" class="input-field" />
+          <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
+            <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
+        </div>
+        <div class="forgot-link-row">
+          <button @click="changePassword" class="btn btn-primary btn-full" :disabled="!isPasswordFormValid || passwords.new !== passwords.confirm || passwordLoading">
+            {{ passwordLoading ? $t('common.loading') : $t('settings.change_password') }}
+          </button>
+          <div class="forgot-link-row">
+            <button type="button" @click="openPasswordReset" class="link-btn">
+              {{ $t('auth.forgot_password') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="form-group">
+        <p class="info-text">{{ $t('settings.no_password_set') }}</p>
+        <p class="password-hint-text">
+          {{ $t('settings.password_hint_create_strong') }}
+        </p>
+        <div class="password-input">
+          <input v-model="passwords.new" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.new_password')" class="input-field" />
+          <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
+            <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
+        </div>
+        <div class="password-input">
+          <input v-model="passwords.confirm" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('settings.confirm_password')" class="input-field" />
+          <button type="button" @click="showPasswords = !showPasswords" class="password-toggle">
+            <svg v-if="!showPasswords" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
+        </div>
+        <button @click="setPassword" class="btn btn-primary btn-full" :disabled="!isSetPasswordFormValid || passwords.new !== passwords.confirm || passwordLoading">
+          {{ passwordLoading ? $t('common.loading') : $t('settings.set_password') }}
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h2 class="section-title">{{ $t('settings.language') }}</h2>
+
+      <div class="language-section">
+        <div class="custom-select">             
+          <div class="select-trigger" 
+            @click.stop="isOpen = !isOpen" 
+            :class="{ 'is-open': isOpen }"
+          >
+            <span>{{ locale === 'ru' ? 'Русский' : 'English' }}</span>
+            <span class="arrow"></span>
+          </div>
+          <div v-if="isOpen" class="select-dropdown">
+            <div class="select-option" @click="changeLanguage('ru')">Русский</div>
+            <div class="select-option" @click="changeLanguage('en')">English</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card settings-card--danger">
+      <h2 class="section-title section-title--danger">{{ $t('settings.delete_account') }}</h2>
+      <p class="info-text">{{ $t('settings.delete_account_description') }}</p>
+      <button @click="openDeleteModal" class="btn btn-danger btn-full">
+        {{ $t('settings.delete_account_btn') }}
+      </button>
+    </div>
+  </div>
 
     <ConfirmModal
       :isOpen="showDeleteWarningModal"
@@ -192,7 +191,6 @@
       @close="showDeleteEmailSentModal = false"
       @confirm="showDeleteEmailSentModal = false"
     />
-  </div>
 </template>
 
 <script setup>
@@ -501,16 +499,13 @@ const deleteAccountWithPassword = async (done) => {
 .settings-view {
   min-height: 100vh;
   background: $bg-primary;
-  padding: $spacing-responsive-md;
+  max-width: 600px; 
+  padding-top: $spacing-responsive-md;
+  padding-bottom: 100px;
   
   @include md {
-    padding: $spacing-responsive-lg;
+    padding-top: $spacing-responsive-lg;
   }
-}
-
-.settings-container { 
-  max-width: 600px; 
-  margin: 0 auto; 
 }
 
 .settings-header {

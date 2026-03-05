@@ -1,5 +1,5 @@
 <template>
-  <div class="reset-view">
+  <div class="reset-view page-container">
     <div class="reset-container">
       <div class="app-name">{{ APP_NAME }}</div>
 
@@ -328,22 +328,23 @@ onMounted(() => {
   justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, $primary, $primary-light);
-  padding: $spacing-responsive-md;
-  
+  padding-top: $spacing-responsive-md;
+  padding-bottom: $spacing-responsive-md;
+
   @include md {
-    padding: $spacing-responsive-lg;
+    padding-top: $spacing-responsive-lg;
+    padding-bottom: $spacing-responsive-lg;
   }
 }
 
 .reset-container {
   width: 100%;
-  max-width: 100%;
+  max-width: 400px; 
   display: flex;
   flex-direction: column;
   gap: $spacing-responsive-md;
-  
+
   @include md {
-    max-width: 400px;
     gap: $spacing-responsive-lg;
   }
 }
