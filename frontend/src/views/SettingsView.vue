@@ -35,7 +35,7 @@
       <h2 class="section-title">{{ $t('settings.change_email') }}</h2>
       <div v-if="!emailChangeRequested" class="form-group">
         <input v-model="newEmail" type="email" :placeholder="$t('settings.new_email')" class="input-field" />
-        <button @click="requestEmailChange" class="btn btn-primary" :disabled="!newEmail || emailLoading">
+        <button @click="requestEmailChange" class="btn btn-primary" :disabled="!emailValidation.isValid || emailLoading">
           {{ emailLoading ? $t('common.loading') : $t('settings.send_code') }}
         </button>
       </div>
@@ -200,8 +200,7 @@ import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { useNotification } from '@/composables/useNotification'
 import ConfirmModal from '@/components/ConfirmModal.vue'
-import { validatePassword } from '@/utils/validators'
-
+import { validatePassword, validateEmail } from '@/utils/validators'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -227,6 +226,8 @@ const isOpen = ref(false)
 
 const locale = computed(() => i18n.locale.value)
 const passwordValidation = computed(() => validatePassword(passwords.value.new))
+const emailValidation = computed(() => validateEmail(newEmail.value))
+
 
 const isPasswordFormValid = computed(() => {
   const val = passwordValidation.value

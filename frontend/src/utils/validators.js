@@ -9,3 +9,9 @@ export const validatePassword = password => {
 		isValid: minLength && notOnlyNumbers,
 	}
 }
+
+export const validateEmail = email => {
+	const em = email || ''
+	const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)
+	return { isValid }
+}

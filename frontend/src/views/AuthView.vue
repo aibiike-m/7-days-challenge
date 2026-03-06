@@ -79,7 +79,7 @@ import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { APP_NAME } from '@/constants/index'
 import { handleApiError } from '@/utils/errorHandler'
-import { validatePassword } from '@/utils/validators'
+import { validatePassword, validateEmail } from '@/utils/validators'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -95,13 +95,15 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 const passwordValidation = computed(() => validatePassword(password.value))
 
+const emailValidation = computed(() => validateEmail(email.value))
+
 const isFormValid = computed(() => {
   if (isLogin.value) {
-    return email.value.trim() !== '' && password.value.length > 0
+    return emailValidation.value.isValid && password.value.length > 0
   }
   
   return (
-    email.value.includes('@') && 
+    emailValidation.value.isValid && 
     passwordValidation.value.isValid && 
     password.value === passwordConfirm.value
   );

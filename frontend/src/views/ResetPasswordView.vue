@@ -22,7 +22,7 @@
             <button 
               type="submit" 
               class="btn btn-primary btn-full" 
-              :disabled="isLoading || !resetEmail"
+              :disabled="isLoading || !emailValidation.isValid"
             >
               {{ isLoading ? $t('common.loading') : $t('auth.send_reset_code') }}
             </button>
@@ -128,9 +128,9 @@
             <button 
               type="submit" 
               class="btn btn-primary btn-full" 
-              :disabled="isLoading || !isResetPasswordFormValid"
+              :disabled="isLoading || !passwordValidation.isValid || resetNewPassword !== resetConfirmPassword"
             >
-              {{ isLoading ? $t('common.loading') : $t('auth.reset_password_btn') }}
+              {{ isLoading ? $t('common.loading') : $t('auth.reset_password_submit') }}
             </button>
           </form>
         </template>
@@ -157,8 +157,7 @@ import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { APP_NAME } from '@/constants/index'
-import { validatePassword } from '@/utils/validators'
-
+import { validateEmail, validatePassword } from '@/utils/validators';
 
 const router = useRouter()
 const route = useRoute()
@@ -174,6 +173,7 @@ const showPasswords = ref(false)
 const isLoading = ref(false)
 const comeFrom = ref(route.query.from || 'auth')
 
+const emailValidation = computed(() => validateEmail(resetEmail.value));
 const passwordValidation = computed(() => validatePassword(resetNewPassword.value))
 
 const isResetPasswordFormValid = computed(() => {
