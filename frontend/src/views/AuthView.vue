@@ -12,6 +12,9 @@
         <h1 class="auth-title">
           {{ isLogin ? $t('auth.login_title') : $t('auth.register_title') }}
         </h1>
+        <p v-if="!isLogin" class="password-hint-text">
+          {{ $t('settings.password_hint_create_strong') }}
+        </p>
 
         <form @submit.prevent="handleSubmit" class="auth-form">
           <div class="form-group">
@@ -41,7 +44,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-full" :disabled="isLoading">
+          <button type="submit" class="btn btn-primary btn-full" :disabled="isLoading || !isFormValid">
             {{ isLoading ? $t('common.loading') : (isLogin ? $t('auth.login_btn') : $t('auth.register_btn')) }}
           </button>        
         </form>
@@ -76,6 +79,7 @@ import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { APP_NAME } from '@/constants/index'
 import { handleApiError } from '@/utils/errorHandler'
+import { validatePassword } from '@/utils/validators'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -88,6 +92,20 @@ const passwordConfirm = ref('')
 const showPasswords = ref(false)
 const isLoading = ref(false)  
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+const passwordValidation = computed(() => validatePassword(password.value))
+
+const isFormValid = computed(() => {
+  if (isLogin.value) {
+    return email.value.trim() !== '' && password.value.length > 0
+  }
+  
+  return (
+    email.value.includes('@') && 
+    passwordValidation.value.isValid && 
+    password.value === passwordConfirm.value
+  );
+});
 
 const goToResetPassword = () => {
   router.push({ name: 'reset-password', query: { from: 'auth' } })
@@ -279,12 +297,16 @@ async function handleSubmit() {
   }
 }
 
-.auth-subtitle {
+.password-hint-text {
   text-align: center;
   font-size: $font-size-responsive-sm;
   color: $text-muted;
-  margin-bottom: $spacing-responsive-lg;
+  margin-bottom: $spacing-responsive-md;
   line-height: 1.5;
+  
+  @include md {
+    margin-bottom: $spacing-responsive-lg;
+  }
 }
 
 .auth-form {
@@ -525,6 +547,5 @@ async function handleSubmit() {
   }
 
   .auth-title { margin-bottom: $spacing-responsive-sm; }
-  .auth-subtitle { margin-bottom: $spacing-responsive-xl; }
 }
 </style>

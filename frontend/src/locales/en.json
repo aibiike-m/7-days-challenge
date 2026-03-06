@@ -65,7 +65,7 @@
 		"change_password": "Change Password",
 		"set_password": "Set Password",
 		"current_password": "Current password",
-		"new_password": "New password (minimum 8 characters)",
+		"new_password": "New password",
 		"confirm_password": "Confirm password",
 		"no_password_set": "You don't have a password set. Set one to login with email and password.",
 		"save": "Save",
@@ -80,7 +80,7 @@
 		"delete_email_sent_message": "We sent a confirmation link to your email address. Click it to permanently delete your account. The link expires in 1 hour.",
 		"min_8_chars": "At least 8 characters",
 		"not_only_numbers": "Not just numbers",
-		"password_hint_create_strong": "Come up with a strong password of at least 8 characters (letters, numbers, symbols allowed)"
+		"password_hint_create_strong": "Come up with a strong password of at least 8 characters, cannot be only numbers"
 	},
 	"deletion": {
 		"loading": "Processing your request...",

@@ -157,6 +157,8 @@ import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
 import api from '@/services/api/index.js'
 import { APP_NAME } from '@/constants/index'
+import { validatePassword } from '@/utils/validators'
+
 
 const router = useRouter()
 const route = useRoute()
@@ -172,13 +174,7 @@ const showPasswords = ref(false)
 const isLoading = ref(false)
 const comeFrom = ref(route.query.from || 'auth')
 
-const passwordValidation = computed(() => {
-  const pwd = resetNewPassword.value || ''
-  return {
-    minLength: pwd.length >= 8,
-    notOnlyNumbers: /[a-zA-Zа-яА-Я!@#$%^&*]/.test(pwd),
-  }
-})
+const passwordValidation = computed(() => validatePassword(resetNewPassword.value))
 
 const isResetPasswordFormValid = computed(() => {
   const val = passwordValidation.value

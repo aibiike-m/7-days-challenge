@@ -200,6 +200,8 @@ import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { useNotification } from '@/composables/useNotification'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import { validatePassword } from '@/utils/validators'
+
 
 const router = useRouter()
 const i18n = useI18n()
@@ -224,14 +226,7 @@ const deleteLoading = ref(false)
 const isOpen = ref(false)
 
 const locale = computed(() => i18n.locale.value)
-
-const passwordValidation = computed(() => {
-  const pwd = passwords.value.new || ''
-  return {
-    minLength: pwd.length >= 8,
-    notOnlyNumbers: /[a-zA-Zа-яА-Я!@#$%^&*]/.test(pwd), 
-  }
-})
+const passwordValidation = computed(() => validatePassword(passwords.value.new))
 
 const isPasswordFormValid = computed(() => {
   const val = passwordValidation.value
