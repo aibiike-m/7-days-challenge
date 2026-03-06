@@ -121,21 +121,23 @@ const toggleAuthMode = () => {
   showPasswords.value = false
 }
 
-const saveAuthAndRedirect = (data, successMessageKey) => {
+const saveAuthAndRedirect = (data) => {
   localStorage.setItem('access_token', data.access)
   localStorage.setItem('refresh', data.refresh)
   const serverLanguage = data.user?.language || 'en'
   localStorage.setItem('language', serverLanguage)
   i18n.locale.value = serverLanguage
-  notify.success(successMessageKey)  
   setTimeout(() => { window.location.href = '/today' }, 100)
 }
 
 const handleGoogleResponse = async (response) => {
   isLoading.value = true  
   try {
-    const res = await api.post('auth/google/', { credential: response.credential, language: i18n.locale.value })
-    saveAuthAndRedirect(res.data, 'success.login')
+    const res = await api.post('auth/google/', { 
+      credential: response.credential, 
+      language: i18n.locale.value 
+    })
+    saveAuthAndRedirect(res.data) 
   } catch (error) {
     if (!error.response) notify.error('errors.network')
     else if (error.response?.status === 401) notify.error('errors.google_login')
@@ -176,7 +178,7 @@ async function handleSubmit() {
   try {
     if (isLogin.value) {
       const response = await api.post('auth/login-by-email/', { email: email.value, password: password.value })
-      saveAuthAndRedirect(response.data, 'success.login')
+      saveAuthAndRedirect(response.data)
     } else {
       if (password.value !== passwordConfirm.value) {
         notify.error('errors.passwords_dont_match')
@@ -185,7 +187,7 @@ async function handleSubmit() {
       }
       await api.post('auth/users/', { email: email.value, password: password.value, re_password: passwordConfirm.value })
       const loginResponse = await api.post('auth/login-by-email/', { email: email.value, password: password.value })
-      saveAuthAndRedirect(loginResponse.data, 'success.registration')
+      saveAuthAndRedirect(loginResponse.data)
     }
   } catch (error) {
     handleApiError(error, notify, {

@@ -14,10 +14,10 @@
 		"new_challenge": "Create challenge"
 	},
 	"task": {
-    "toggle_complete": "Mark task '{title}' as complete/incomplete",
-    "show_description": "Show description",
-    "hide_description": "Hide description"
-  },
+		"toggle_complete": "Mark task '{title}' as complete/incomplete",
+		"show_description": "Show description",
+		"hide_description": "Hide description"
+	},
 	"modal": {
 		"goal_label": "What goal do you want to achieve in 7 days?",
 		"goal_placeholder": "For example: Learn 50 English words, start running in the morning, learn to cook 5 new dishes...",
@@ -136,8 +136,6 @@
 		"challenge_created": "Challenge created successfully!",
 		"task_updated": "Task updated",
 		"profile_saved": "Profile saved successfully",
-		"login": "Welcome back!",
-		"register": "Registration successful! Please log in",
 		"logged_out": "Logged out successfully",
 		"challenges_deleted": "Challenges deleted successfully",
 		"code_sent": "Verification code sent to your email",
@@ -159,10 +157,16 @@
 		"unknown": "An error occurred",
 		"invalid_credentials": "Invalid username or password",
 		"email_taken": "This email is already registered",
+		"username_taken": "This username is already taken",
 		"google_login": "Google login failed. Please try again",
 		"challenge_delete": "Error deleting challenges",
 		"passwords_dont_match": "Passwords do not match",
 		"password_weak": "Password is too weak",
+		"password_similar_to_email": "Password is too similar to your email. Please choose another",
+		"password_similar_to_username": "Password is too similar to your username. Please choose another",
+		"password_too_common": "This password is too common. Please create a stronger one",
+		"password_only_numbers": "Password cannot be entirely numeric",
+		"password_too_short": "Password is too short. Minimum 8 characters required",
 		"load_failed": "Failed to load data",
 		"update_failed": "Failed to update",
 		"request_failed": "Request failed",
