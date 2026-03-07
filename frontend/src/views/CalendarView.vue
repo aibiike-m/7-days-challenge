@@ -323,27 +323,6 @@ const calendarDates = computed(() => {
   return dates
 })
 
-
-
-
-// const tasksForSelectedDate = computed(() => {
-//   if (!selectedDate.value) return [];
-
-//   return allTasks.value
-//     .filter(task => {
-//       const taskDate = calculateTaskDate(task);
-//       return taskDate === selectedDate.value;
-//     })
-//     .sort((a, b) => {
-//       // 1. Сначала группируем по челленджу
-//       if (a.challenge_id !== b.challenge_id) {
-//         return a.challenge_id - b.challenge_id;
-//       }
-//       // 2. Внутри челленджа сортируем по ID задачи
-//       return a.id - b.id;
-//     });
-// });
-
 function toggleSelectionMode() {
   isSelectionMode.value = !isSelectionMode.value
   if (!isSelectionMode.value) {
@@ -376,8 +355,6 @@ function toggleSelectAll() {
 function handleChallengeClick(challenge) {
   if (isSelectionMode.value) {
     toggleChallengeSelection(challenge.id)
-  } else {
-    viewChallenge(challenge)
   }
 }
 
@@ -519,10 +496,6 @@ async function loadAllTasks() {
     
     allTasks.value = []
   }
-}
-
-function viewChallenge(challenge) {
-  router.push(`/challenge/${challenge.id}`)
 }
 
 onMounted(async () => {
@@ -821,7 +794,6 @@ onMounted(async () => {
 }
 
 .challenge-card {
-  cursor: pointer;
   transition: all 0.25s ease;
   border-left: 4px solid transparent;
   display: flex;
@@ -834,13 +806,17 @@ onMounted(async () => {
     padding: $spacing-responsive-lg;
   }
 
-  &:hover {
-    box-shadow: $shadow-md;
-    transform: translateY(-2px);
-  }
-
   &.selected {
     background: rgba($primary, 0.05);
+  }
+
+  &.selection-mode {
+    cursor: pointer;
+    
+    &:hover {
+      box-shadow: $shadow-md;
+      transform: translateY(-2px);
+    }
   }
 }
 

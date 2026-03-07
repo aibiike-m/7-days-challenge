@@ -57,6 +57,10 @@ const routes = [
 		name: 'reset-password',
 		component: ResetPasswordView,
 	},
+	{
+		path: '/:pathMatch(.*)*',
+		redirect: '/today',
+	},
 ]
 
 const router = createRouter({
