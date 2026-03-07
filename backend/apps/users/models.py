@@ -67,6 +67,7 @@ class EmailVerification(models.Model):
         on_delete=models.CASCADE,
         related_name="email_verifications",
     )
+    old_email = models.EmailField()
     new_email = models.EmailField()
     code = models.CharField(max_length=6)
     confirm_token = models.UUIDField(default=uuid.uuid4, unique=True)
@@ -94,7 +95,7 @@ class EmailVerification(models.Model):
         )
 
     def __str__(self):
-        return f"{self.user.email} -> {self.new_email}"
+        return f"{self.old_email} -> {self.new_email}"
 
 
 class AccountDeletion(models.Model):
@@ -122,8 +123,8 @@ class AccountDeletion(models.Model):
 
     def __str__(self):
         return f"AccountDeletion for {self.user.email}"
-    
-    
+
+
 class PasswordResetCode(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/'
+
 const api = axios.create({
-	baseURL: 'http://localhost:8000/api/',
+	baseURL: API_URL,
 	timeout: 60000,
 })
 
@@ -21,10 +23,7 @@ api.interceptors.response.use(
 			try {
 				const refresh = localStorage.getItem('refresh')
 				if (refresh) {
-					const res = await axios.post(
-						'http://localhost:8000/api/token/refresh/',
-						{ refresh }
-					)
+					const res = await axios.post(`${API_URL}token/refresh/`, { refresh })
 					localStorage.setItem('access_token', res.data.access)
 					error.config.headers.Authorization = `Bearer ${res.data.access}`
 					return api(error.config)
@@ -39,14 +38,15 @@ api.interceptors.response.use(
 	}
 )
 
-
 api.getChallenges = () => api.get('challenges/')
 api.getAllTasks = () => api.get('tasks/')
 api.getTasks = challengeId => api.get(`challenges/${challengeId}/tasks/`)
-api.updateTaskStatus = (taskId, isCompleted) => api.patch(`tasks/${taskId}/`, { is_completed: isCompleted })
+api.updateTaskStatus = (taskId, isCompleted) =>
+	api.patch(`tasks/${taskId}/`, { is_completed: isCompleted })
 api.bulkDeleteChallenges = ids =>
 	api.delete('challenges/bulk-delete/', { data: { ids } })
-api.getTasksByChallenge = challengeId =>
-	api.get(`challenges/${challengeId}/tasks/`)
+
+api.cancelEmailChange = token =>
+	api.get(`users/cancel-email-change/?token=${token}`)
 
 export default api

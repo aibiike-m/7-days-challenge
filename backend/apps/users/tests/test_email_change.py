@@ -141,12 +141,16 @@ class TestRequestEmailChangeSendsTwoEmails:
         assert "cancel-email-change" in second_call_body
 
     @patch("apps.users.views.send_mail")
-    def test_confirm_url_is_in_new_email_body(self, mock_send_mail, auth_client, faker):
+    def test_verification_code_is_in_new_email_body(
+        self, mock_send_mail, auth_client, faker
+    ):
         auth_client.post(
             "/api/users/request-email-change/", {"new_email": faker.email()}
         )
         first_call_body = mock_send_mail.call_args_list[0][1]["message"]
-        assert "confirm-email-change" in first_call_body
+
+        assert "code" in first_call_body.lower() or "код" in first_call_body.lower()
+        assert "confirm-email-change" not in first_call_body
 
 
 @pytest.mark.django_db
@@ -189,13 +193,31 @@ class TestCancelEmailChange:
         response = api_client.get(url)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_cancel_already_used_token(self, test_user, faker, api_client):
+    @patch("apps.users.views.send_mail")
+    def test_cancel_after_email_changed_restores_old_email(
+        self, mock_send_mail, test_user, faker, api_client
+    ):
+        old_email = test_user.email
+        new_email = faker.email()
+
         verification = EmailVerification.objects.create(
-            user=test_user, new_email=faker.email(), is_used=True
+            user=test_user, old_email=old_email, new_email=new_email, is_used=True
         )
+
+        test_user.email = new_email
+        test_user.save()
+
         url = f"/api/users/cancel-email-change/?token={verification.cancel_token}"
         response = api_client.get(url)
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["email_was_restored"] is True
+
+        test_user.refresh_from_db()
+        assert test_user.email == old_email
+
+        verification.refresh_from_db()
+        assert verification.is_cancelled is True
 
     def test_cancel_expired_verification(self, test_user, faker, api_client):
         verification = EmailVerification.objects.create(

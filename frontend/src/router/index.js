@@ -6,6 +6,7 @@ import SettingsView from '@/views/SettingsView.vue'
 import AuthView from '@/views/AuthView.vue'
 import ConfirmAccountDeletionView from '@/views/ConfirmAccountDeletionView.vue'
 import ResetPasswordView from '@/views/ResetPasswordView.vue'
+import CancelEmailChangeView from '@/views/CancelEmailChangeView.vue'
 
 const routes = [
 	{
@@ -45,6 +46,11 @@ const routes = [
 		path: '/confirm-account-deletion',
 		name: 'confirm-account-deletion',
 		component: ConfirmAccountDeletionView,
+	},
+	{
+		path: '/cancel-email-change',
+		name: 'cancel-email-change',
+		component: CancelEmailChangeView,
 	},
 	{
 		path: '/reset-password',

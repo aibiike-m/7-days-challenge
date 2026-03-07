@@ -37,6 +37,7 @@ from .throttles import (
 
 User = get_user_model()
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 @throttle_classes([LoginRateThrottle])
@@ -65,6 +66,7 @@ def login_by_email(request):
     return Response(
         {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
     )
+
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -171,18 +173,24 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         new_email = serializer.validated_data["new_email"]
         user = request.user
+
         EmailVerification.objects.filter(
             user=user, is_used=False, is_cancelled=False
         ).update(is_cancelled=True)
-        verification = EmailVerification.objects.create(user=user, new_email=new_email)
-        confirm_url = f"{settings.FRONTEND_URL}/confirm-email-change?token={verification.confirm_token}"
+
+        verification = EmailVerification.objects.create(
+            user=user,
+            old_email=user.email,
+            new_email=new_email,
+        )
+
         cancel_url = f"{settings.FRONTEND_URL}/cancel-email-change?token={verification.cancel_token}"
+
         send_mail(
             subject="Confirm your new email address",
             message=(
                 f"You requested to change your email address.\n\n"
                 f"To confirm, enter this code: {verification.code}\n\n"
-                f"Or click the link: {confirm_url}\n\n"
                 f"This code expires in 15 minutes."
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -234,9 +242,11 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save(update_fields=["email"])
         verification.is_used = True
         verification.save(update_fields=["is_used"])
+
         EmailVerification.objects.filter(
             user=user, is_used=False, is_cancelled=False
         ).exclude(pk=verification.pk).update(is_cancelled=True)
+
         send_mail(
             subject="Your email address has been changed",
             message=(
@@ -303,6 +313,7 @@ class UserViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def cancel_email_change(request):
@@ -311,27 +322,74 @@ def cancel_email_change(request):
         return Response(
             {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
         )
-    verification = EmailVerification.objects.filter(
-        cancel_token=token,
-        is_used=False,
-        is_cancelled=False,
-    ).first()
+
+    verification = (
+        EmailVerification.objects.filter(
+            cancel_token=token,
+            is_cancelled=False,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
     if not verification:
         return Response(
-            {"error": "Invalid or already used cancellation link"},
+            {"error": "Invalid or already cancelled link"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if not verification.is_valid():
+
+    if timezone.now() > verification.expires_at:
         return Response(
             {"error": "This cancellation link has expired"},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    user = verification.user
+
+    email_was_changed = user.email == verification.new_email
+
+    if email_was_changed:
+        user.email = verification.old_email
+        user.save(update_fields=["email"])
+
+        send_mail(
+            subject="Your email has been restored",
+            message=(
+                f"Your email address has been restored to {verification.old_email}.\n\n"
+                f"The unauthorized change to {verification.new_email} has been cancelled.\n\n"
+                f"If you didn't cancel this change, please contact support immediately and change your password."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[verification.old_email],
+        )
+
+        send_mail(
+            subject="Email change cancelled",
+            message=(
+                f"The email change to {verification.new_email} has been cancelled by the account owner.\n\n"
+                f"The account email has been restored to {verification.old_email}."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[verification.new_email],
+        )
+
     verification.is_cancelled = True
     verification.save(update_fields=["is_cancelled"])
+
+    message = (
+        "Email change has been cancelled and your original email has been restored."
+        if email_was_changed
+        else "Email change request has been cancelled successfully."
+    )
+
     return Response(
-        {"message": "Email change request has been cancelled successfully."},
+        {
+            "message": message,
+            "email_was_restored": email_was_changed,
+        },
         status=status.HTTP_200_OK,
     )
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -371,8 +429,10 @@ def confirm_delete_account(request):
         status=status.HTTP_200_OK,
     )
 
+
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         refresh = request.data.get("refresh")
         if refresh:
@@ -437,13 +497,13 @@ def request_password_reset(request):
 def verify_password_reset_code(request):
     email = request.data.get("email", "").lower()
     code = request.data.get("code", "")
-    
+
     if not email or not code:
         return Response(
             {"error": "Email and code are required."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
@@ -451,19 +511,19 @@ def verify_password_reset_code(request):
             {"error": "Invalid or expired code."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
     reset = (
         PasswordResetCode.objects.filter(user=user, code=code, is_used=False)
         .order_by("-created_at")
         .first()
     )
-    
+
     if not reset or not reset.is_valid():
         return Response(
             {"error": "Invalid or expired code."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
     return Response(
         {"message": "Code is valid."},
         status=status.HTTP_200_OK,
