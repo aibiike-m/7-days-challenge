@@ -119,10 +119,13 @@
       <div v-if="selectedDate" class="tasks-section right-column">
         <button 
           class="fab-desktop"
+          :class="{ 'fab-loading': isCreatingChallenge }"
           @click="isModalOpen = true"
+          :disabled="isCreatingChallenge"
           title="Create challenge"
         >
-          {{ $t('today.new_challenge') }}
+          <span v-if="isCreatingChallenge" class="loading-spinner">⏳</span>
+          {{ isCreatingChallenge ? $t('modal.creating') : $t('today.new_challenge') }}
         </button>
 
         <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
@@ -168,6 +171,7 @@
     <CreateChallengeModal 
       :is-open="isModalOpen" 
       @close="isModalOpen = false"
+      @creating="handleChallengeCreating"
       @created="handleChallengeCreated" 
     />
   </div>
@@ -198,6 +202,7 @@ const isSelectionMode = ref(false)
 const selectedChallengeIds = ref([])
 const showDeleteModal = ref(false)
 const isModalOpen = ref(false)
+const isCreatingChallenge = ref(false)
 
 const weekdaysRu = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const weekdaysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -368,7 +373,13 @@ function closeDeleteModal() {
   showDeleteModal.value = false
 }
 
+function handleChallengeCreating() {
+  isCreatingChallenge.value = true
+}
+
 async function handleChallengeCreated(newChallenge) {
+  isCreatingChallenge.value = false
+  
   await loadChallenges()
   
   if (allChallenges.value.length > 0) {
@@ -934,10 +945,30 @@ onMounted(async () => {
     display: block;
   }
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: $primary-hover;
     transform: translateY(-2px);
   }
+  
+  &.fab-loading {
+    opacity: 0.8;
+    cursor: wait;
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.loading-spinner {
+  margin-right: 8px;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .challenges-to-delete {

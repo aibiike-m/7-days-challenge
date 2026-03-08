@@ -17,7 +17,6 @@
               :maxlength="MAX_GOAL_LENGTH"
               rows="4"
               required
-              :disabled="loading"
             ></textarea>
             <div 
               class="char-counter" 
@@ -31,10 +30,9 @@
             <button 
               type="submit" 
               class="btn btn-primary" 
-              :disabled="loading || !isGoalValid"
+              :disabled="!isGoalValid"
             >
-              <span v-if="loading" class="loading-spinner">⏳</span>
-              {{ loading ? t('modal.creating') : t('modal.create') }}
+              {{ t('modal.create') }}
             </button>
           </div>
         </form>
@@ -52,10 +50,9 @@ import { MIN_GOAL_LENGTH, MAX_GOAL_LENGTH } from '@/constants/index'
 
 const { t, locale } = useI18n()
 const notify = useNotification()
-const emit = defineEmits(['close', 'created'])
+const emit = defineEmits(['close', 'created', 'creating'])
 
 const goal = ref('')
-const loading = ref(false)
 
 const props = defineProps({
   isOpen: {
@@ -76,9 +73,7 @@ watch(() => props.isOpen, (newVal) => {
 })
 
 const close = () => {
-  if (!loading.value) {
-    emit('close')
-  }
+  emit('close')
 }
 
 const submit = async () => {  
@@ -87,11 +82,16 @@ const submit = async () => {
     return
   }
   
-  loading.value = true
+  const goalText = goal.value.trim()
+  
+  emit('close')
+  goal.value = ''
+  
+  emit('creating')
   
   try {
     const response = await api.post('challenges/', {
-      goal: goal.value.trim(),
+      goal: goalText,
       language: locale.value
     })
     
@@ -106,11 +106,8 @@ const submit = async () => {
       throw new Error('Invalid challenge data from server')
     }
     
-    notify.success('success.challenge_created')
-    
     emit('created', challengeData)
-    emit('close')
-    goal.value = ''
+    notify.success('success.challenge_created')
     
   } catch (err) {
     if (err.response?.status === 401) {
@@ -124,9 +121,6 @@ const submit = async () => {
     if (process.env.NODE_ENV === 'development') {
       console.error('Challenge creation error:', err)
     }
-    
-  } finally {
-    loading.value = false
   }
 }
 </script>
