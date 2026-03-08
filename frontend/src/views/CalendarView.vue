@@ -387,7 +387,7 @@ async function handleChallengeCreated(newChallenge) {
   }
 }
 
-async function confirmDelete() {
+async function confirmDelete(done) {
   try {
     await api.bulkDeleteChallenges(selectedChallengeIds.value);
 
@@ -400,10 +400,8 @@ async function confirmDelete() {
     );
 
     notify.success('success.challenges_deleted');
-    
     closeDeleteModal();
     cancelSelection();
-
   } catch (error) {
     if (!error.response) {
       notify.error('errors.network');
@@ -411,6 +409,10 @@ async function confirmDelete() {
       notify.error('errors.challenge_delete');
     }
     console.error('Error deleting challenges:', error);
+  }finally {
+    if (typeof done === 'function') {
+      done();
+    }
   }
 }
 
