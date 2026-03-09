@@ -541,12 +541,10 @@ onMounted(async () => {
   border-radius: $radius-md;
   padding: $spacing-responsive-md;
   box-shadow: $shadow-sm;
-  margin-bottom: $spacing-responsive-md;
 
   @include md {
     border-radius: $radius-lg;
     padding: $spacing-responsive-lg;
-    margin-bottom: $spacing-responsive-lg;
   }
 }
 
@@ -724,7 +722,7 @@ onMounted(async () => {
 
 // ===== Challenges =====
 .challenges-section {
-  margin-top: $spacing-responsive-lg;
+  margin-top: $spacing-responsive-md;
 }
 
 .selection-controls {
@@ -739,7 +737,7 @@ onMounted(async () => {
 }
 
 .control-btn {
-  padding: $spacing-responsive-xs $spacing-responsive-sm;
+  padding: $spacing-responsive-md $spacing-responsive-md;
   font-size: $font-size-xs;
   border-radius: $radius-md;
   border: none;
@@ -749,8 +747,8 @@ onMounted(async () => {
   white-space: nowrap;
 
   @include md {
-    padding: $spacing-responsive-sm $spacing-responsive-md;
-    font-size: $font-size-responsive-sm;
+    padding: $spacing-responsive-md $spacing-responsive-lg;
+    font-size: $font-size-responsive-base;
   }
 
   &:disabled {

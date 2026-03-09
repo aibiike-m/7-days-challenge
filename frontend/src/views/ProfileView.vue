@@ -248,7 +248,7 @@ async function confirmLogout() {
 .btn-settings,
 .btn-logout {
   flex: 1 1 45%;
-  padding: $spacing-responsive-sm $spacing-responsive-md;
+  padding: $spacing-responsive-md $spacing-responsive-md;
   border-radius: $radius-md;
   font-weight: $font-weight-semibold;
   font-size: $font-size-responsive-sm;
@@ -260,7 +260,8 @@ async function confirmLogout() {
   @include md {
     flex: 0 1 auto;
     min-width: 140px;
-    padding: $spacing-responsive-sm $spacing-responsive-lg;
+    padding: $spacing-responsive-md $spacing-responsive-lg;
+    font-size: $font-size-responsive-base;
   }
 }
 

@@ -782,7 +782,8 @@ const deleteAccountWithPassword = async (done) => {
   transition: all 0.2s ease;
 
   @include md {
-    padding: $spacing-responsive-sm $spacing-responsive-lg;
+    padding: $spacing-responsive-md $spacing-responsive-lg;
+
   }
 
   &:disabled { opacity: 0.6; cursor: not-allowed; }
