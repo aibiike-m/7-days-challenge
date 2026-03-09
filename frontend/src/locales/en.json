@@ -166,7 +166,7 @@
 		"task_update": "Error updating task",
 		"future_task": "You cannot mark tasks for future days.",
 		"unknown": "An error occurred",
-		"invalid_credentials": "Invalid username or password",
+		"invalid_credentials": "Invalid email or password",
 		"email_taken": "This email is already registered",
 		"username_taken": "This username is already taken",
 		"google_login": "Google login failed. Please try again",
@@ -182,7 +182,8 @@
 		"update_failed": "Failed to update",
 		"request_failed": "Request failed",
 		"password_mismatch": "Passwords don't match",
-		"invalid_code": "Invalid or expired code"
+		"invalid_code": "Invalid or expired code",
+		"invalid_password": "Invalid password"
 	},
 	"common": {
 		"loading": "Loading...",

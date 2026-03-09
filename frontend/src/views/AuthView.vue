@@ -206,8 +206,10 @@ async function handleSubmit() {
     }
     
   } catch (error) {
-    handleApiError(error, notify)
-    if (import.meta.env.DEV) console.error('Auth error:', error) 
+    handleApiError(error, notify, {
+    401: () => notify.error('errors.invalid_credentials') 
+  })
+  if (import.meta.env.DEV) console.error('Auth error:', error)
   } finally {
     isLoading.value = false
   }

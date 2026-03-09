@@ -166,7 +166,7 @@
 		"task_update": "Ошибка обновления задачи",
 		"future_task": "Нельзя отмечать задачи на будущие дни.",
 		"unknown": "Произошла ошибка",
-		"invalid_credentials": "Неверный логин или пароль",
+		"invalid_credentials": "Неверный email или пароль",
 		"email_taken": "Этот email уже зарегистрирован",
 		"username_taken": "Это имя пользователя уже занято",
 		"google_login": "Ошибка входа через Google. Попробуйте снова",
@@ -182,7 +182,8 @@
 		"update_failed": "Ошибка обновления",
 		"request_failed": "Ошибка запроса",
 		"invalid_code": "Неверный или истекший код",
-		"password_mismatch": "Пароли не совпадают"
+		"password_mismatch": "Пароли не совпадают",
+		"invalid_password": "Неверный пароль"
 	},
 	"common": {
 		"loading": "Загрузка...",

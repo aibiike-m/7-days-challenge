@@ -17,7 +17,10 @@ export function handleApiError(error, notify, customHandlers = {}) {
 			if (data?.password && Array.isArray(data.password)) {
 				const passwordError = data.password[0].toLowerCase()
 
-				if (
+				if (passwordError.includes('incorrect')) {
+					notify.error('errors.invalid_password')
+				}
+				else if (
 					passwordError.includes('similar') &&
 					passwordError.includes('email')
 				) {
