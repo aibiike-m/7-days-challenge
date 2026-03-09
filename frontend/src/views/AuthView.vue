@@ -139,14 +139,15 @@ const handleGoogleResponse = async (response) => {
     })
     saveAuthAndRedirect(res.data) 
   } catch (error) {
-    if (!error.response) notify.error('errors.network')
-    else if (error.response?.status === 401) notify.error('errors.google_login')
-    else notify.error('errors.server')
+    handleApiError(error, notify, {
+      401: () => notify.error('errors.google_login')
+    })
     if (import.meta.env.DEV) console.error('Google login error:', error)
   } finally {
     isLoading.value = false
   }
 }
+
 
 function renderGoogleButton() {
   const container = document.getElementById('g_id_signin')
@@ -175,32 +176,43 @@ onMounted(() => {
 async function handleSubmit() {
   if (isLoading.value) return
   isLoading.value = true
+  
   try {
     if (isLogin.value) {
-      const response = await api.post('auth/login-by-email/', { email: email.value, password: password.value })
+      const response = await api.post('auth/login-by-email/', { 
+        email: email.value, 
+        password: password.value 
+      })
       saveAuthAndRedirect(response.data)
+      
     } else {
       if (password.value !== passwordConfirm.value) {
         notify.error('errors.passwords_dont_match')
         isLoading.value = false
         return
       }
-      await api.post('auth/users/', { email: email.value, password: password.value, re_password: passwordConfirm.value })
-      const loginResponse = await api.post('auth/login-by-email/', { email: email.value, password: password.value })
+      
+      await api.post('auth/users/', { 
+        email: email.value, 
+        password: password.value, 
+        re_password: passwordConfirm.value 
+      })
+      
+      const loginResponse = await api.post('auth/login-by-email/', { 
+        email: email.value, 
+        password: password.value 
+      })
       saveAuthAndRedirect(loginResponse.data)
     }
+    
   } catch (error) {
-    handleApiError(error, notify, {
-      400: (data) => {
-        if (data?.email) notify.error('errors.email_taken')
-        else notify.error('errors.validation')
-      }
-    })
-    if (import.meta.env.DEV) console.error('Auth error:', error)
+    handleApiError(error, notify)
+    if (import.meta.env.DEV) console.error('Auth error:', error) 
   } finally {
     isLoading.value = false
   }
 }
+
 </script>
 
 <style scoped lang="scss">

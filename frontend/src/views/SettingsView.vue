@@ -197,8 +197,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import api from '@/services/api'
 import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
+import api from '@/services/api'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { validatePassword, validateEmail } from '@/utils/validators'
 
@@ -206,6 +207,7 @@ const router = useRouter()
 const i18n = useI18n()
 const { t } = i18n
 const notify = useNotification() 
+
 const user = ref(null)
 const hasPassword = ref(false)
 const newDisplayName = ref('')
@@ -227,7 +229,6 @@ const isOpen = ref(false)
 const locale = computed(() => i18n.locale.value)
 const passwordValidation = computed(() => validatePassword(passwords.value.new))
 const emailValidation = computed(() => validateEmail(newEmail.value))
-
 
 const isPasswordFormValid = computed(() => {
   const val = passwordValidation.value
@@ -257,10 +258,11 @@ const loadUserData = async () => {
       i18n.locale.value = serverLang
       localStorage.setItem('language', serverLang)
     }
-  } catch (err) {
-    notify.error('errors.load_failed')
+  } catch (error) {
+    handleApiError(error, notify)
+
     if (import.meta.env.DEV) {
-      console.error('Error loading user data:', err)
+      console.error('Error loading user data:', error)
     }
   }
 }
@@ -268,13 +270,18 @@ const loadUserData = async () => {
 const changeDisplayName = async () => {
   if (!newDisplayName.value.trim()) return
   displayNameLoading.value = true
+  
   try {
-    const response = await api.patch('/users/me/', { display_name: newDisplayName.value.trim() })
+    const response = await api.patch('/users/me/', { 
+      display_name: newDisplayName.value.trim() 
+    })
     user.value.display_name = response.data.display_name
     notify.success('success.profile_saved')
     newDisplayName.value = ''
+    
   } catch (error) {
-    notify.error(error.response?.data?.username?.[0] || error.response?.data?.error || ('errors.update_failed'))
+    handleApiError(error, notify)
+    
   } finally {
     displayNameLoading.value = false
   }
@@ -283,12 +290,15 @@ const changeDisplayName = async () => {
 const requestEmailChange = async () => {
   if (!newEmail.value) return
   emailLoading.value = true
+  
   try {
     await api.post('/users/request-email-change/', { new_email: newEmail.value })
     emailChangeRequested.value = true
     notify.success('success.code_sent')
+    
   } catch (error) {
-    notify.error(error.response?.data?.new_email?.[0] || error.response?.data?.error || ('errors.request_failed'))
+    handleApiError(error, notify)
+    
   } finally {
     emailLoading.value = false
   }
@@ -297,6 +307,7 @@ const requestEmailChange = async () => {
 const confirmEmailChange = async () => {
   if (!emailCode.value || emailCode.value.length !== 6) return
   emailLoading.value = true
+  
   try {
     const res = await api.post('/users/confirm-email-change/', { code: emailCode.value })
     user.value = { ...user.value, email: res.data.new_email }
@@ -304,6 +315,7 @@ const confirmEmailChange = async () => {
     newEmail.value = ''
     emailCode.value = ''
     emailChangeRequested.value = false
+    
     setTimeout(async () => {
       try {
         const refreshToken = localStorage.getItem('refresh')
@@ -315,8 +327,12 @@ const confirmEmailChange = async () => {
         router.push('/auth')
       }
     }, 1800)
+    
   } catch (error) {
-    notify.error(error.response?.data?.error || ('errors.invalid_code'))
+    handleApiError(error, notify, {
+      400: () => notify.error('errors.invalid_code')
+    })
+    
   } finally {
     emailLoading.value = false
   }
@@ -334,23 +350,23 @@ const changePassword = async () => {
     notify.error('errors.password_mismatch')
     return
   }
+  
   passwordLoading.value = true
+  
   try {
     await api.post('/users/change-password/', {
       old_password: passwords.value.old,
       new_password: passwords.value.new,
       confirm_password: passwords.value.confirm
     })
+    
     notify.success('success.password_changed')  
     passwords.value = { old: '', new: '', confirm: '' }
     showPasswords.value = false
+    
   } catch (error) {
-    notify.error(
-      error.response?.data?.old_password?.[0] ||
-      error.response?.data?.new_password?.[0] ||
-      error.response?.data?.error ||
-      ('errors.update_failed')
-    )
+    handleApiError(error, notify)
+    
   } finally {
     passwordLoading.value = false
   }
@@ -362,22 +378,23 @@ const setPassword = async () => {
     notify.error('errors.password_mismatch')
     return
   }
+  
   passwordLoading.value = true
+  
   try {
     await api.post('/users/set-password/', {
       new_password: passwords.value.new,
       confirm_password: passwords.value.confirm
     })
+    
     hasPassword.value = true
     notify.success('success.password_set')
     passwords.value = { old: '', new: '', confirm: '' }
     showPasswords.value = false
+    
   } catch (error) {
-    notify.error(
-      error.response?.data?.new_password?.[0] ||
-      error.response?.data?.error ||
-      ('errors.update_failed')
-    )
+    handleApiError(error, notify)
+    
   } finally {
     passwordLoading.value = false
   }
@@ -395,15 +412,10 @@ async function changeLanguage(lang) {
     i18n.locale.value = lang
     localStorage.setItem('language', lang)
     isOpen.value = false
-
     notify.success('success.profile_saved')
     
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.server')
-    }
+    handleApiError(error, notify)
     
     if (process.env.NODE_ENV === 'development') {
       console.error('Error saving language:', error)
@@ -415,6 +427,7 @@ onMounted(() => {
   window.addEventListener('click', () => isOpen.value = false)
   loadUserData()
 })
+
 const openPasswordReset = () => {
   router.push({ 
     name: 'reset-password',
@@ -434,7 +447,9 @@ const openForgotFromDeleteModal = () => {
   })
 }
 
-const openDeleteModal = () => { showDeleteWarningModal.value = true }
+const openDeleteModal = () => { 
+  showDeleteWarningModal.value = true 
+}
 
 const onWarningConfirmed = (done) => {
   showDeleteWarningModal.value = false
@@ -453,11 +468,14 @@ const closeDeletePasswordModal = () => {
 
 const requestAccountDeletion = async () => {
   deleteLoading.value = true
+  
   try {
     await api.post('/users/delete-account/', {})
     showDeleteEmailSentModal.value = true
-  } catch {
-    notify.error('errors.request_failed')
+    
+  } catch (error) {
+    handleApiError(error, notify)
+    
   } finally {
     deleteLoading.value = false
   }
@@ -469,26 +487,25 @@ const deleteAccountWithPassword = async (done) => {
     if (typeof done === 'function') done()
     return
   }
+  
   deleteLoading.value = true
+  
   try {
     await api.post('/users/delete-account/', { password: deletePassword.value })
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh')
     notify.success('success.account_deleted')
     router.push('/auth')
+    
   } catch (error) {
-    notify.error(
-      error.response?.data?.password?.[0] ||
-      error.response?.data?.error ||
-      ('errors.request_failed')
-    )
+    handleApiError(error, notify)
+    
   } finally {
     deleteLoading.value = false
     deletePassword.value = ''
     if (typeof done === 'function') done()
   }
 }
-
 </script>
 
 <style scoped lang="scss">

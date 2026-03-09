@@ -40,6 +40,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { handleApiError } from '@/utils/errorHandler'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,8 +72,14 @@ onMounted(async () => {
 
   } catch (error) {
     status.value = 'error'
-    errorMessage.value =
-      error.response?.data?.error || ('deletion.error_generic')
+    
+    if (error.response?.data?.error) {
+      errorMessage.value = error.response.data.error
+    } else {
+      errorMessage.value = t('deletion.error_generic')
+    }
+    
+    handleApiError(error, notify)
   }
 })
 </script>

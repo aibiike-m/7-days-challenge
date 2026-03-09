@@ -45,6 +45,7 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
 import api from '@/services/api/index.js'
 import { MIN_GOAL_LENGTH, MAX_GOAL_LENGTH } from '@/constants/index'
 
@@ -109,17 +110,11 @@ const submit = async () => {
     emit('created', challengeData)
     notify.success('success.challenge_created')
     
-  } catch (err) {
-    if (err.response?.status === 401) {
-      notify.error('errors.unauthorized')
-    } else if (!err.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.challenge_create')
-    }
+  } catch (error) {
+    handleApiError(error, notify)
     
     if (process.env.NODE_ENV === 'development') {
-      console.error('Challenge creation error:', err)
+      console.error('Challenge creation error:', error)
     }
   }
 }

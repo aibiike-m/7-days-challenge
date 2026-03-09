@@ -182,6 +182,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
 import TaskCard from '@/components/TaskCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue' 
 import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
@@ -389,29 +390,29 @@ async function handleChallengeCreated(newChallenge) {
 
 async function confirmDelete(done) {
   try {
-    await api.bulkDeleteChallenges(selectedChallengeIds.value);
+    await api.bulkDeleteChallenges(selectedChallengeIds.value)
 
     allChallenges.value = allChallenges.value.filter(
       challenge => !selectedChallengeIds.value.includes(challenge.id)
-    );
+    )
 
     allTasks.value = allTasks.value.filter(
       task => !selectedChallengeIds.value.includes(task.challenge_id)
-    );
+    )
 
-    notify.success('success.challenges_deleted');
-    closeDeleteModal();
-    cancelSelection();
+    notify.success('success.challenges_deleted')
+    closeDeleteModal()
+    cancelSelection()
+    
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network');
-    } else {
-      notify.error('errors.challenge_delete');
+    handleApiError(error, notify)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error deleting challenges:', error)
     }
-    console.error('Error deleting challenges:', error);
-  }finally {
+  } finally {
     if (typeof done === 'function') {
-      done();
+      done()
     }
   }
 }
@@ -450,36 +451,30 @@ function calculateChallengeProgress(challengeId) {
 }
 
 async function onTaskToggled(task) {
-  const originalStatus = task.is_completed;
+  const originalStatus = task.is_completed
+  
   try {
-    task.is_completed = !task.is_completed;
-    await api.updateTaskStatus(task.id, task.is_completed);
+    task.is_completed = !task.is_completed
+    await api.updateTaskStatus(task.id, task.is_completed)
+    
   } catch (error) {
-    task.is_completed = originalStatus;
-    if (!error.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.task_update')
-    }
+    task.is_completed = originalStatus
+    handleApiError(error, notify)
   }
 }
+
 async function loadChallenges() {
   try {
     const response = await api.getChallenges()
     allChallenges.value = response.data.results || response.data || []
     
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.server')
-    }
+    allChallenges.value = []
+    handleApiError(error, notify)
     
     if (process.env.NODE_ENV === 'development') {
       console.error('Error loading challenges:', error)
     }
-    
-    allChallenges.value = []
   }
 }
 
@@ -489,25 +484,18 @@ async function loadAllTasks() {
     return
   }
 
-  const challengeIds = allChallenges.value.map(c => c.id)
-  
   try {
     const response = await api.getAllTasks()
     const tasks = Array.isArray(response.data) ? response.data : response.data.results || []
     allTasks.value = tasks
     
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-    } else {
-      notify.error('errors.server')
-    }
+    allTasks.value = []
+    handleApiError(error, notify)
     
     if (process.env.NODE_ENV === 'development') {
       console.error('Error loading tasks:', error)
     }
-    
-    allTasks.value = []
   }
 }
 

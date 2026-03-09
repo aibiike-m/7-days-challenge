@@ -39,12 +39,12 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
 import Chart from 'chart.js/auto'
 import api from '@/services/api' 
-import { useNotification } from '@/composables/useNotification'
 import { APP_NAME } from '@/constants/index'
 import ConfirmModal from '@/components/ConfirmModal.vue'
-import { handleApiError } from '@/utils/errorHandler'
 
 const router = useRouter()
 const i18n = useI18n()
@@ -83,8 +83,13 @@ async function loadProfile() {
     const serverLang = res.data.language || 'en'
     i18n.locale.value = serverLang
     localStorage.setItem('language', serverLang)
-  } catch (e) {
-    handleApiError(e, 'Profile error:')
+    
+  } catch (error) {
+    handleApiError(error, notify)
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Profile error:', error)
+    }
   }
 }
 
@@ -94,8 +99,13 @@ async function loadStats() {
       params: { language: i18n.locale.value }
     })
     weeklyStats.value = res.data
-  } catch (e) {
-    if (process.env.NODE_ENV === 'development') console.error('Stats error:', e)
+
+  } catch (error) {
+    handleApiError(error, notify)
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Stats error:', error)
+    }
   }
 }
 
@@ -137,7 +147,9 @@ async function confirmLogout() {
       await api.post('logout/', { refresh: refreshToken })
     }
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') console.error('Logout error:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Logout error:', error)
+    }
   } finally {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh')

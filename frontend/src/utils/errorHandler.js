@@ -36,26 +36,38 @@ export function handleApiError(error, notify, customHandlers = {}) {
 				} else {
 					notify.error('errors.password_weak')
 				}
-			} else if (data?.email) {
+			}
+			else if (data?.email) {
 				notify.error('errors.email_taken')
-			} else if (data?.username) {
+			}
+			else if (data?.username) {
 				notify.error('errors.username_taken')
-			} else {
+			}
+			else if (data?.error) {
+				const errorKey = `errors.${data.error.toLowerCase().replace(/ /g, '_')}`
+				notify.error(errorKey)
+			}
+			else {
 				notify.error('errors.validation')
 			}
 			break
+
 		case 401:
-			notify.error('errors.invalid_credentials')
+			notify.error('errors.unauthorized')
 			break
+
 		case 403:
 			notify.error('errors.forbidden')
 			break
+
 		case 404:
 			notify.error('errors.not_found')
 			break
+
 		case 500:
 			notify.error('errors.server')
 			break
+
 		default:
 			notify.error('errors.unknown')
 	}

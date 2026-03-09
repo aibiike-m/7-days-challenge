@@ -155,9 +155,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
 import api from '@/services/api/index.js'
 import { APP_NAME } from '@/constants/index'
-import { validateEmail, validatePassword } from '@/utils/validators';
+import { validateEmail, validatePassword } from '@/utils/validators'
 
 const router = useRouter()
 const route = useRoute()
@@ -173,7 +174,7 @@ const showPasswords = ref(false)
 const isLoading = ref(false)
 const comeFrom = ref(route.query.from || 'auth')
 
-const emailValidation = computed(() => validateEmail(resetEmail.value));
+const emailValidation = computed(() => validateEmail(resetEmail.value))
 const passwordValidation = computed(() => validatePassword(resetNewPassword.value))
 
 const isResetPasswordFormValid = computed(() => {
@@ -188,12 +189,15 @@ const isResetPasswordFormValid = computed(() => {
 const requestPasswordReset = async () => {
   if (isLoading.value) return
   isLoading.value = true
+  
   try {
     await api.post('auth/request-password-reset/', { email: resetEmail.value })
     resetCode.value = ''
     resetStep.value = 'code'
+    
   } catch (error) {
-    notify.error(!error.response ? ('errors.network') : ('errors.server'))
+    handleApiError(error, notify)
+    
     if (import.meta.env.DEV) console.error('Password reset request error:', error)
   } finally {
     isLoading.value = false
@@ -212,15 +216,15 @@ const proceedToNewPassword = async () => {
     
     resetStep.value = 'new-password'
     showPasswords.value = false
+    
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-    } else if (error.response?.status === 400) {
-      notify.error('errors.invalid_code')
-      resetCode.value = ''
-    } else {
-      notify.error('errors.server')
-    }
+    handleApiError(error, notify, {
+      400: () => {
+        notify.error('errors.invalid_code')
+        resetCode.value = ''
+      }
+    })
+    
     if (import.meta.env.DEV) console.error('Code verification error:', error)
   } finally {
     isLoading.value = false
@@ -230,6 +234,7 @@ const proceedToNewPassword = async () => {
 const confirmPasswordReset = async () => {
   if (isLoading.value || !isResetPasswordFormValid.value) return
   isLoading.value = true
+  
   try {
     await api.post('auth/confirm-password-reset/', {
       email: resetEmail.value,
@@ -240,40 +245,17 @@ const confirmPasswordReset = async () => {
     
     await logoutUser()
     resetStep.value = 'success'
+    
   } catch (error) {
-    if (!error.response) {
-      notify.error('errors.network')
-      return
-    }
-
-    if (error.response.status === 400) {
-      const err = error.response.data
-      
-      if (err?.new_password) {
-        const msg = Array.isArray(err.new_password) ? err.new_password[0] : err.new_password
-        notify.error(msg)
-      } 
-      else if (err?.confirm_password) {
-        const msg = Array.isArray(err.confirm_password) ? err.confirm_password[0] : err.confirm_password
-        notify.error(msg)
+    handleApiError(error, notify, {
+      400: (data) => {
+        if (data?.error && data.error.toLowerCase().includes('code')) {
+          notify.error('errors.invalid_code')
+          resetStep.value = 'code'
+          resetCode.value = ''
+        }
       }
-      else if (err?.non_field_errors && Array.isArray(err.non_field_errors)) {
-        notify.error(err.non_field_errors[0])
-      } 
-      else if (err?.error && err.error.toLowerCase().includes('code')) {
-        notify.error('errors.invalid_code')
-        resetStep.value = 'code'
-        resetCode.value = ''
-      } 
-      else if (err?.detail || err?.error || err?.message) {
-        notify.error(err.detail || err.error || err.message)
-      }
-      else {
-        notify.error('errors.server')
-      }
-    } else {
-      notify.error('errors.server')
-    }
+    })
     
     if (import.meta.env.DEV) console.error('Password reset confirm error:', error)
   } finally {

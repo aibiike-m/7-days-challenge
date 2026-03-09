@@ -49,6 +49,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
 import api from '@/services/api/index.js'
 
 const props = defineProps({
@@ -102,20 +103,12 @@ async function handleCheckboxClick() {
     })
     
     
-  } catch (err) {
-    emit('toggle', props.task)
-    
-    if (!err.response) {
-      notify.error('errors.network')
-    } else if (err.response?.status === 403) {
-      notify.error('errors.future_task')
-    } else {
-      notify.error('errors.task_update')
-    }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Task toggle error:', err)
-    }
+  } catch (error) {
+  emit('toggle', props.task)
+  
+  handleApiError(error, notify, {
+    403: () => notify.error('errors.future_task')
+  })
   } finally {
     isLoading.value = false
   }

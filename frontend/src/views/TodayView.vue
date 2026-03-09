@@ -39,6 +39,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useNotification } from '@/composables/useNotification'
+import { handleApiError } from '@/utils/errorHandler'
 import TaskCard from '@/components/TaskCard.vue'
 import api from '@/services/api/index.js'
 import { getTasksForDate } from '@/utils/taskHelpers'
@@ -61,13 +62,16 @@ const completedTasks = computed(() => todayTasks.value.filter(t => t.is_complete
 
 onMounted(async () => {
   loading.value = true
+  
   try {
     await loadChallenges()
     if (allChallenges.value.length > 0) {
       await loadTasks()
     }
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') console.error('Error loading data:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error loading data:', error)
+    }
   } finally {
     loading.value = false
   }
@@ -79,9 +83,14 @@ async function loadChallenges() {
       params: { language: locale.value }
     })
     allChallenges.value = response.data.results || response.data || []
+    
   } catch (error) {
-    handleError(error, 'Error loading challenges:')
     allChallenges.value = []
+    handleApiError(error, notify)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error loading challenges:', error)
+    }
   }
 }
 
@@ -92,6 +101,7 @@ async function loadTasks() {
   }
 
   const challengeIds = allChallenges.value.map(c => c.id)
+  
   try {
     const response = await api.get('tasks/', {
       params: {
@@ -100,9 +110,14 @@ async function loadTasks() {
       }
     })
     allTasks.value = Array.isArray(response.data) ? response.data : response.data.results || []
+    
   } catch (error) {
-    handleError(error, 'Error loading tasks:')
     allTasks.value = []
+    handleApiError(error, notify)
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error loading tasks:', error)
+    }
   }
 }
 
@@ -112,12 +127,6 @@ function onTaskToggled(task) {
 
 function getChallengeForTask(task) {
   return allChallenges.value.find(c => c.id === task.challenge_id)
-}
-
-function handleError(error, logLabel) {
-  if (!error.response) notify.error('errors.network')
-  else notify.error('errors.server')
-  if (process.env.NODE_ENV === 'development') console.error(logLabel, error)
 }
 </script>
 
