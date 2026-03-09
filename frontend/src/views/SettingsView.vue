@@ -732,33 +732,41 @@ const deleteAccountWithPassword = async (done) => {
   background: none;
   border: none;
   padding: 0;
-  font-size: $font-size-responsive-base;
+  font-size: $font-size-responsive-sm;
   font-weight: $font-weight-semibold;
   color: $primary;
   cursor: pointer;
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
+  display: inline-block;
 
   &:hover,
   &:focus-visible {
-    color: $primary-light;
+    color: $primary-dark;
+    text-decoration: underline;
   }
 
   &:active {
-    color: $primary-light;
+    color: $primary-hover;
   }
 
   &:disabled {
     color: $text-muted;
     cursor: not-allowed;
+    text-decoration: none;
     opacity: 0.6;
   }
 
   &--danger {
-    color: $danger-dark;
+    color: $danger;
     
     &:hover,
     &:focus-visible {
+      color: $danger-dark;
+      text-decoration: underline;
+    }
+    
+    &:active {
       color: $danger;
     }
   }

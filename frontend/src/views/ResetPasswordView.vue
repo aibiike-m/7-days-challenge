@@ -130,7 +130,7 @@
               class="btn btn-primary btn-full" 
               :disabled="isLoading || !passwordValidation.isValid || resetNewPassword !== resetConfirmPassword"
             >
-              {{ isLoading ? $t('common.loading') : $t('auth.reset_password_submit') }}
+              {{ isLoading ? $t('common.loading') : $t('auth.reset_password_btn') }}
             </button>
           </form>
         </template>
@@ -499,24 +499,26 @@ onMounted(() => {
   padding: 0;
   font-size: $font-size-responsive-sm;
   font-weight: $font-weight-semibold;
-  color: $primary;
+  color: $primary; 
   cursor: pointer;
   text-decoration: none;
-  transition: color 0.16s ease, opacity 0.16s ease;
+  transition: all 0.2s ease;
 
   &:hover,
   &:focus-visible {
-    color: $primary-light;
+    color: $primary-dark;
+    text-decoration: underline;
   }
 
   &:active {
-    color: $primary-light;
+    color: $primary;
   }
 
   &:disabled {
     color: $text-muted;
     cursor: not-allowed;
     opacity: 0.6;
+    text-decoration: none;
   }
 }
 
@@ -526,11 +528,13 @@ onMounted(() => {
   border: none;
   border-radius: $radius-md;
   cursor: pointer;
+  font-weight: $font-weight-semibold;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: $primary-light;
+    background: $primary-dark;
     transform: translateY(-2px);
+    box-shadow: $shadow-md;
   }
 
   &:active:not(:disabled) {

@@ -437,7 +437,8 @@ async function handleSubmit() {
 
   &:hover,
   &:focus-visible {
-    color: $primary-light;
+    color: $primary-hover;
+    text-decoration: underline;
   }
 
   &:active {
@@ -492,10 +493,12 @@ async function handleSubmit() {
     color: $primary;
     font-weight: $font-weight-semibold;
     cursor: pointer;
-    text-decoration: underline;
     padding: 0;
 
-    &:hover { color: $primary-light; }
+    &:hover { 
+      color: $primary-hover; 
+      text-decoration: underline; 
+    }
   }
 }
 
@@ -524,12 +527,21 @@ async function handleSubmit() {
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: $primary-light;
+    background: $primary-dark;
     transform: translateY(-2px);
+    box-shadow: $shadow-md;
   }
 
   &:active:not(:disabled) {
+    background: $primary-dark;
     transform: translateY(0);
+    box-shadow: $shadow-sm;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: $text-muted;
   }
 }
 
