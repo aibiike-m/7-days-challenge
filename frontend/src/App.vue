@@ -6,11 +6,16 @@
     </main>
     <BottomNav v-if="showNavigation" />
 
-    <FAB v-if="showNavigation" @open-modal="isCreateModalOpen = true" />
+    <FAB 
+      v-if="showNavigation"
+      :loading="isCreatingChallenge" 
+      @open-modal="isCreateModalOpen = true" 
+    />
 
     <CreateChallengeModal
       :is-open="isCreateModalOpen"
       @close="isCreateModalOpen = false"
+      @creating="isCreatingChallenge = true"
       @created="onChallengeCreated"
     />
   </div>
@@ -31,8 +36,10 @@ const showNavigation = computed(() => {
 })
 
 const isCreateModalOpen = ref(false)
+const isCreatingChallenge = ref(false)
 
 const onChallengeCreated = () => {
+  isCreatingChallenge.value = false
   isCreateModalOpen.value = false
 }
 </script>
