@@ -22,9 +22,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist", 
+    "rest_framework_simplejwt.token_blacklist",
     "djoser",
     "corsheaders",
+    "axes",
     "apps.challenges",
     "apps.users",
 ]
@@ -38,6 +39,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -59,6 +61,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -66,6 +75,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 8,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -104,6 +116,7 @@ LOGIN_URL = None
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env("GOOGLE_OAUTH2_KEY", default="")
 
 AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
@@ -122,11 +135,12 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "5/minute",
-        "user": "5/minute",
+        "anon": "100/hour",
+        "user": "1000/hour",
         "login": "5/minute",
         "email_change": "3/hour",
         "password_reset": "5/hour",
+        "verification_code": "3/hour",
     },
 }
 
@@ -157,9 +171,31 @@ DJOSER = {
     },
 }
 
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 3
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_RESET_ON_SUCCESS = True
+
+AXES_LOCKOUT_PARAMETERS = [["username"]]
+AXES_LOCKOUT_TEMPLATE = None
+AXES_VERBOSE = True
+AXES_USERNAME_FORM_FIELD = "email"
+AXES_LOCK_OUT_AT_FAILURE = True
+
+# CACHES (Axes and throttles)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    },
+    "axes": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "axes-cache",
+    },
+}
+
+AXES_CACHE = "axes"
 
 # Email Configuration
-
 EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
 EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
@@ -168,3 +204,5 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@7dayschallenge.com")
 
 FRONTEND_URL = env("FRONTEND_URL")
+
+EMAIL_TIMEOUT = 10

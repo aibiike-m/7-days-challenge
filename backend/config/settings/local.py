@@ -26,15 +26,37 @@ STATICFILES_DIRS = (BASE_DIR / "static",)
 # REST Framework
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,
-    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": None,
-        "user": None,
-        "login": None,
-        "email_change": None,
-        "password_reset": None,
+        "anon": "1000/hour",
+        "user": "10000/hour",
+        "login": "100/minute",
+        "email_change": "100/hour",
+        "password_reset": "100/hour",
+        "verification_code": "100/hour",
     },
 }
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# CACHES    
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    },
+    "axes": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "axes-cache",
+    },
+}
+
+AXES_CACHE = "axes"
+
+# 🔒 Axes
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 3
+AXES_COOLOFF_TIME = timedelta(minutes=3)

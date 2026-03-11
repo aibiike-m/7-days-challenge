@@ -21,17 +21,33 @@ PASSWORD_HASHERS = [
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
 
-REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
-REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
-    "anon": None,
-    "user": None,
-    "login": None,
-    "email_change": "100/hour",
-    "password_reset": None,
+# Caches
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    }
 }
+
+# Throttling
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": None,
+        "user": None,
+        "login": None,
+        "email_change": None,
+        "password_reset": None,
+        "verification_code": None,
+    },
+}
+
+# Axes
+AXES_ENABLED = False
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
 # CSRF
 MIDDLEWARE = [m for m in MIDDLEWARE if "CsrfViewMiddleware" not in m]
+MIDDLEWARE = [m for m in MIDDLEWARE if "AxesMiddleware" not in m]
