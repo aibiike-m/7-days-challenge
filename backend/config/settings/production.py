@@ -89,6 +89,6 @@ LOGGING = {
 }
 
 # Django-Axes
-AXES_FAILURE_LIMIT = 3
+AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_LOCKOUT_PARAMETERS = [["username"]]

@@ -37,13 +37,14 @@ REST_FRAMEWORK = {
         "email_change": "100/hour",
         "password_reset": "100/hour",
         "verification_code": "100/hour",
+        "challenge_creation": "10/hour",
     },
 }
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# CACHES    
+# CACHES
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -60,3 +61,8 @@ AXES_CACHE = "axes"
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = timedelta(minutes=3)
+
+
+MAX_ACTIVE_CHALLENGES = 3
+MAX_CHALLENGES_PER_DAY = 5
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["challenge_creation"] = "3/hour"

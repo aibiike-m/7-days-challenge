@@ -135,12 +135,14 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/hour",
-        "user": "1000/hour",
+        "anon": "100/minute",
+        "user": "1000/day",
         "login": "5/minute",
         "email_change": "3/hour",
         "password_reset": "5/hour",
-        "verification_code": "3/hour",
+        "verification_code": "5/minute",
+        "code_sending": "1/minute",
+        "challenge_creation": "10/hour",
     },
 }
 
@@ -172,10 +174,9 @@ DJOSER = {
 }
 
 AXES_ENABLED = True
-AXES_FAILURE_LIMIT = 3
+AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
-
 AXES_LOCKOUT_PARAMETERS = [["username"]]
 AXES_LOCKOUT_TEMPLATE = None
 AXES_VERBOSE = True
@@ -206,3 +207,7 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@7dayschallenge.c
 FRONTEND_URL = env("FRONTEND_URL")
 
 EMAIL_TIMEOUT = 10
+
+
+MAX_ACTIVE_CHALLENGES = 10
+MAX_CHALLENGES_PER_DAY = 15
