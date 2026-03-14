@@ -1,10 +1,12 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from datetime import timedelta
 from django.utils.translation import gettext as _
+import logging
 
 from .models import Challenge, Task
 from .serializers import (
@@ -15,12 +17,24 @@ from .serializers import (
 )
 from .services.challenge_service import ChallengeService
 
+from apps.users.throttles import ChallengeCreationThrottle
+from rest_framework.throttling import UserRateThrottle
+
+logger = logging.getLogger(__name__)
+
 
 class ChallengeViewSet(viewsets.ModelViewSet):
-    """API for working with challenges"""
+    """
+    API for working with challenges.
+    
+    Security features:
+    - Throttling on challenge creation (10/hour)
+    - Active challenges limit (10 max)
+    - Daily creation limit (15 max)
+    """
 
     permission_classes = [IsAuthenticated]
-    queryset = Challenge.objects.none() 
+    queryset = Challenge.objects.none()
 
     def get_queryset(self):
         return Challenge.objects.filter(user=self.request.user)
@@ -33,14 +47,17 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         return ChallengeDetailSerializer
 
     def get_serializer_context(self):
-        """Add the language to the serializer context"""
         context = super().get_serializer_context()
         lang = self.request.query_params.get("language") or self.request.user.language
         context["language"] = lang
         return context
 
+    def get_throttles(self):
+        if self.action == 'create':
+            return [ChallengeCreationThrottle()]
+        return super().get_throttles()
+
     def create(self, request):
-        """Creating a new challenge"""
         serializer = ChallengeCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -57,8 +74,24 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             )
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
+        except ValidationError as e:
+            logger.warning(
+                f"Challenge creation failed: user={request.user.email}, "
+                f"error={str(e)}"
+            )
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(
+                f"Unexpected error creating challenge: user={request.user.email}, "
+                f"error={str(e)}"
+            )
+            return Response(
+                {"error": "Failed to create challenge. Please try again later."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -68,7 +101,6 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        """Challenge details"""
         instance = self.get_object()
         serializer = self.get_serializer(
             instance, context=self.get_serializer_context()
@@ -77,7 +109,6 @@ class ChallengeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-        """Get an active challenge"""
         challenge = ChallengeService.get_active_challenge(request.user)
 
         if not challenge:
@@ -88,16 +119,29 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"], url_path="creation-stats")
+    def creation_stats(self, request):
+        stats = ChallengeService.get_user_stats(request.user)
+        return Response(stats)
+
     @action(detail=False, methods=["delete"], url_path="bulk-delete")
+    @throttle_classes([UserRateThrottle])
+
     def bulk_delete(self, request):
-        """Массовое удаление челленджей"""
         ids = request.data.get("ids", [])
         if not ids:
             return Response(
                 {"detail": "No IDs provided"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        if len(ids) > 10:
+            return Response({"detail": "Too many IDs"}, status=status.HTTP_400_BAD_REQUEST)
+
         deleted_count, _ = self.get_queryset().filter(id__in=ids).delete()
+
+        logger.info(
+            f"Bulk delete: user={request.user.email}, deleted={deleted_count}"
+        )
 
         return Response(
             {"detail": f"Successfully deleted {deleted_count} challenges"},
@@ -106,7 +150,6 @@ class ChallengeViewSet(viewsets.ModelViewSet):
 
 
 class TaskViewSet(viewsets.ModelViewSet):
-    """API for working with tasks"""
 
     permission_classes = [IsAuthenticated]
     queryset = Task.objects.none()
@@ -117,14 +160,12 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Task.objects.filter(challenge__user=self.request.user)
 
     def get_serializer_context(self):
-        """Add the language to the serializer context"""
         context = super().get_serializer_context()
         lang = self.request.query_params.get("language") or self.request.user.language
         context["language"] = lang
         return context
 
     def list(self, request, *args, **kwargs):
-        """Task list filtered by challenge"""
         queryset = self.get_queryset()
         challenge_ids = request.query_params.get("challenge_ids")
 
@@ -146,7 +187,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        """Task details"""
         instance = self.get_object()
         serializer = self.get_serializer(
             instance, context=self.get_serializer_context()
@@ -174,7 +214,6 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
-        """Mark a task as completed"""
         task = self.get_object()
 
         allowed, error_msg = self._validate_task_modification(task)
@@ -190,7 +229,6 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def uncomplete(self, request, pk=None):
-        """Unmark as completed"""
         task = self.get_object()
 
         allowed, error_msg = self._validate_task_modification(task)
