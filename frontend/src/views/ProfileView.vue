@@ -24,7 +24,6 @@
       </div>
     </div>
 
-  </div>
   <ConfirmModal
     :is-open="showLogoutModal"
     :title="$t('profile.logout_confirm_title')"
@@ -33,6 +32,7 @@
     @close="showLogoutModal = false"
     @confirm="confirmLogout"
   />
+  </div>
 </template>
 
 <script setup>
@@ -111,8 +111,13 @@ async function loadStats() {
 
 function createChart() {
   if (!chartCanvas.value) return
-  if (chartInstance) chartInstance.destroy()
-
+  
+  if (chartInstance) {
+    chartInstance.data.labels = weeklyStats.value.map(d => d.day)
+    chartInstance.data.datasets[0].data = weeklyStats.value.map(d => d.percent)
+    chartInstance.update('none')
+    return
+  }
   chartInstance = new Chart(chartCanvas.value, {
     type: 'bar',
     data: {

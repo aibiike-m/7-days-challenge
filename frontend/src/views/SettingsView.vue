@@ -145,8 +145,6 @@
         {{ $t('settings.delete_account_btn') }}
       </button>
     </div>
-  </div>
-
     <ConfirmModal
       :isOpen="showDeleteWarningModal"
       :title="$t('settings.delete_warning_title')"
@@ -156,7 +154,7 @@
       @close="showDeleteWarningModal = false"
       @confirm="onWarningConfirmed"
     />
-
+  
     <ConfirmModal
       :isOpen="showDeletePasswordModal"
       :title="$t('settings.delete_password_title')"
@@ -181,7 +179,7 @@
         </div>
       </template>
     </ConfirmModal>
-
+  
     <ConfirmModal
       :isOpen="showDeleteEmailSentModal"
       :title="$t('settings.delete_email_sent_title')"
@@ -191,6 +189,8 @@
       @close="showDeleteEmailSentModal = false"
       @confirm="showDeleteEmailSentModal = false"
     />
+  </div>
+
 </template>
 
 <script setup>

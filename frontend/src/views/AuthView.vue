@@ -43,10 +43,17 @@
               <input id="password-confirm" v-model="passwordConfirm" :type="showPasswords ? 'text' : 'password'" :placeholder="$t('auth.password_confirm')" autocomplete="new-password" required />
             </div>
           </div>
+          <p v-if="isLockedOut" class="lockout-text">
+            {{ $t('errors.account_temporarily_locked') }}
+          </p>
 
-          <button type="submit" class="btn btn-primary btn-full" :disabled="isLoading || !isFormValid">
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-full" 
+            :disabled="isLoading || !isFormValid || isLockedOut"
+          >
             {{ isLoading ? $t('common.loading') : (isLogin ? $t('auth.login_btn') : $t('auth.register_btn')) }}
-          </button>        
+          </button>       
         </form>
 
         <div v-if="isLogin" class="forgot-password-link">
@@ -91,23 +98,44 @@ const password = ref('')
 const passwordConfirm = ref('')
 const showPasswords = ref(false)
 const isLoading = ref(false)  
+
+const isLockedOut = ref(false)
+let lockoutTimer = null
+
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 const passwordValidation = computed(() => validatePassword(password.value))
-
 const emailValidation = computed(() => validateEmail(email.value))
 
 const isFormValid = computed(() => {
   if (isLogin.value) {
     return emailValidation.value.isValid && password.value.length > 0
   }
-  
   return (
     emailValidation.value.isValid && 
     passwordValidation.value.isValid && 
     password.value === passwordConfirm.value
   );
 });
+
+const checkLockoutStatus = () => {
+  const lockoutUntil = localStorage.getItem('lockout_until')
+  if (lockoutUntil) {
+    const remainingTime = parseInt(lockoutUntil) - Date.now()
+    
+    if (remainingTime > 0) {
+      isLockedOut.value = true
+      if (lockoutTimer) clearTimeout(lockoutTimer)
+      lockoutTimer = setTimeout(() => {
+        isLockedOut.value = false
+        localStorage.removeItem('lockout_until')
+      }, remainingTime)
+    } else {
+      localStorage.removeItem('lockout_until')
+      isLockedOut.value = false
+    }
+  }
+}
 
 const goToResetPassword = () => {
   router.push({ name: 'reset-password', query: { from: 'auth' } })
@@ -119,6 +147,7 @@ const toggleAuthMode = () => {
   password.value = ''
   passwordConfirm.value = ''
   showPasswords.value = false
+  checkLockoutStatus()
 }
 
 const saveAuthAndRedirect = (data) => {
@@ -127,6 +156,7 @@ const saveAuthAndRedirect = (data) => {
   const serverLanguage = data.user?.language || 'en'
   localStorage.setItem('language', serverLanguage)
   i18n.locale.value = serverLanguage
+  localStorage.removeItem('lockout_until')
   setTimeout(() => { window.location.href = '/today' }, 100)
 }
 
@@ -148,13 +178,19 @@ const handleGoogleResponse = async (response) => {
   }
 }
 
-
 function renderGoogleButton() {
   const container = document.getElementById('g_id_signin')
   if (!container || !window.google?.accounts) return
   container.innerHTML = ''
-  window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleResponse, auto_select: false, context: 'signin' })
-  window.google.accounts.id.renderButton(container, { type: 'icon', shape: 'circle', theme: 'outline', size: 'large' })
+  window.google.accounts.id.initialize({ 
+    client_id: GOOGLE_CLIENT_ID, 
+    callback: handleGoogleResponse, 
+    auto_select: false, 
+    context: 'signin' 
+  })
+  window.google.accounts.id.renderButton(container, { 
+    type: 'icon', shape: 'circle', theme: 'outline', size: 'large' 
+  })
 }
 
 function changeLanguage(lang) {
@@ -163,6 +199,8 @@ function changeLanguage(lang) {
 }
 
 onMounted(() => {
+  checkLockoutStatus()
+  
   if (window.google?.accounts) { renderGoogleButton(); return }
   const script = document.createElement('script')
   script.src = 'https://accounts.google.com/gsi/client'
@@ -174,7 +212,7 @@ onMounted(() => {
 })
 
 async function handleSubmit() {
-  if (isLoading.value) return
+  if (isLoading.value || isLockedOut.value) return
   isLoading.value = true
   
   try {
@@ -183,8 +221,10 @@ async function handleSubmit() {
         email: email.value, 
         password: password.value 
       })
+      isLockedOut.value = false
+      localStorage.removeItem('lockout_until')
       saveAuthAndRedirect(response.data)
-      
+
     } else {
       if (password.value !== passwordConfirm.value) {
         notify.error('errors.passwords_dont_match')
@@ -207,14 +247,34 @@ async function handleSubmit() {
     
   } catch (error) {
     handleApiError(error, notify, {
-    401: () => notify.error('errors.invalid_credentials') 
-  })
-  if (import.meta.env.DEV) console.error('Auth error:', error)
+      401: () => {
+        notify.error('errors.invalid_credentials')
+      },
+      403: (data) => {
+        if (data?.error === 'locked') {
+          notify.error('errors.too_many_requests')
+          isLockedOut.value = true
+          
+          const waitMinutes = data.minutes || 15
+          const unlockTime = Date.now() + (waitMinutes * 60 * 1000)
+          localStorage.setItem('lockout_until', unlockTime.toString())
+
+          if (lockoutTimer) clearTimeout(lockoutTimer)
+          lockoutTimer = setTimeout(() => {
+            isLockedOut.value = false
+            localStorage.removeItem('lockout_until')
+          }, waitMinutes * 60 * 1000)
+          
+        } else {
+          notify.error('errors.forbidden')
+        }
+      }
+    })
+    if (import.meta.env.DEV) console.error('Auth error:', error)
   } finally {
     isLoading.value = false
   }
 }
-
 </script>
 
 <style scoped lang="scss">
@@ -577,5 +637,19 @@ async function handleSubmit() {
   }
 
   .auth-title { margin-bottom: $spacing-responsive-sm; }
+}
+
+
+.lockout-text {
+  color: $danger-dark;
+  font-size: $font-size-responsive-sm;
+  text-align: center;
+  font-weight: $font-weight-medium;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>

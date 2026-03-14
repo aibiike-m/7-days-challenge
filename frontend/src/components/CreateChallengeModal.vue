@@ -86,8 +86,8 @@ const submit = async () => {
   const goalText = goal.value.trim()
   
   emit('close')
+  const currentGoal = goalText
   goal.value = ''
-  
   emit('creating')
   
   try {
@@ -99,11 +99,11 @@ const submit = async () => {
     const challengeData = response.data?.challenge || response.data
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('📦 Challenge created:', challengeData)
+      console.log('Challenge created:', challengeData)
     }
     
     if (!challengeData.id || !challengeData.start_date) {
-      console.error('⚠️ Invalid challenge data structure:', challengeData)
+      console.error('Invalid challenge data structure:', challengeData)
       throw new Error('Invalid challenge data from server')
     }
     
@@ -112,6 +112,7 @@ const submit = async () => {
     
   } catch (error) {
     handleApiError(error, notify)
+    emit('created', null)
     
     if (process.env.NODE_ENV === 'development') {
       console.error('Challenge creation error:', error)
