@@ -367,6 +367,9 @@ const changePassword = async () => {
   } catch (error) {
     handleApiError(error, notify)
     
+    passwords.value.old = ''
+    passwords.value.new = ''
+    passwords.value.confirm = ''
   } finally {
     passwordLoading.value = false
   }
@@ -500,6 +503,7 @@ const deleteAccountWithPassword = async (done) => {
   } catch (error) {
     handleApiError(error, notify)
     
+    deletePassword.value = ''
   } finally {
     deleteLoading.value = false
     deletePassword.value = ''

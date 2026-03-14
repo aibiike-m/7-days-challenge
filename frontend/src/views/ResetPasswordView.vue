@@ -256,7 +256,8 @@ const confirmPasswordReset = async () => {
         }
       }
     })
-    
+    resetNewPassword.value = ''
+    resetConfirmPassword.value = ''
     if (import.meta.env.DEV) console.error('Password reset confirm error:', error)
   } finally {
     isLoading.value = false

@@ -270,6 +270,8 @@ async function handleSubmit() {
         }
       }
     })
+    password.value = ''
+    passwordConfirm.value = ''
     if (import.meta.env.DEV) console.error('Auth error:', error)
   } finally {
     isLoading.value = false
