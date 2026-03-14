@@ -183,7 +183,13 @@
 		"request_failed": "Request failed",
 		"password_mismatch": "Passwords don't match",
 		"invalid_code": "Invalid or expired code",
-		"invalid_password": "Invalid password"
+		"invalid_password": "Invalid password",
+		"too_many_requests": "Too many requests. Please try again later.",
+		"not_found": "The requested resource was not found",
+		"account_temporarily_locked": "Account temporarily locked due to multiple failed login attempts. Please try again later.",
+		"email_matches_current": "This email matches your current email",
+		"email_already_in_use": "This email is already in use by another account",
+		"email_invalid": "Please enter a valid email address"
 	},
 	"common": {
 		"loading": "Loading...",

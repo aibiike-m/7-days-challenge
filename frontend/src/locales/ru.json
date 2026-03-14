@@ -183,7 +183,13 @@
 		"request_failed": "Ошибка запроса",
 		"invalid_code": "Неверный или истекший код",
 		"password_mismatch": "Пароли не совпадают",
-		"invalid_password": "Неверный пароль"
+		"invalid_password": "Неверный пароль",
+		"too_many_requests": "Слишком много запросов. Попробуйте снова позже.",
+		"not_found": "Запрашиваемый ресурс не найден",
+		"account_temporarily_locked": "Доступ заблокирован из-за частых ошибок. Попробуйте позже.",
+		"email_matches_current": "Этот email совпадает с вашим текущим",
+		"email_already_in_use": "Этот email уже занят другим пользователем",
+		"email_invalid": "Введите корректный адрес электронной почты"
 	},
 	"common": {
 		"loading": "Загрузка...",
