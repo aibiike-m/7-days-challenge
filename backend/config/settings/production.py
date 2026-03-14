@@ -41,6 +41,18 @@ DATABASES = {
 # Static files
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# CACHES
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+    },
+    "axes": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "axes_cache",
+    },
+}
+
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
@@ -83,6 +95,11 @@ LOGGING = {
         "axes": {
             "handlers": ["console", "file"],
             "level": "WARNING",
+            "propagate": False,
+        },
+        "apps": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
             "propagate": False,
         },
     },

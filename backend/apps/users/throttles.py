@@ -20,7 +20,7 @@ class VerificationCodeRateThrottle(UserRateThrottle):
     scope = "verification_code"
 
 
-class MinimumIntervalThrottle:
+class MinimumIntervalThrottle(AnonRateThrottle):
     """
     A throttle that requires a minimum interval between requests.
     Use it to protect against spam codes.
@@ -84,33 +84,13 @@ class ChallengeCreationThrottle(UserRateThrottle):
     scope = "challenge_creation"
 
 
+class PasswordChangeRateThrottle(UserRateThrottle):
+    scope = "password_change"
 
 
+class GoogleAuthThrottle(AnonRateThrottle):
+    scope = "google_auth"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+class TokenActionThrottle(AnonRateThrottle):
+    scope = "token_action"

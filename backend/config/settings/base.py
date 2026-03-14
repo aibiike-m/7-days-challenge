@@ -143,6 +143,9 @@ REST_FRAMEWORK = {
         "verification_code": "5/minute",
         "code_sending": "1/minute",
         "challenge_creation": "10/hour",
+        "google_auth": "10/minute",
+        "token_action": "20/minute",
+        "password_change": "/hour",
     },
 }
 
@@ -211,3 +214,6 @@ EMAIL_TIMEOUT = 10
 
 MAX_ACTIVE_CHALLENGES = 10
 MAX_CHALLENGES_PER_DAY = 15
+
+# Browser security headers
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"

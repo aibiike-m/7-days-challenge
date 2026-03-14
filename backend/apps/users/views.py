@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
+import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -16,6 +17,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from axes.models import AccessAttempt
+from axes.handlers.proxy import AxesProxyHandler
 
 from apps.challenges.models import Task
 from apps.users.models import EmailVerification, AccountDeletion, PasswordResetCode
@@ -33,9 +36,33 @@ from .throttles import (
     EmailChangeRateThrottle,
     LoginRateThrottle,
     PasswordResetRateThrottle,
+    CodeSendingThrottle,
+    TokenActionThrottle,
+    VerificationCodeRateThrottle,
+    PasswordChangeRateThrottle,
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+
+def get_remaining_minutes(email):
+    from axes.conf import settings as axes_settings
+
+    attempt = (
+        AccessAttempt.objects.filter(username=email).order_by("-attempt_time").first()
+    )
+
+    if attempt:
+        cooloff = getattr(axes_settings, "AXES_COOLOFF_TIME", timedelta(minutes=15))
+        if isinstance(cooloff, int):
+            cooloff = timedelta(seconds=cooloff)
+
+        unlock_time = attempt.attempt_time + cooloff
+        remaining = unlock_time - timezone.now()
+        return max(int(remaining.total_seconds() / 60), 1)
+
+    return 15 
 
 
 @api_view(["POST"])
@@ -44,34 +71,41 @@ User = get_user_model()
 def login_by_email(request):
     email = request.data.get("email")
     password = request.data.get("password")
-    if not email or not password:
-        return Response(
-            {"error": "Email and password required"},
-            status=status.HTTP_400_BAD_REQUEST,
+
+    handler = AxesProxyHandler()
+
+    if handler.is_locked(request, credentials={"username": email}):
+        minutes = get_remaining_minutes(email)
+        logger.warning(
+            f"Blocked login attempt for {email} from {request.META.get('REMOTE_ADDR')}"
         )
+        return Response(
+            {"error": "locked", "minutes": minutes},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     user = authenticate(request, username=email, password=password)
+
     if user is not None:
         refresh = RefreshToken.for_user(user)
         return Response(
             {
-                "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "email": user.email,
-                    "language": user.language,
-                },
+                "access": str(refresh.access_token),
+                "user": UserSerializer(user).data,
             }
         )
-    return Response(
-        {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
-    )
+    else:
+        return Response(
+            {"error": "invalid_credentials"}, status=status.HTTP_401_UNAUTHORIZED
+        )
 
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
     queryset = User.objects.all()
+    http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self):
         return self.queryset.filter(id=self.request.user.id)
@@ -119,7 +153,12 @@ class UserViewSet(viewsets.ModelViewSet):
             stats.append({"day": weekdays[i], "percent": percent})
         return Response(stats)
 
-    @action(detail=False, methods=["post"], url_path="change-password")
+    @action(
+        detail=False, 
+        methods=["post"], 
+        url_path="change-password",
+        throttle_classes=[PasswordChangeRateThrottle]
+    )
     def change_password(self, request):
         user = request.user
         if not user.has_usable_password():
@@ -138,7 +177,7 @@ class UserViewSet(viewsets.ModelViewSet):
             {"message": "Password changed successfully"}, status=status.HTTP_200_OK
         )
 
-    @action(detail=False, methods=["post"], url_path="set-password")
+    @action(detail=False, methods=["post"], url_path="set-password", throttle_classes=[PasswordChangeRateThrottle])
     def set_password(self, request):
         user = request.user
         if user.has_usable_password():
@@ -160,11 +199,15 @@ class UserViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=False, methods=["get"], url_path="has-password")
+    def has_password(self, request):
+        return Response({"has_password": request.user.has_usable_password()})
+
     @action(
         detail=False,
         methods=["post"],
         url_path="request-email-change",
-        throttle_classes=[EmailChangeRateThrottle],
+        throttle_classes=[CodeSendingThrottle, EmailChangeRateThrottle],
     )
     def request_email_change(self, request):
         serializer = RequestEmailChangeSerializer(
@@ -207,8 +250,9 @@ class UserViewSet(viewsets.ModelViewSet):
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
         )
+
         return Response(
-            {"message": "Verification code sent to your new email"},
+            {"message": f"Verification code sent to {new_email}"},
             status=status.HTTP_200_OK,
         )
 
@@ -216,7 +260,7 @@ class UserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         url_path="confirm-email-change",
-        throttle_classes=[EmailChangeRateThrottle],
+        throttle_classes=[VerificationCodeRateThrottle],
     )
     def confirm_email_change(self, request):
         serializer = ConfirmEmailChangeSerializer(
@@ -242,113 +286,74 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save(update_fields=["email"])
         verification.is_used = True
         verification.save(update_fields=["is_used"])
-
-        EmailVerification.objects.filter(
-            user=user, is_used=False, is_cancelled=False
-        ).exclude(pk=verification.pk).update(is_cancelled=True)
-
         send_mail(
-            subject="Your email address has been changed",
+            subject="Your email has been changed",
             message=(
-                f"Your email address has been successfully changed to {verification.new_email}.\n\n"
-                f"If you didn't do this, please contact support immediately."
+                f"Your email address has been successfully changed from {old_email} to {user.email}.\n\n"
+                f"If you didn't make this change, please contact support immediately."
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[old_email],
+            recipient_list=[user.email],
         )
+
         return Response(
-            {
-                "message": "Email changed successfully. Please log in again.",
-                "new_email": verification.new_email,
-            },
-            status=status.HTTP_200_OK,
+            {"message": "Email changed successfully"}, status=status.HTTP_200_OK
         )
 
-    @action(detail=False, methods=["get"], url_path="has-password")
-    def has_password(self, request):
-        return Response({"has_password": request.user.has_usable_password()})
-
-    @action(detail=False, methods=["post"], url_path="delete-account")
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="delete-account",
+        throttle_classes=[CodeSendingThrottle],
+    )
     def delete_account(self, request):
+        serializer = DeleteAccountWithPasswordSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
         user = request.user
-        if user.has_usable_password():
-            serializer = DeleteAccountWithPasswordSerializer(
-                data=request.data, context={"request": request}
-            )
-            serializer.is_valid(raise_exception=True)
-            email = user.email
-            user.delete()
-            send_mail(
-                subject="Your account has been deleted",
-                message=(
-                    "Your account has been permanently deleted.\n\n"
-                    "If you didn't do this, please contact support immediately."
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-            )
-            return Response(
-                {"message": "Account deleted successfully."},
-                status=status.HTTP_200_OK,
-            )
         AccountDeletion.objects.filter(user=user, is_used=False).update(is_used=True)
         deletion = AccountDeletion.objects.create(user=user)
-        confirm_url = (
-            f"{settings.FRONTEND_URL}/confirm-account-deletion"
-            f"?token={deletion.token}"
+        delete_url = (
+            f"{settings.FRONTEND_URL}/confirm-delete-account?token={deletion.token}"
         )
         send_mail(
             subject="Confirm account deletion",
             message=(
-                "You requested to permanently delete your account.\n\n"
-                f"Click this link to confirm:\n{confirm_url}\n\n"
-                "The link expires in 1 hour.\n\n"
-                "If you didn't request this, you can safely ignore this email."
+                f"You requested to delete your account.\n\n"
+                f"To confirm, click this link:\n{delete_url}\n\n"
+                f"This link expires in 1 hour.\n\n"
+                f"If you didn't request this, you can safely ignore this email and your account will remain active."
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
         )
         return Response(
-            {"message": "A confirmation link has been sent to your email."},
+            {"message": "Confirmation email sent. Check your inbox."},
             status=status.HTTP_200_OK,
         )
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@throttle_classes([TokenActionThrottle])
 def cancel_email_change(request):
     token = request.query_params.get("token")
     if not token:
         return Response(
             {"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST
         )
-
-    verification = (
-        EmailVerification.objects.filter(
-            cancel_token=token,
-            is_cancelled=False,
-        )
-        .order_by("-created_at")
-        .first()
-    )
-
+    verification = EmailVerification.objects.filter(
+        cancel_token=token, is_cancelled=False
+    ).first()
     if not verification:
         return Response(
-            {"error": "Invalid or already cancelled link"},
+            {"error": "Invalid or already used cancellation link"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    if timezone.now() > verification.expires_at:
-        return Response(
-            {"error": "This cancellation link has expired"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    user = verification.user
-
-    email_was_changed = user.email == verification.new_email
-
+    email_was_changed = verification.is_used
     if email_was_changed:
+        user = verification.user
         user.email = verification.old_email
         user.save(update_fields=["email"])
 
@@ -393,6 +398,7 @@ def cancel_email_change(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@throttle_classes([TokenActionThrottle])
 def confirm_delete_account(request):
     token = request.query_params.get("token")
     if not token:
@@ -448,7 +454,7 @@ class LogoutView(APIView):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@throttle_classes([PasswordResetRateThrottle])
+@throttle_classes([CodeSendingThrottle, PasswordResetRateThrottle])
 def request_password_reset(request):
     serializer = RequestPasswordResetSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -513,7 +519,7 @@ def verify_password_reset_code(request):
         )
 
     reset = (
-        PasswordResetCode.objects.filter(user=user, code=code, is_used=False)
+        PasswordResetCode.objects.filter(user=user, is_used=False)
         .order_by("-created_at")
         .first()
     )
@@ -522,6 +528,15 @@ def verify_password_reset_code(request):
         return Response(
             {"error": "Invalid or expired code."},
             status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if reset.code != code:
+        reset.max_attempts += 1
+        if reset.max_attempts >= 5:
+            reset.is_used = True
+        reset.save(update_fields=["max_attempts", "is_used"])
+        return Response(
+            {"error": "Invalid or expired code."}, status=status.HTTP_400_BAD_REQUEST
         )
 
     return Response(

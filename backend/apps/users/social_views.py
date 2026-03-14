@@ -10,17 +10,22 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .throttles import LoginRateThrottle
+from .throttles import GoogleAuthThrottle
 
 User = get_user_model()
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@throttle_classes([LoginRateThrottle])
+@throttle_classes([GoogleAuthThrottle])
 def exchange_token(request):
     try:
         token = request.data.get("credential")
         language = request.data.get("language", "en")
+
+        if language not in ["ru", "en"]:
+            language = "en"
+
         if not token:
             return Response({"error": "Token not provided"}, status=status.HTTP_400_BAD_REQUEST)
         idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY)

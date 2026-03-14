@@ -33,11 +33,14 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "1000/hour",
         "user": "10000/hour",
-        "login": "100/minute",
-        "email_change": "100/hour",
-        "password_reset": "100/hour",
-        "verification_code": "100/hour",
+        "login": "3/minute",
+        "email_change": "3/hour",
+        "password_change": "3/hour",
+        "password_reset": "3/hour",
+        "verification_code": "3/hour",
         "challenge_creation": "10/hour",
+        "google_auth": "10/minute",
+        "token_action": "20/minute",
     },
 }
 
