@@ -123,10 +123,16 @@ class ConfirmEmailChangeSerializer(serializers.Serializer):
 
 
 class DeleteAccountWithPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(
+        required=False, write_only=True, allow_blank=True, default=""
+    )
 
     def validate_password(self, value):
         user = self.context["request"].user
+        if not user.has_usable_password():
+            return value
+        if not value:
+            raise serializers.ValidationError("Password is required")
         if not user.check_password(value):
             raise serializers.ValidationError("Incorrect password")
         return value
