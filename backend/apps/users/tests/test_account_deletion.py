@@ -24,6 +24,7 @@ class TestDeleteAccountWithPassword:
         assert response.status_code == status.HTTP_200_OK
         assert "deleted" in response.data["message"].lower()
         assert not User.objects.filter(id=user_id).exists()
+        mock_send_mail.assert_called_once()
 
     @patch("apps.users.views.send_mail")
     def test_delete_account_sends_confirmation_email(

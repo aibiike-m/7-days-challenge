@@ -82,7 +82,9 @@ class TestChallengeService:
         mock_model.return_value.generate_content.return_value = mock_response
 
         challenge = ChallengeService.create_challenge_with_tasks(
-            goal="Test goal", user=user, language="ru"
+            goal="A long goal for testing purposes",
+            user=user,
+            language="ru",
         )
 
         assert challenge.tasks.count() == 1
@@ -107,7 +109,7 @@ class TestChallengeService:
     @patch("apps.challenges.services.ai_service.genai.GenerativeModel")
     def test_create_challenge_handles_missing_translations(self, mock_model, user):
         incomplete_response = {
-            "goal_ru": "Цель на русском",
+            "goal_ru": "Длинная цель на русском для тестирования",
             "tasks": [
                 {
                     "day": 1,
@@ -122,7 +124,9 @@ class TestChallengeService:
         mock_model.return_value.generate_content.return_value = mock_response
 
         challenge = ChallengeService.create_challenge_with_tasks(
-            goal="Test", user=user, language="ru"
+            goal="Learn how to play guitar in seven days with practice", 
+            user=user, 
+            language="ru"
         )
 
         assert challenge.tasks.count() == 1
@@ -328,7 +332,9 @@ class TestServiceIntegration:
         challenges = []
         for i in range(3):
             challenge = ChallengeService.create_challenge_with_tasks(
-                goal=f"Goal {i}", user=user, language="en"
+                goal=f"This is a long test goal for challenge number {i}",
+                 user=user,
+                language="en",
             )
             challenges.append(challenge)
 
