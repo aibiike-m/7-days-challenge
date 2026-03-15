@@ -11,6 +11,8 @@ from ..constants import (
     MAX_ACTIVE_CHALLENGES,
     CHALLENGE_DURATION_DAYS,
     STATUS_ACTIVE,
+    MIN_GOAL_LENGTH,
+    MAX_GOAL_LENGTH,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,10 +60,10 @@ class ChallengeService:
             )
             raise ValidationError("daily_limit_exceeded")
 
-        if not goal or len(goal.strip()) < 10:
+        if not goal or len(goal.strip()) < MIN_GOAL_LENGTH:
             raise ValidationError("goal_too_short")
 
-        if len(goal) > 500:
+        if len(goal) > MAX_GOAL_LENGTH:
             raise ValidationError("goal_too_long")
 
         logger.info(
