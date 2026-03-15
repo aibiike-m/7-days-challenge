@@ -39,6 +39,11 @@ REST_FRAMEWORK = {
         "email_change": None,
         "password_reset": None,
         "verification_code": None,
+        "code_sending": None,
+        "token_action": None,
+        "password_change": None,
+        "google_auth": None,
+        "challenge_creation": None,
     },
 }
 

@@ -34,10 +34,10 @@ REST_FRAMEWORK = {
         "anon": "1000/hour",
         "user": "10000/hour",
         "login": "3/minute",
-        "email_change": "2/minute",
-        "password_change": "2/minute",
-        "password_reset": "2/minute",
-        "verification_code": "2/minute",
+        "email_change": "5/minute",
+        "password_change": "5/minute",
+        "password_reset": "5/minute",
+        "verification_code": "5/minute",
         "challenge_creation": "5/minute",
         "google_auth": "10/minute",
         "token_action": "20/minute",
@@ -66,7 +66,7 @@ CACHES = {
 
 AXES_CACHE = "axes"
 
-# 🔒 Axes
+# Axes
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = timedelta(minutes=3)

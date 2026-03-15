@@ -145,7 +145,7 @@ REST_FRAMEWORK = {
         "challenge_creation": "10/hour",
         "google_auth": "10/minute",
         "token_action": "20/minute",
-        "password_change": "/hour",
+        "password_change": "5/hour",
     },
 }
 
