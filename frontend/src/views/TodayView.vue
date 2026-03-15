@@ -59,7 +59,21 @@ const allTasks = ref([])
 const todayTasks = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return getTasksForDate(allTasks.value, allChallenges.value, today)
+  const tasks = getTasksForDate(allTasks.value, allChallenges.value, today)
+  const challengeOrder = {}
+  allChallenges.value.forEach((ch, index) => {
+    challengeOrder[ch.id] = index
+  })
+
+  return [...tasks].sort((a, b) => {
+    const orderA = challengeOrder[a.challenge_id] ?? 999
+    const orderB = challengeOrder[b.challenge_id] ?? 999
+
+    if (orderA !== orderB) {
+      return orderA - orderB
+    }
+    return a.id - b.id
+  })
 })
 
 const activeTasks = computed(() => todayTasks.value.filter(t => !t.is_completed))
