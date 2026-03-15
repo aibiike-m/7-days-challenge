@@ -2,55 +2,67 @@ from django.db import transaction
 from django.utils import translation
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.conf import settings
+from datetime import timedelta
 import logging
 
 from ..models import Challenge, Task
 from .ai_service import AIService
+from ..constants import (
+    MAX_ACTIVE_CHALLENGES,
+    CHALLENGE_DURATION_DAYS,
+    STATUS_ACTIVE,
+)
 
 logger = logging.getLogger(__name__)
 
+MAX_CHALLENGES_PER_DAY = 15
+
 
 class ChallengeService:
-    MAX_ACTIVE_CHALLENGES = getattr(settings, "MAX_ACTIVE_CHALLENGES", 10)
-    MAX_CHALLENGES_PER_DAY = getattr(settings, "MAX_CHALLENGES_PER_DAY", 15)
+
+    @staticmethod
+    def _get_active_challenges_count(user) -> int:
+        today = timezone.now().date()
+        active_limit_date = today - timedelta(days=CHALLENGE_DURATION_DAYS)
+        return Challenge.objects.filter(
+            user=user,
+            status=STATUS_ACTIVE,
+            start_date__gt=active_limit_date,
+        ).count()
 
     @staticmethod
     @transaction.atomic
     def create_challenge_with_tasks(
-        goal: str, user, duration_days: int = 7, language: str = "ru"
+        goal: str,
+        user,
+        duration_days: int = CHALLENGE_DURATION_DAYS,
+        language: str = "ru",
     ) -> Challenge:
 
-        active_count = Challenge.objects.filter(user=user, status="active").count()
-        if active_count >= ChallengeService.MAX_ACTIVE_CHALLENGES:
+        active_count = ChallengeService._get_active_challenges_count(user)
+        if active_count >= MAX_ACTIVE_CHALLENGES:
             logger.warning(
                 f"Active challenges limit exceeded: user={user.email}, "
-                f"active={active_count}, limit={ChallengeService.MAX_ACTIVE_CHALLENGES}"
+                f"active={active_count}, limit={MAX_ACTIVE_CHALLENGES}"
             )
-            raise ValidationError(
-                f"You cannot have more than {ChallengeService.MAX_ACTIVE_CHALLENGES} active challenges. "
-                f"Please complete or delete some challenges first."
-            )
+            raise ValidationError("max_challenges_exceeded")
 
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         created_today = Challenge.objects.filter(
             user=user, created_at__gte=today_start
         ).count()
-        if created_today >= ChallengeService.MAX_CHALLENGES_PER_DAY:
+        if created_today >= MAX_CHALLENGES_PER_DAY:
             logger.warning(
                 f"Daily creation limit exceeded: user={user.email}, "
-                f"created_today={created_today}, limit={ChallengeService.MAX_CHALLENGES_PER_DAY}"
+                f"created_today={created_today}, limit={MAX_CHALLENGES_PER_DAY}"
             )
-            raise ValidationError(
-                f"Daily limit reached ({ChallengeService.MAX_CHALLENGES_PER_DAY}). "
-                f"Please try again tomorrow."
-            )
+            raise ValidationError("daily_limit_exceeded")
 
         if not goal or len(goal.strip()) < 10:
-            raise ValidationError("Goal must be at least 10 characters long.")
+            raise ValidationError("goal_too_short")
 
         if len(goal) > 500:
-            raise ValidationError("Goal is too long. Maximum 500 characters allowed.")
+            raise ValidationError("goal_too_long")
 
         logger.info(
             f"Creating challenge: user={user.email}, "
@@ -65,7 +77,7 @@ class ChallengeService:
             challenge = Challenge.objects.create(
                 user=user,
                 duration_days=duration_days,
-                status="active",
+                status=STATUS_ACTIVE,
                 goal=ai_data.get("goal_ru", goal),
             )
 
@@ -103,23 +115,24 @@ class ChallengeService:
     @staticmethod
     def get_active_challenge(user):
         """Get the user's last active challenge"""
+        today = timezone.now().date()
+        active_limit_date = today - timedelta(days=CHALLENGE_DURATION_DAYS)
         return (
-            Challenge.objects.filter(user=user, status="active")
+            Challenge.objects.filter(
+                user=user,
+                status=STATUS_ACTIVE,
+                start_date__gt=active_limit_date,
+            )
             .order_by("-created_at", "-id")
             .first()
         )
 
     @staticmethod
     def get_user_stats(user) -> dict:
-        """
-        Get user's challenge statistics for monitoring.
-
-        Returns:
-            dict: Statistics including active count, today count, limits
-        """
+        """Get user's challenge statistics for monitoring."""
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
-        active_count = Challenge.objects.filter(user=user, status="active").count()
+        active_count = ChallengeService._get_active_challenges_count(user)
 
         created_today = Challenge.objects.filter(
             user=user, created_at__gte=today_start
@@ -127,12 +140,10 @@ class ChallengeService:
 
         return {
             "active_challenges": active_count,
-            "max_active": ChallengeService.MAX_ACTIVE_CHALLENGES,
-            "can_create_active": active_count < ChallengeService.MAX_ACTIVE_CHALLENGES,
+            "max_active": MAX_ACTIVE_CHALLENGES,
+            "can_create_active": active_count < MAX_ACTIVE_CHALLENGES,
             "created_today": created_today,
-            "max_per_day": ChallengeService.MAX_CHALLENGES_PER_DAY,
-            "can_create_today": created_today < ChallengeService.MAX_CHALLENGES_PER_DAY,
-            "remaining_today": max(
-                0, ChallengeService.MAX_CHALLENGES_PER_DAY - created_today
-            ),
+            "max_per_day": MAX_CHALLENGES_PER_DAY,
+            "can_create_today": created_today < MAX_CHALLENGES_PER_DAY,
+            "remaining_today": max(0, MAX_CHALLENGES_PER_DAY - created_today),
         }

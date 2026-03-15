@@ -4,7 +4,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from datetime import timedelta
 from django.utils.translation import gettext as _
 import logging
 
@@ -16,22 +15,16 @@ from .serializers import (
     TaskSerializer,
 )
 from .services.challenge_service import ChallengeService
+from .constants import MAX_ACTIVE_CHALLENGES
 
 from apps.users.throttles import ChallengeCreationThrottle
 from rest_framework.throttling import UserRateThrottle
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
 
 class ChallengeViewSet(viewsets.ModelViewSet):
-    """
-    API for working with challenges.
-    
-    Security features:
-    - Throttling on challenge creation (10/hour)
-    - Active challenges limit (10 max)
-    - Daily creation limit (15 max)
-    """
 
     permission_classes = [IsAuthenticated]
     queryset = Challenge.objects.none()
@@ -75,22 +68,24 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         except ValidationError as e:
+            error_code = e.message if hasattr(e, "message") else str(e)
             logger.warning(
                 f"Challenge creation failed: user={request.user.email}, "
-                f"error={str(e)}"
+                f"error={error_code}"
             )
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            response_data = {"error": error_code}
+            if error_code == "max_challenges_exceeded":
+                response_data["max"] = MAX_ACTIVE_CHALLENGES
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
             logger.error(
                 f"Unexpected error creating challenge: user={request.user.email}, "
                 f"error={str(e)}"
             )
             return Response(
-                {"error": "Failed to create challenge. Please try again later."}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": "Failed to create challenge. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def list(self, request, *args, **kwargs):
@@ -126,7 +121,6 @@ class ChallengeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["delete"], url_path="bulk-delete")
     @throttle_classes([UserRateThrottle])
-
     def bulk_delete(self, request):
         ids = request.data.get("ids", [])
         if not ids:
@@ -135,13 +129,13 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             )
 
         if len(ids) > 10:
-            return Response({"detail": "Too many IDs"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Too many IDs"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         deleted_count, _ = self.get_queryset().filter(id__in=ids).delete()
 
-        logger.info(
-            f"Bulk delete: user={request.user.email}, deleted={deleted_count}"
-        )
+        logger.info(f"Bulk delete: user={request.user.email}, deleted={deleted_count}")
 
         return Response(
             {"detail": f"Successfully deleted {deleted_count} challenges"},
@@ -194,15 +188,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def _validate_task_modification(self, task):
-        """
-        Checks whether editing (checking/unchecking) a task is allowed.
-
-        Allowed: tasks for today and in the past.
-        Prohibited: tasks for future days.
-
-        Returns:
-            tuple[bool, str | None]: (allowed, error message, or None)
-        """
         challenge = task.challenge
         task_date = challenge.start_date + timedelta(days=task.day_number - 1)
         today = timezone.now().date()

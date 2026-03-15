@@ -38,7 +38,7 @@ REST_FRAMEWORK = {
         "password_change": "2/minute",
         "password_reset": "2/minute",
         "verification_code": "2/minute",
-        "challenge_creation": "2/minute",
+        "challenge_creation": "5/minute",
         "google_auth": "10/minute",
         "token_action": "20/minute",
     },
