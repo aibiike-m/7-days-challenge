@@ -792,6 +792,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: $spacing-responsive-md;
+  margin-bottom: $spacing-responsive-md;
 
   @include md {
     gap: $spacing-responsive-lg;
