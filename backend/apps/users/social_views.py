@@ -1,3 +1,4 @@
+import logging
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
@@ -13,6 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .throttles import GoogleAuthThrottle
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 @api_view(["POST"])
@@ -63,4 +65,5 @@ def exchange_token(request):
     except ValueError as e:
         return Response({"error": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        logger.error(f"Google auth error: {str(e)}", exc_info=True)
+        return Response({"error": "Authentication failed"}, status=400)
