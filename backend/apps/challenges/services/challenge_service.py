@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import transaction
 from django.utils import translation
 from django.core.exceptions import ValidationError
@@ -8,7 +9,6 @@ import logging
 from ..models import Challenge, Task
 from .ai_service import AIService
 from ..constants import (
-    MAX_ACTIVE_CHALLENGES,
     CHALLENGE_DURATION_DAYS,
     STATUS_ACTIVE,
     MIN_GOAL_LENGTH,
@@ -16,8 +16,6 @@ from ..constants import (
 )
 
 logger = logging.getLogger(__name__)
-
-MAX_CHALLENGES_PER_DAY = 15
 
 
 class ChallengeService:
@@ -42,10 +40,10 @@ class ChallengeService:
     ) -> Challenge:
 
         active_count = ChallengeService._get_active_challenges_count(user)
-        if active_count >= MAX_ACTIVE_CHALLENGES:
+        if active_count >= settings.MAX_ACTIVE_CHALLENGES:
             logger.warning(
                 f"Active challenges limit exceeded: user={user.email}, "
-                f"active={active_count}, limit={MAX_ACTIVE_CHALLENGES}"
+                f"active={active_count}, limit={settings.MAX_ACTIVE_CHALLENGES}"
             )
             raise ValidationError("max_challenges_exceeded")
 
@@ -53,10 +51,10 @@ class ChallengeService:
         created_today = Challenge.objects.filter(
             user=user, created_at__gte=today_start
         ).count()
-        if created_today >= MAX_CHALLENGES_PER_DAY:
+        if created_today >= settings.MAX_CHALLENGES_PER_DAY:
             logger.warning(
                 f"Daily creation limit exceeded: user={user.email}, "
-                f"created_today={created_today}, limit={MAX_CHALLENGES_PER_DAY}"
+                f"created_today={created_today}, limit={settings.MAX_CHALLENGES_PER_DAY}"
             )
             raise ValidationError("daily_limit_exceeded")
 
@@ -142,10 +140,10 @@ class ChallengeService:
 
         return {
             "active_challenges": active_count,
-            "max_active": MAX_ACTIVE_CHALLENGES,
-            "can_create_active": active_count < MAX_ACTIVE_CHALLENGES,
+            "max_active": settings.MAX_ACTIVE_CHALLENGES,
+            "can_create_active": active_count < settings.MAX_ACTIVE_CHALLENGES,
             "created_today": created_today,
-            "max_per_day": MAX_CHALLENGES_PER_DAY,
-            "can_create_today": created_today < MAX_CHALLENGES_PER_DAY,
-            "remaining_today": max(0, MAX_CHALLENGES_PER_DAY - created_today),
+            "max_per_day": settings.MAX_CHALLENGES_PER_DAY,
+            "can_create_today": created_today < settings.MAX_CHALLENGES_PER_DAY,
+            "remaining_today": max(0, settings.MAX_CHALLENGES_PER_DAY - created_today),
         }

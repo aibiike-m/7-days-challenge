@@ -1,4 +1,8 @@
 from config.settings.base import *
+import os
+
+os.makedirs(BASE_DIR / "logs", exist_ok=True)
+
 
 # Security
 DEBUG = False
@@ -63,6 +67,9 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
 EMAIL_TIMEOUT = 10
 
+# Challenge limits
+MAX_ACTIVE_CHALLENGES = 10
+
 # Logging
 LOGGING = {
     "version": 1,
@@ -109,3 +116,7 @@ LOGGING = {
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_LOCKOUT_PARAMETERS = [["username"]]
+
+# Proxy settings (if behind a proxy/load balancer)
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

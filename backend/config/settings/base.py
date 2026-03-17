@@ -110,7 +110,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom User Model
 AUTH_USER_MODEL = "users.CustomUser"
-LOGIN_URL = None
 
 # Social Auth - Google OAuth2
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env("GOOGLE_OAUTH2_KEY", default="")
@@ -207,14 +206,14 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@sevensteps.com")
+EMAIL_TIMEOUT = 10
 
 FRONTEND_URL = env("FRONTEND_URL")
 
-EMAIL_TIMEOUT = 10
 
-
-MAX_ACTIVE_CHALLENGES = 10
+# Challenge limits
 MAX_CHALLENGES_PER_DAY = 15
+MAX_ACTIVE_CHALLENGES = 10
 
 # Browser security headers
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"

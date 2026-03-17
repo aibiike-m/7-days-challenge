@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 import logging
 
+from django.conf import settings
+
 from .models import Challenge, Task
 from .serializers import (
     ChallengeListSerializer,
@@ -15,7 +17,6 @@ from .serializers import (
     TaskSerializer,
 )
 from .services.challenge_service import ChallengeService
-from .constants import MAX_ACTIVE_CHALLENGES
 
 from apps.users.throttles import ChallengeCreationThrottle
 from rest_framework.throttling import UserRateThrottle
@@ -75,7 +76,7 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             )
             response_data = {"error": error_code}
             if error_code == "max_challenges_exceeded":
-                response_data["max"] = MAX_ACTIVE_CHALLENGES
+                response_data["max"] = settings.MAX_ACTIVE_CHALLENGES
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
