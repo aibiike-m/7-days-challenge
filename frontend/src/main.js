@@ -15,7 +15,6 @@ const toastOptions = {
 	newestOnTop: true,
 	position: 'top-right',
 	timeout: 3000,
-	hideProgressBar: false,
 	closeOnClick: true,
 	pauseOnFocusLoss: true,
 	pauseOnHover: true,
