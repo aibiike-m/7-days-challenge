@@ -456,17 +456,8 @@ function calculateChallengeProgress(challengeId) {
   return Math.round((completed / challengeTasks.length) * 100)
 }
 
-async function onTaskToggled(task) {
-  const originalStatus = task.is_completed
-  
-  try {
-    task.is_completed = !task.is_completed
-    await api.updateTaskStatus(task.id, task.is_completed)
-    
-  } catch (error) {
-    task.is_completed = originalStatus
-    handleApiError(error, notify)
-  }
+function onTaskToggled(task) {
+  task.is_completed = !task.is_completed
 }
 
 async function loadChallenges() {
