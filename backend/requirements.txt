@@ -14,3 +14,4 @@ pytest-django==4.11.1
 Faker==40.1.2
 argon2-cffi==23.1.0
 django-axes==6.1.1
+gunicorn==21.2.0

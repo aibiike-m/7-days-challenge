@@ -11,4 +11,12 @@ staticfiles/
 
 .env
 
+.pytest_cache/
+*.egg-info/
+dist/
+.coverage
+htmlcov/
+static/
+*.log
+
 show_tree.py
