@@ -4,7 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/'
 
 const api = axios.create({
 	baseURL: API_URL,
-	timeout: 60000,
+	timeout: 10000,
 })
 
 api.interceptors.request.use(config => {
@@ -30,7 +30,8 @@ api.interceptors.response.use(
 					return api(error.config)
 				}
 			} catch (refreshError) {
-				localStorage.clear()
+				localStorage.removeItem('access_token')
+				localStorage.removeItem('refresh_token')
 				window.location.href = '/auth'
 			}
 		}
@@ -40,12 +41,9 @@ api.interceptors.response.use(
 
 api.getChallenges = () => api.get('challenges/')
 api.getAllTasks = () => api.get('tasks/')
-// api.getTasks = challengeId => api.get(`tasks/?challenge=${challengeId}`)
 api.completeTask = taskId => api.post(`tasks/${taskId}/complete/`)
 api.uncompleteTask = taskId => api.post(`tasks/${taskId}/uncomplete/`)
 api.getTasks = challengeId => api.get(`tasks/?challenge_ids=${challengeId}`)
-api.bulkDeleteChallenges = ids =>
-	api.delete('challenges/bulk-delete/', { data: { ids } })
-api.cancelEmailChange = token =>
-	api.get(`users/cancel-email-change/?token=${token}`)
+api.bulkDeleteChallenges = ids => api.delete('challenges/bulk-delete/', { data: { ids } })
+api.cancelEmailChange = token => api.get(`users/cancel-email-change/?token=${token}`)
 export default api

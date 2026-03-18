@@ -143,6 +143,10 @@
 		"no_tasks": "No tasks",
 		"congratulations": "Congratulations!"
 	},
+	"not_found": {
+		"message": "Page not found",
+		"go_home": "Go to home"
+	},
 	"success": {
 		"challenge_created": "Challenge created successfully!",
 		"task_updated": "Task updated",
@@ -191,7 +195,7 @@
 		"email_already_in_use": "This email is already in use by another account",
 		"email_invalid": "Please enter a valid email address",
 		"max_challenges_exceeded": "You can't have more than {max} active challenges. Please complete or delete old ones first."
-		},
+	},
 	"common": {
 		"loading": "Loading...",
 		"confirm": "Confirm",
