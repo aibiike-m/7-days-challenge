@@ -41,11 +41,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { handleApiError } from '@/utils/errorHandler'
+import { useNotification } from '@/composables/useNotification'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-
+const notify = useNotification()
 const status = ref('loading')
 const errorMessage = ref('')
 
@@ -58,7 +59,7 @@ onMounted(async () => {
 
   if (!token) {
     status.value = 'error'
-    errorMessage.value = ('deletion.error_no_token')
+    errorMessage.value = t('deletion.error_no_token')
     return
   }
 
