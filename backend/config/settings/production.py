@@ -1,5 +1,7 @@
 from config.settings.base import *
 import os
+from datetime import timedelta
+
 
 os.makedirs(BASE_DIR / "logs", exist_ok=True)
 
@@ -44,6 +46,7 @@ DATABASES = {
 
 # Static files
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # CACHES
 CACHES = {

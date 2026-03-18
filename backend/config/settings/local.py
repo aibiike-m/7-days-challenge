@@ -1,4 +1,5 @@
 from config.settings.base import *
+from datetime import timedelta
 
 # Security
 DEBUG = True
