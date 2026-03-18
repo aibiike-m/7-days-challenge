@@ -28,7 +28,7 @@ class TestChallengeService:
         mock_model.return_value.generate_content.return_value = mock_response
 
         challenge = ChallengeService.create_challenge_with_tasks(
-            goal="Learn Python", user=user, language="ru"
+            goal="Learn Python(django rest framework)", user=user, language="ru"
         )
 
         assert challenge is not None
@@ -66,7 +66,7 @@ class TestChallengeService:
         mock_model.return_value.generate_content.return_value = mock_response
 
         challenge = ChallengeService.create_challenge_with_tasks(
-            goal="Learn Python", user=user, language="en"
+            goal="Learn Python(django rest framework)", user=user, language="en"
         )
 
         assert challenge.goal
@@ -98,7 +98,7 @@ class TestChallengeService:
         mock_model.return_value.generate_content.return_value = mock_response
 
         challenge = ChallengeService.create_challenge_with_tasks(
-            goal="Learn Python", user=user, language="ru"
+            goal="Learn Python(django rest framework)", user=user, language="ru"
         )
 
         tasks = challenge.tasks.all().order_by("order")
@@ -269,7 +269,7 @@ class TestAIService:
         with pytest.raises(Exception):
             service.generate_challenge_plan("Test goal")
 
-        assert mock_model.return_value.generate_content.call_count == 3
+        assert mock_model.return_value.generate_content.call_count == 2
 
     @patch("apps.challenges.services.ai_service.genai.GenerativeModel")
     def test_generate_challenge_plan_handles_no_response_text(self, mock_model):
@@ -308,7 +308,9 @@ class TestServiceIntegration:
         mock_model.return_value.generate_content.return_value = mock_response
 
         challenge = ChallengeService.create_challenge_with_tasks(
-            goal="Learn Python in 7 days", user=user, language="en"
+            goal="Learn Python in 7 days if I already know the basics",
+            user=user,
+            language="en",
         )
 
         assert Challenge.objects.filter(user=user).count() == 1
