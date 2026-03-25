@@ -12,8 +12,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput || true
+RUN DJANGO_SETTINGS_MODULE=config.settings.production \
+    SECRET_KEY=placeholder-for-build \
+    DATABASE_URL=postgres://placeholder/placeholder \
+    FRONTEND_URL=http://placeholder \
+    python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]
+CMD sh -c "python manage.py migrate && \
+           python manage.py createcachetable && \
+           gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
