@@ -1,6 +1,5 @@
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from django.core.cache import cache
-from datetime import timedelta
 from django.utils import timezone
 
 
@@ -21,15 +20,6 @@ class VerificationCodeRateThrottle(UserRateThrottle):
 
 
 class MinimumIntervalThrottle(AnonRateThrottle):
-    """
-    A throttle that requires a minimum interval between requests.
-    Use it to protect against spam codes.
-
-    Example usage:
-        class MyView(APIView):
-            throttle_classes = [MinimumIntervalThrottle]
-            minimum_interval_seconds = 60  # 1 minute between requests
-    """
 
     def __init__(self):
         self.minimum_interval_seconds = getattr(
