@@ -1,6 +1,7 @@
 from config.settings.base import *
 import os
 from datetime import timedelta
+import dj_database_url
 
 
 os.makedirs(BASE_DIR / "logs", exist_ok=True)
@@ -11,7 +12,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
@@ -30,19 +31,13 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 # Database
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DATABASE_NAME"),
-        "USER": env("DATABASE_USER"),
-        "PASSWORD": env("DATABASE_PASSWORD"),
-        "HOST": env("DATABASE_HOST"),
-        "PORT": env("DATABASE_PORT", default="5432"),
-        "CONN_MAX_AGE": 600,
-        "OPTIONS": {
-            "sslmode": "require",
-        },
-    }
+    "default": dj_database_url.config(
+        default=env("DATABASE_URL"),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
+
 
 # Static files
 STATIC_ROOT = BASE_DIR / "staticfiles"
