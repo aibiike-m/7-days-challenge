@@ -86,14 +86,13 @@ const submit = async () => {
   const goalText = goal.value.trim()
   
   emit('close')
-  const currentGoal = goalText
   goal.value = ''
   emit('creating')
   
   try {
-    const response = await api.post('challenges/', {
-      goal: goalText,
-      language: locale.value
+    const response = await api.createChallenge({
+        goal: goalText,
+        language: locale.value
     })
     
     const challengeData = response.data?.challenge || response.data

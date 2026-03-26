@@ -41,6 +41,7 @@ api.interceptors.response.use(
 )
 
 api.getChallenges = () => api.get('challenges/')
+api.createChallenge = data => api.post('challenges/', data, { timeout: 60000 })
 api.getAllTasks = () => api.get('tasks/')
 api.completeTask = taskId => api.post(`tasks/${taskId}/complete/`)
 api.uncompleteTask = taskId => api.post(`tasks/${taskId}/uncomplete/`)
