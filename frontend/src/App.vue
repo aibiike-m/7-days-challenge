@@ -22,14 +22,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/AppHeader.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import FAB from '@/components/FAB.vue'
 import CreateChallengeModal from '@/components/CreateChallengeModal.vue'
 
 const route = useRoute()
+const { locale } = useI18n()
 
 const showNavigation = computed(() => {
   return route.meta.requiresAuth === true
@@ -42,6 +44,10 @@ const onChallengeCreated = () => {
   isCreatingChallenge.value = false
   isCreateModalOpen.value = false
 }
+
+watch(locale, (newLang) => {
+  document.documentElement.setAttribute('lang', newLang)
+}, { immediate: true })  
 </script>
 
 <style lang="scss" scoped>
