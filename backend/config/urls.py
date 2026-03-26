@@ -2,6 +2,9 @@ import os
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from config.settings.base import env
 
 from apps.users.views import (
     UserViewSet,
@@ -14,12 +17,10 @@ from apps.users.views import (
     confirm_password_reset,
 )
 from apps.users.social_views import exchange_token
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 router = DefaultRouter()
 router.register(r"users", UserViewSet, basename="user")
-raw_admin_url = os.getenv("ADMIN_URL", "admin")
-admin_url = raw_admin_url.strip("/") + "/"
+admin_url = env("ADMIN_URL").strip("/") + "/"
 
 urlpatterns = [
     path(admin_url, admin.site.urls),  
