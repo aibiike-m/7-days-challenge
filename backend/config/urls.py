@@ -1,5 +1,6 @@
 import os
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -22,8 +23,12 @@ router = DefaultRouter()
 router.register(r"users", UserViewSet, basename="user")
 admin_url = env("ADMIN_URL").strip("/") + "/"
 
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
 urlpatterns = [
-    path(admin_url, admin.site.urls),  
+    path("health/", health_check),
+    path(admin_url, admin.site.urls),
     # Authentication
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
