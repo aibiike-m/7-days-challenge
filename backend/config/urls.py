@@ -1,12 +1,11 @@
-import os
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from config.settings.base import env
-
 from apps.users.views import (
     UserViewSet,
     LogoutView,
@@ -65,4 +64,11 @@ urlpatterns = [
     # API
     path("api/", include("apps.challenges.urls")),
     path("api/", include(router.urls)),
+    # Swagger
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
 ]
