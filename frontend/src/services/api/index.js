@@ -29,6 +29,10 @@ api.interceptors.response.use(
 					localStorage.setItem('access_token', newAccess)
 					error.config.headers.Authorization = `Bearer ${newAccess}`
 					return api(error.config)
+				} else {
+					localStorage.removeItem('access_token')
+					window.location.href = '/auth'
+					return Promise.reject(error)
 				}
 			} catch (refreshError) {
 				localStorage.removeItem('access_token')
