@@ -16,6 +16,7 @@ RUN DJANGO_SETTINGS_MODULE=config.settings.production \
     SECRET_KEY=placeholder-for-build \
     DATABASE_URL=postgres://placeholder/placeholder \
     FRONTEND_URL=http://placeholder \
+    RESEND_API_KEY=placeholder \
     python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
